@@ -1,21 +1,13 @@
-﻿using System.Text;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using Memoria.App.ViewModels;
 
 namespace Memoria.App;
 
-/// <summary>
-/// Interaction logic for MainWindow.xaml
-/// </summary>
 public partial class MainWindow : Window
 {
+    /// 계약 §9.3 — code-behind/이후 마일스톤이 ViewModel에 접근.
+    public MainViewModel ViewModel => (MainViewModel)DataContext;
+
     public MainWindow()
     {
         InitializeComponent();
