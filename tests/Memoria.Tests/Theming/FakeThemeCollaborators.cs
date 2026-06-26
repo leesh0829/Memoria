@@ -7,7 +7,7 @@ namespace Memoria.Tests.Theming;
 public sealed class FakeThemeApplier : IThemeApplier
 {
     public Uri? LastPalette { get; private set; }
-    public string? LastAccent { get; private set; }
+    public string? LastAccent { get; set; }
     public int PaletteApplyCount { get; private set; }
 
     public void ApplyPalette(Uri paletteUri)
