@@ -210,3 +210,11 @@ MINOR (defer): ApplyAccent brush not Frozen()
 M7 Task 6: head e64da78 | Failed: 0, Passed: 265 (256 existing + 9 new SettingsViewModelTests)
 M7 Task 7: head 0421ae0 | Failed: 0, Passed: 272 (265 existing + 7 new ClientsSettingsViewModelTests)
 M7 Task 8: head f8598c6 | Failed: 0, Passed: 273 (272 existing + 1 new OpenSettingsCommand_delegates_to_ISettingsWindowService)
+
+--- M7 chunk 2 (tasks 6-8) — VERIFIED 273/273 green ---
+M7 Task 6: complete (head e64da78) [SettingsViewModel]
+M7 Task 7: complete (head 2e0cd7f) [ClientsSettingsViewModel display-order vs priority]
+M7 Task 8: complete (head c389cc7) [Settings View + accent picker + theme wiring + OpenSettings filled]
+*** M7 COMPLETE: 273/273 tests. ***
+MINOR (defer): SettingsViewModel Autostart wrapper INPC gap (check SettingsView binding); ClientsSettingsVM double OrderBy
+M9 Task 1: head 94f98ff | Failed: 0, Passed: 277 (273 existing + 4 new MainViewModelEditorHostTests)
