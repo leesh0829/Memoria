@@ -179,4 +179,18 @@ public partial class WeeklyReportViewModel : ObservableObject
             .FirstOrDefault(g => g.IsSystem && g.Name == WeeklyReportGroupName);
         return group?.Id;
     }
+
+    partial void OnSelectedFormatChanged(ReportFormatKind value) => LoadExisting();
+
+    private void LoadExisting()
+    {
+        var (monday, _) = _weekCalculator.GetWorkWeek(SelectedDate);
+        var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
+        _currentNoteId = existing?.Id;
+        ReportText = existing?.Body ?? "";
+        UnclassifiedTaskCount = 0;
+    }
+
+    [RelayCommand]
+    private void Copy() => _clipboard.SetText(ReportText ?? "");
 }

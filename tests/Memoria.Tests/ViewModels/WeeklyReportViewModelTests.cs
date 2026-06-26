@@ -239,4 +239,49 @@ public class WeeklyReportViewModelTests
         notes.Created.Should().HaveCount(1);
         notes.Created[0].Body.Should().Be("첫 생성 본문");
     }
+
+    [Fact]
+    public void Copy_sends_current_report_text_to_clipboard()
+    {
+        var (vm, svc, _, _, _, _, clip, _) = CreateSut();
+        svc.RenderResult = "복사 대상 본문";
+        vm.GenerateCommand.Execute(null);
+
+        vm.CopyCommand.Execute(null);
+
+        clip.SetCount.Should().Be(1);
+        clip.LastText.Should().Be("복사 대상 본문");
+    }
+
+    [Fact]
+    public void Changing_format_loads_existing_report_for_that_format()
+    {
+        var (vm, _, notes, _, _, _, _, _) =
+            CreateSut(new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero));
+        notes.Notes.Add(new Note
+        {
+            Id = 91,
+            Type = NoteType.WeeklyReport,
+            ReportFormat = ReportFormatKind.B,
+            ReportWeekStart = new DateOnly(2026, 6, 22),
+            Body = "B 양식 기존 본문",
+        });
+
+        vm.SelectedFormat = ReportFormatKind.B;
+
+        vm.ReportText.Should().Be("B 양식 기존 본문");
+    }
+
+    [Fact]
+    public void Changing_format_clears_text_when_no_existing_report()
+    {
+        var (vm, svc, _, _, _, _, _, _) = CreateSut();
+        svc.RenderResult = "A 본문";
+        vm.GenerateCommand.Execute(null);
+        vm.ReportText.Should().Be("A 본문");
+
+        vm.SelectedFormat = ReportFormatKind.B;
+
+        vm.ReportText.Should().BeEmpty();
+    }
 }

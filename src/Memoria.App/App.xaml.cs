@@ -36,6 +36,11 @@ public partial class App : Application
         });
         sc.AddSingleton<MainViewModel>();
         sc.AddSingleton<MainWindow>();
+        // M4 — WPF 서비스 구현체 + WeeklyReportViewModel 등록.
+        sc.AddSingleton<IClipboardService, WpfClipboardService>();
+        sc.AddSingleton<IConfirmationDialogService, MessageBoxConfirmationDialogService>();
+        // TimeProvider.System 은 위에서 이미 등록됨 → 중복 등록 금지.
+        sc.AddTransient<WeeklyReportViewModel>();
         _services = sc.BuildServiceProvider();
         AppServices.Initialize(_services);          // 계약 §9.2 — 이후 View/code-behind가 AppServices.Resolve<T>() 사용
 
