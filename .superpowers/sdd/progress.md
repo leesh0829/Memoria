@@ -100,3 +100,5 @@ MINOR (defer to final review): unused template usings; SaveCurrent bg-thread rea
 
 M3 Task 1: head f35348d | dotnet test: 101 passed (94 existing + 7 new ChecklistItemViewModel), 0 failed
 M3 Task 2: head b2ccd5c | dotnet test: 103 passed (101 existing + 2 new ChecklistViewModel Load), 0 failed
+M3 Task 3: head ad19053 | dotnet test: 108 passed (103 existing + 5 new AddTask/AddIssue/SortOrder/RemoveItem/TouchNote), 0 failed
+M3 Task 4: head 29767cf | dotnet test: 112 passed (108 existing + 4 new ToggleDone), 0 failed
