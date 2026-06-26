@@ -138,4 +138,105 @@ public class WeeklyReportViewModelTests
         vm.UnclassifiedTaskCount.Should().Be(0);
         vm.HasUnclassifiedWarning.Should().BeFalse();
     }
+
+    [Fact]
+    public void Generate_reuses_existing_report_body_without_rebuilding()
+    {
+        var (vm, svc, notes, _, _, _, _, _) =
+            CreateSut(new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero));
+        notes.Notes.Add(new Note
+        {
+            Id = 55,
+            Type = NoteType.WeeklyReport,
+            ReportFormat = ReportFormatKind.A,
+            ReportWeekStart = new DateOnly(2026, 6, 22),
+            Body = "사용자가 손으로 편집한 보고서",
+        });
+
+        vm.GenerateCommand.Execute(null);
+
+        vm.ReportText.Should().Be("사용자가 손으로 편집한 보고서");
+        notes.Created.Should().BeEmpty();
+        notes.Updated.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_creates_new_report_in_weekly_report_system_group()
+    {
+        var (vm, svc, notes, _, _, _, _, _) =
+            CreateSut(new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero));
+        svc.RenderResult = "새로 생성된 본문";
+
+        vm.GenerateCommand.Execute(null);
+
+        notes.Created.Should().HaveCount(1);
+        var created = notes.Created[0];
+        created.Type.Should().Be(NoteType.WeeklyReport);
+        created.GroupId.Should().Be(2); // FakeGroupRepository의 '주간보고' 시스템 그룹 Id
+        created.ReportFormat.Should().Be(ReportFormatKind.A);
+        created.ReportWeekStart.Should().Be(new DateOnly(2026, 6, 22));
+        created.Body.Should().Be("새로 생성된 본문");
+    }
+
+    [Fact]
+    public void Regenerate_overwrites_existing_body_after_confirm()
+    {
+        var (vm, svc, notes, _, _, _, _, dlg) =
+            CreateSut(new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero));
+        notes.Notes.Add(new Note
+        {
+            Id = 77,
+            Type = NoteType.WeeklyReport,
+            ReportFormat = ReportFormatKind.A,
+            ReportWeekStart = new DateOnly(2026, 6, 22),
+            Body = "예전 편집본",
+        });
+        svc.RenderResult = "재생성된 본문";
+        dlg.Result = true;
+
+        vm.RegenerateCommand.Execute(null);
+
+        dlg.CallCount.Should().Be(1);
+        notes.Updated.Should().HaveCount(1);
+        notes.Updated[0].Id.Should().Be(77);
+        notes.Updated[0].Body.Should().Be("재생성된 본문");
+        vm.ReportText.Should().Be("재생성된 본문");
+    }
+
+    [Fact]
+    public void Regenerate_keeps_existing_body_when_confirm_declined()
+    {
+        var (vm, svc, notes, _, _, _, _, dlg) =
+            CreateSut(new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero));
+        notes.Notes.Add(new Note
+        {
+            Id = 88,
+            Type = NoteType.WeeklyReport,
+            ReportFormat = ReportFormatKind.A,
+            ReportWeekStart = new DateOnly(2026, 6, 22),
+            Body = "지키고 싶은 편집본",
+        });
+        svc.RenderResult = "버려질 본문";
+        dlg.Result = false;
+
+        vm.RegenerateCommand.Execute(null);
+
+        dlg.CallCount.Should().Be(1);
+        notes.Updated.Should().BeEmpty();
+        notes.Notes.Single().Body.Should().Be("지키고 싶은 편집본");
+    }
+
+    [Fact]
+    public void Regenerate_does_not_prompt_when_no_existing_body()
+    {
+        var (vm, svc, notes, _, _, _, _, dlg) =
+            CreateSut(new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero));
+        svc.RenderResult = "첫 생성 본문";
+
+        vm.RegenerateCommand.Execute(null);
+
+        dlg.CallCount.Should().Be(0);
+        notes.Created.Should().HaveCount(1);
+        notes.Created[0].Body.Should().Be("첫 생성 본문");
+    }
 }

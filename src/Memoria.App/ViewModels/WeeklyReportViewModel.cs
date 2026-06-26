@@ -119,6 +119,64 @@ public partial class WeeklyReportViewModel : ObservableObject
     private void Generate()
     {
         var (monday, friday) = _weekCalculator.GetWorkWeek(SelectedDate);
-        ReportText = RenderFresh(monday, friday);
+        var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
+        if (existing is not null && !string.IsNullOrEmpty(existing.Body))
+        {
+            // 멱등 재사용: 사용자가 편집한 기존 본문을 그대로 표시.
+            _currentNoteId = existing.Id;
+            ReportText = existing.Body;
+            var options = BuildOptions(monday, friday);
+            UnclassifiedTaskCount = _reportService.Build(SelectedDate, options).UnclassifiedTaskCount;
+            return;
+        }
+
+        var text = RenderFresh(monday, friday);
+        ReportText = text;
+        Persist(monday, existing, text);
+    }
+
+    [RelayCommand]
+    private void Regenerate()
+    {
+        var (monday, friday) = _weekCalculator.GetWorkWeek(SelectedDate);
+        var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
+        if (existing is not null && !string.IsNullOrEmpty(existing.Body))
+        {
+            if (!_dialogs.Confirm("기존에 편집한 주간보고 내용을 덮어씁니다. 계속할까요?"))
+                return;
+        }
+
+        var text = RenderFresh(monday, friday);
+        ReportText = text;
+        Persist(monday, existing, text);
+    }
+
+    private void Persist(DateOnly monday, Note? existing, string text)
+    {
+        if (existing is null)
+        {
+            var note = new Note
+            {
+                Type = NoteType.WeeklyReport,
+                GroupId = ResolveWeeklyReportGroupId(),
+                ReportFormat = SelectedFormat,
+                ReportWeekStart = monday,
+                Body = text,
+            };
+            _currentNoteId = _noteRepository.Create(note);
+        }
+        else
+        {
+            existing.Body = text;
+            _noteRepository.Update(existing);
+            _currentNoteId = existing.Id;
+        }
+    }
+
+    private int? ResolveWeeklyReportGroupId()
+    {
+        var group = _groupRepository.GetAll()
+            .FirstOrDefault(g => g.IsSystem && g.Name == WeeklyReportGroupName);
+        return group?.Id;
     }
 }
