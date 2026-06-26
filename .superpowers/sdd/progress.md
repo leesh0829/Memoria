@@ -99,3 +99,4 @@ post-fix: 17 brush keys complete + AppServices hardened
 MINOR (defer to final review): unused template usings; SaveCurrent bg-thread reads VM props (safe now); AppServices Reset test-only
 
 M3 Task 1: head f35348d | dotnet test: 101 passed (94 existing + 7 new ChecklistItemViewModel), 0 failed
+M3 Task 2: head b2ccd5c | dotnet test: 103 passed (101 existing + 2 new ChecklistViewModel Load), 0 failed
