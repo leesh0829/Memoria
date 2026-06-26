@@ -180,3 +180,4 @@ M6 Task 4: complete (head 4f2fdea) [SingleInstanceService Mutex+pipe]
 TO-FIX after M6: SingleInstanceService.ServerLoopAsync ReadLineAsync cancellation (loop dies early) + Dispose await; (minor) autostart tests touch isolated HKCU test key
 M6 Task 5: head 718e2e8 | Failed: 0, Passed: 200 (197 existing + 3 new GlobalHotkeyServiceTests)
 M6 Task 6: head 413f652 | Failed: 0, Passed: 200 (no regression; TrayService + H.NotifyIcon.Wpf + app.ico; build green, manual tray checkpoints pending)
+M6 Task 7: head a851d56 | Failed: 0, Passed: 200 (all green; App.xaml.cs M6 wiring: single-instance gate, tray/hotkey/autostart, IPC dispatch; MainWindow closeToTray OnClosing; build succeeded 0 errors)
