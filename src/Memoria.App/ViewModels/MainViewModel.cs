@@ -16,12 +16,16 @@ public partial class MainViewModel : ObservableObject
 
     public ObservableCollection<SidebarNodeViewModel> SidebarNodes { get; } = new();
     public ObservableCollection<NoteListItemViewModel> Notes { get; } = new();
+    public ObservableCollection<SearchHit> SearchResults { get; } = new();
 
     [ObservableProperty]
     private SidebarNodeViewModel? selectedNode;
 
     [ObservableProperty]
     private NoteListItemViewModel? selectedNote;
+
+    [ObservableProperty]
+    private string searchText = string.Empty;
 
     public MainViewModel(IGroupRepository groupRepo, INoteRepository noteRepo, TimeProvider time)
     {
@@ -89,5 +93,5 @@ public partial class MainViewModel : ObservableObject
     private void Search() { /* M9에서 채움 */ }
 
     [RelayCommand]
-    private void OpenSearchHit(object? hit) { /* M9에서 채움 */ }
+    private void OpenSearchHit(SearchHit hit) { /* M9에서 채움 */ }
 }
