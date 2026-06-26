@@ -102,3 +102,12 @@ M3 Task 1: head f35348d | dotnet test: 101 passed (94 existing + 7 new Checklist
 M3 Task 2: head b2ccd5c | dotnet test: 103 passed (101 existing + 2 new ChecklistViewModel Load), 0 failed
 M3 Task 3: head ad19053 | dotnet test: 108 passed (103 existing + 5 new AddTask/AddIssue/SortOrder/RemoveItem/TouchNote), 0 failed
 M3 Task 4: head 29767cf | dotnet test: 112 passed (108 existing + 4 new ToggleDone), 0 failed
+M3 Task 5: head 7611f48 | dotnet test: 116 passed (112 existing + 4 new FlushSaves), 0 failed
+
+--- M3 chunk 1 (tasks 1-5) — VERIFIED 116/116 green ---
+M3 Task 1: complete (head cbd7e59) [ChecklistItemViewModel]
+M3 Task 2: complete (head 9731c34) [fakes + Load] (minor: 2 dead usings)
+M3 Task 3: complete (head ad19053) [add/remove + parent updated_at]
+M3 Task 4: complete (head 29767cf) [done toggle + strikethrough + done_at]
+M3 Task 5: complete (head 7611f48) [FlushSaves auto-tag + manual protection]
+M3 Task 6: head 254856f | Failed: 0, Passed: 119 | CommitClient sets IsManual=true, persists, protects from re-tagging
