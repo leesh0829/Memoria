@@ -69,4 +69,33 @@ public class SearchServiceTests
         hit.Snippet.Should().NotBeNullOrEmpty();
         hit.Snippet.Should().Contain("자율형공장");
     }
+
+    [Fact]
+    public void Search_OrdersByRelevance_StrongerMatchFirst()
+    {
+        using var db = new TestDb();
+        var notes = new NoteRepository(db.Factory);
+        var sut = new SearchService(db.Factory);
+
+        // 약한 매칭: 긴 본문에 검색어가 1회만 등장 (먼저 생성 → 낮은 rowid)
+        var weakId = notes.Create(new Note
+        {
+            Type = NoteType.Plain,
+            Title = "잡담",
+            Body = "베타 그리고 서로 관련 없는 매우 길고 다양한 다른 내용 으로 가득 채워진 본문",
+        });
+        // 강한 매칭: 짧은 본문에 검색어가 여러 번 등장 (나중 생성 → 높은 rowid)
+        var strongId = notes.Create(new Note
+        {
+            Type = NoteType.Plain,
+            Title = "베타",
+            Body = "베타 베타 베타",
+        });
+
+        var hits = sut.Search("베타");
+
+        hits.Should().HaveCount(2);
+        hits[0].NoteId.Should().Be(strongId); // FTS5 rank(관련도) 순 — 강한 매칭이 먼저
+        hits[1].NoteId.Should().Be(weakId);
+    }
 }
