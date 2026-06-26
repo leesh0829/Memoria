@@ -89,4 +89,33 @@ public class TrashViewModelTests
 
         notes.Get(id)!.DeletedAt.Should().NotBeNull(); // 복원되지 않음
     }
+
+    [Fact]
+    public void Restore_removes_from_trash_list()
+    {
+        var (vm, notes, _) = CreateSut();
+        var id = notes.Create(new Note { Type = NoteType.Plain, Title = "메모" });
+        notes.SoftDelete(id);
+        vm.Load();
+        vm.Items.Should().HaveCount(1);
+
+        vm.Restore(id);
+
+        notes.Get(id)!.DeletedAt.Should().BeNull();
+        vm.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Purge_permanently_deletes_and_reloads()
+    {
+        var (vm, notes, _) = CreateSut();
+        var id = notes.Create(new Note { Type = NoteType.Plain, Title = "메모" });
+        notes.SoftDelete(id);
+        vm.Load();
+
+        vm.Purge(id);
+
+        notes.Get(id).Should().BeNull();
+        vm.Items.Should().BeEmpty();
+    }
 }

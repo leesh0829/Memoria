@@ -53,6 +53,20 @@ public partial class TrashViewModel : ObservableObject
         UndoMessage = null;
     }
 
+    [RelayCommand]
+    public void Restore(int noteId)
+    {
+        _notes.Restore(noteId);
+        Load();
+    }
+
+    [RelayCommand]
+    public void Purge(int noteId)
+    {
+        _notes.Purge(noteId); // checklist_items CASCADE
+        Load();
+    }
+
     public void Load()
     {
         var now = _clock.GetUtcNow();
