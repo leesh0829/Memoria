@@ -3,6 +3,7 @@ using FluentAssertions;
 using Memoria.App.ViewModels;
 using Memoria.Core.Models;
 using Memoria.Tests.App.Fakes;
+using Microsoft.Extensions.Time.Testing;
 using Xunit;
 
 namespace Memoria.Tests.App;
@@ -17,7 +18,7 @@ public class MainViewModelSidebarTests
         groups.Create(new Group { Name = "개인", IsSystem = false, SortOrder = 2 });
         groups.Create(new Group { Name = "일일업무일지", IsSystem = true, SortOrder = 10 });
         groups.Create(new Group { Name = "주간보고", IsSystem = true, SortOrder = 11 });
-        var vm = new MainViewModel(groups);
+        var vm = new MainViewModel(groups, new FakeNoteRepository(), new FakeTimeProvider());
 
         vm.LoadGroups();
 
