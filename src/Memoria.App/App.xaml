@@ -14,6 +14,13 @@
         <SolidColorBrush x:Key="Brush.Border" Color="#FFDDDDDD" />
         <SolidColorBrush x:Key="Brush.Accent" Color="#FF2D7D9A" />
         <SolidColorBrush x:Key="Brush.AccentForeground" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="Brush.ListItemHover" Color="#FFEDEDED" />
+        <SolidColorBrush x:Key="Brush.ListItemSelected" Color="#FFD0E8FF" />
+        <SolidColorBrush x:Key="Brush.StrikethroughForeground" Color="#FF9AA0A6" />
+        <SolidColorBrush x:Key="Brush.UnclassifiedHighlight" Color="#FFFFE08A" />
+        <SolidColorBrush x:Key="Brush.WarningBackground" Color="#FFFFF4CE" />
+        <SolidColorBrush x:Key="Brush.WarningBorder" Color="#FFE6B800" />
+        <SolidColorBrush x:Key="Brush.WarningForeground" Color="#FF6B5300" />
         <!-- Converter는 색이 아니므로 StaticResource 허용(계약 §10 주석) -->
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Application.Resources>
