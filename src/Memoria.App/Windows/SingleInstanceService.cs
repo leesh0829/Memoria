@@ -60,16 +60,23 @@ public sealed class SingleInstanceService : ISingleInstanceService
             try
             {
                 await server.WaitForConnectionAsync(token).ConfigureAwait(false);
+
+                using var reader = new StreamReader(server);
+                string? line = await reader.ReadLineAsync(token).ConfigureAwait(false);
+                if (line is not null && PipeMessage.TryParse(line, out var command))
+                    CommandReceived?.Invoke(this, command);
             }
             catch (OperationCanceledException)
             {
+                // Cancellation requested (during accept or read): stop accepting cleanly.
                 break;
             }
-
-            using var reader = new StreamReader(server);
-            string? line = await reader.ReadLineAsync(token).ConfigureAwait(false);
-            if (line is not null && PipeMessage.TryParse(line, out var command))
-                CommandReceived?.Invoke(this, command);
+            catch (IOException)
+            {
+                // A single broken/aborted client connection must not kill the server;
+                // dispose this stream and keep accepting the next connection.
+                continue;
+            }
         }
     }
 
@@ -84,6 +91,9 @@ public sealed class SingleInstanceService : ISingleInstanceService
     public void Dispose()
     {
         try { _cts?.Cancel(); } catch { /* shutdown best-effort */ }
+        // Give the server loop a brief, bounded chance to observe cancellation and unwind
+        // so we don't return mid-teardown. Bounded wait avoids any chance of a deadlock.
+        try { _serverLoop?.Wait(TimeSpan.FromSeconds(1)); } catch { /* loop faulted/cancelled — best-effort */ }
         _cts?.Dispose();
         _mutex?.Dispose();
         _mutex = null;
