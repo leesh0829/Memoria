@@ -49,3 +49,6 @@ Desktop.ini
 
 # Logs
 *.log
+
+# SDD scratch (briefs, review packages, progress ledger)
+.superpowers/
