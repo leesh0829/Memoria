@@ -1,7 +1,10 @@
 // tests/Memoria.Tests/ViewModels/WeeklyReportViewModelTests.cs
 using FluentAssertions;
 using Memoria.App.ViewModels;
+using Memoria.Core;
 using Memoria.Core.Models;
+using Memoria.Core.Reporting;
+using Memoria.Core.Services;
 
 namespace Memoria.Tests.ViewModels;
 
@@ -50,5 +53,89 @@ public class WeeklyReportViewModelTests
         vm.WeekStart.Should().Be(new DateOnly(2025, 12, 29));
         vm.WeekEnd.Should().Be(new DateOnly(2026, 1, 2));
         vm.WeekRangeLabel.Should().Be("12/29 ~ 01/02");
+    }
+
+    [Fact]
+    public void Generate_builds_options_from_settings_and_enabled_clients()
+    {
+        var (vm, svc, _, clients, _, settings, _, _) =
+            CreateSut(new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero));
+
+        settings.Set(SettingsKeys.ReporterName, "홍길동");
+        settings.Set(SettingsKeys.FormatATaskHeader, "[할 일]");
+        settings.Set(SettingsKeys.FormatAIssueHeader, "[이슈들]");
+        settings.Set(SettingsKeys.FormatBTitleWord, "위클리");
+        settings.Set(SettingsKeys.FormatBIssueHeader, "* 이슈:");
+        settings.Set(SettingsKeys.ReportIndent, "  ");
+        settings.Set(SettingsKeys.IncludeDoneOnly, "true");
+        clients.Clients.Add(new Client { Id = 1, Name = "SLD", SortOrder = 1, Enabled = true });
+        clients.Clients.Add(new Client { Id = 2, Name = "MTP", SortOrder = 2, Enabled = false });
+
+        vm.GenerateCommand.Execute(null);
+
+        clients.LastEnabledOnly.Should().BeTrue();
+        var opts = svc.LastOptions!;
+        opts.ReporterName.Should().Be("홍길동");
+        opts.TaskHeaderA.Should().Be("[할 일]");
+        opts.IssueHeaderA.Should().Be("[이슈들]");
+        opts.TitleWordB.Should().Be("위클리");
+        opts.IssueHeaderB.Should().Be("* 이슈:");
+        opts.Indent.Should().Be("  ");
+        opts.IncludeDoneOnly.Should().BeTrue();
+        opts.WeekStart.Should().Be(new DateOnly(2026, 6, 22));
+        opts.WeekEnd.Should().Be(new DateOnly(2026, 6, 26));
+        opts.Clients.Select(c => c.Name).Should().Equal("SLD"); // enabledOnly → MTP 제외
+        svc.LastAnyDate.Should().Be(new DateOnly(2026, 6, 24));
+    }
+
+    [Fact]
+    public void Generate_uses_contract_defaults_when_settings_missing()
+    {
+        var (vm, svc, _, _, _, _, _, _) = CreateSut();
+
+        vm.GenerateCommand.Execute(null);
+
+        var opts = svc.LastOptions!;
+        opts.ReporterName.Should().Be("이승현");
+        opts.TaskHeaderA.Should().Be("[업무 내용]");
+        opts.IssueHeaderA.Should().Be("[이슈]");
+        opts.TitleWordB.Should().Be("주간 보고");
+        opts.IssueHeaderB.Should().Be("* 이슈사항:");
+        opts.Indent.Should().Be("\t");
+        opts.IncludeDoneOnly.Should().BeFalse();
+        opts.UnclassifiedLabel.Should().Be("미분류");
+    }
+
+    [Fact]
+    public void Generate_sets_report_text_from_renderer_for_selected_format()
+    {
+        var (vm, svc, _, _, _, _, _, _) = CreateSut();
+        svc.RenderResult = "최종 보고서 본문";
+        vm.SelectedFormat = ReportFormatKind.B;
+
+        vm.GenerateCommand.Execute(null);
+
+        vm.ReportText.Should().Be("최종 보고서 본문");
+        svc.LastRenderFormat.Should().Be(ReportFormatKind.B);
+    }
+
+    [Fact]
+    public void Warning_banner_shows_only_when_unclassified_count_positive()
+    {
+        var (vm, svc, _, _, _, _, _, _) = CreateSut();
+        svc.BuildImpl = (d, o) => new WeeklyReportBuildResult(
+            new WeeklyReportData(new List<ReportTask>(), new List<ReportIssue>()), 3, o.WeekStart, o.WeekEnd);
+
+        vm.GenerateCommand.Execute(null);
+
+        vm.UnclassifiedTaskCount.Should().Be(3);
+        vm.HasUnclassifiedWarning.Should().BeTrue();
+
+        svc.BuildImpl = (d, o) => new WeeklyReportBuildResult(
+            new WeeklyReportData(new List<ReportTask>(), new List<ReportIssue>()), 0, o.WeekStart, o.WeekEnd);
+        vm.GenerateCommand.Execute(null);
+
+        vm.UnclassifiedTaskCount.Should().Be(0);
+        vm.HasUnclassifiedWarning.Should().BeFalse();
     }
 }
