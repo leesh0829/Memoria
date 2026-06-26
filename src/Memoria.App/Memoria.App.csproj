@@ -19,6 +19,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- 산출 실행 파일명을 제품명과 일치(Memoria.exe). README/트레이/release.yml 기준. -->
+    <AssemblyName>Memoria</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
