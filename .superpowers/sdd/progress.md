@@ -224,3 +224,17 @@ M9 Task 3: head 0ffb24b | Failed: 0, Passed: 279 (278 existing + 1 new MainViewM
 M9 Task 4: head dfe3a84 | Failed: 0, Passed: 282 (279 existing + 3 new MainViewModelSearchTests)
 M9 Task 5: head ae3b625 | Failed: 0, Passed: 285 (282 existing + 3 new StartupSafetyCoordinatorTests)
 M9 Task 6: head 2e78e36 | Failed: 0, Passed: 285 (all green; MainWindow ContentControl+DataTemplate editor hosting, toolbar [+체크리스트]/[📋주간보고]/search UI, CountToVisibilityConverter, IStartupSafetyCoordinator DI+step5/6 wired; manual MV9-1~MV9-11 pending Windows run)
+
+--- M9 (tasks 1-6) — VERIFIED 285/285 green ---
+M9 Task 1: complete (head 54e0a9a) [editor host routing CurrentEditor/SelectedNote]
+M9 Task 2: complete (head 847dea8) [NewChecklistCommand body + NavigateToNote]
+M9 Task 3: complete (head 0ffb24b) [OpenWeeklyReportCommand body]
+M9 Task 4: complete (head 6b9b6d4) [Search UI: SearchCommand/Results/OpenSearchHit]
+M9 Task 5: complete (head 1e19702) [StartupSafetyCoordinator]
+M9 Task 6: complete (head 5a6f4d0) [shell integration: MainWindow hosting/toolbar/search + bootstrap]
+*** M9 COMPLETE: 285/285 tests. APP FUNCTIONALLY COMPLETE (M1-M7,M9). ***
+MINOR (defer): weekly-report btn margin; ContentControl empty-state background
+M8 Task 1: head de42d02 | 285 passed, 0 failed (README.md written, all sections verified)
+M8 Task 2: head 17d050b | 285 passed, 0 failed (docs/architecture.md written, all sections verified)
+M8 Task 3: head fd4536e | 285 passed, 0 failed (docs/weekly-report-format.md written, all grep checks verified)
+M8 Task 4: head 855cc1a | 285 passed, 0 failed (docs/user-guide.md written, all section grep checks verified)
