@@ -240,3 +240,4 @@ M8 Task 3: head fd4536e | 285 passed, 0 failed (docs/weekly-report-format.md wri
 M8 Task 4: head 855cc1a | 285 passed, 0 failed (docs/user-guide.md written, all section grep checks verified)
 M8 Task 5: head e22b6f8 | 285 passed, 0 failed (CHANGELOG.md written, Keep a Changelog format + v0.1.0 entry verified)
 M8 Task 6: head 53df53c | 285 passed, 0 failed (ci.yml: YAML parsed OK, required headers verified, build+test green)
+M8 Task 7: head aa4a398 | 285 passed, 0 failed (release.yml: tag v* -> dotnet publish single-file win-x64 self-contained -> softprops/action-gh-release@v2 asset)
