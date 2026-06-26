@@ -3,28 +3,18 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:conv="clr-namespace:Memoria.App.Converters">
     <Application.Resources>
-        <!-- 계약 §10 테마 브러시 키(단일 진리원천). M7 테마가 이 사전을 교체.
-             M2는 light 기본값만 둔다. 모든 View는 이 Brush.* 키만 DynamicResource로 참조(StaticResource 금지). -->
-        <SolidColorBrush x:Key="Brush.WindowBackground" Color="#FFFFFFFF" />
-        <SolidColorBrush x:Key="Brush.Surface" Color="#FFFAFAFA" />
-        <SolidColorBrush x:Key="Brush.SidebarBackground" Color="#FFF3F3F3" />
-        <SolidColorBrush x:Key="Brush.ToolbarBackground" Color="#FFF7F7F7" />
-        <SolidColorBrush x:Key="Brush.EditorBackground" Color="#FFFFFFFF" />
-        <SolidColorBrush x:Key="Brush.Foreground" Color="#FF1B1B1B" />
-        <SolidColorBrush x:Key="Brush.SecondaryForeground" Color="#FF6B6B6B" />
-        <SolidColorBrush x:Key="Brush.Border" Color="#FFDDDDDD" />
-        <SolidColorBrush x:Key="Brush.Accent" Color="#FF2D7D9A" />
-        <SolidColorBrush x:Key="Brush.AccentForeground" Color="#FFFFFFFF" />
-        <SolidColorBrush x:Key="Brush.ListItemHover" Color="#FFEDEDED" />
-        <SolidColorBrush x:Key="Brush.ListItemSelected" Color="#FFD0E8FF" />
-        <SolidColorBrush x:Key="Brush.StrikethroughForeground" Color="#FF9AA0A6" />
-        <SolidColorBrush x:Key="Brush.UnclassifiedHighlight" Color="#FFFFE08A" />
-        <SolidColorBrush x:Key="Brush.WarningBackground" Color="#FFFFF4CE" />
-        <SolidColorBrush x:Key="Brush.WarningBorder" Color="#FFE6B800" />
-        <SolidColorBrush x:Key="Brush.WarningForeground" Color="#FF6B5300" />
-        <!-- Converter는 색이 아니므로 StaticResource 허용(계약 §10 주석) -->
-        <BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
-        <conv:DateOnlyToDateTimeConverter x:Key="DateOnlyToDateTimeConverter" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- [0] 공유 스타일(색에 의존하는 스타일만, 색 값 없음) -->
+                <ResourceDictionary Source="Themes/Base.xaml" />
+                <!-- [1] 테마 팔레트 슬롯: ThemeService가 런타임에 교체(기본 Default/Light).
+                         계약 §10의 17개 Brush.* 키 전부 정의됨. -->
+                <ResourceDictionary Source="Themes/Default.Light.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <!-- Converter는 색이 아니므로 StaticResource 허용(계약 §10 주석) -->
+            <BooleanToVisibilityConverter x:Key="BoolToVis" />
+            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <conv:DateOnlyToDateTimeConverter x:Key="DateOnlyToDateTimeConverter" />
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
