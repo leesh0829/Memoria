@@ -127,3 +127,13 @@ M4 Task 1: head 72b4a75 | Failed: 0, Passed: 128 | WeeklyReportViewModel scaffol
 M4 Task 2: head b525040 | Failed: 0, Passed: 132 | BuildOptions from settings, GenerateCommand, ReportText, HasUnclassifiedWarning
 M4 Task 3: head 1566ef7 | Failed: 0, Passed: 137 | idempotent reuse, regenerate confirm, system-group placement
 M4 Task 4: head 3fde449 | Failed: 0, Passed: 143 | clipboard copy, format toggle reload, WPF weekly report view and DI
+
+--- M4 (tasks 1-4) — VERIFIED 143/143 green ---
+M4 Task 1: complete (head 72b4a75) [WeeklyReportViewModel + week pick]
+M4 Task 2: complete (head fd75df7) [settings options + Build + warning banner]
+M4 Task 3: complete (head 463e9cf) [idempotent reuse / regenerate confirm / system group]
+M4 Task 4: complete (head 3fde449) [copy + format toggle + DateOnly conv + WPF view]
+*** M4 COMPLETE: 143/143 tests. ***
+MINOR (defer): WeeklyReportVM.Generate redundant GetWorkWeek; WeeklyReportView redundant BoolToVis local converter
+
+M5 Task 1: head f79be0e | Failed: 0, Passed: 144 | GroupManagementViewModel Load + canonical test fakes (FakeGroupRepository/FakeNoteRepository/FakeSettingsRepository/FixedTimeProvider) consolidated in Memoria.Tests.Fakes
