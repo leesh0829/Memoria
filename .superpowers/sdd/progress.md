@@ -139,3 +139,21 @@ MINOR (defer): WeeklyReportVM.Generate redundant GetWorkWeek; WeeklyReportView r
 M5 Task 1: head f79be0e | Failed: 0, Passed: 144 | GroupManagementViewModel Load + canonical test fakes (FakeGroupRepository/FakeNoteRepository/FakeSettingsRepository/FixedTimeProvider) consolidated in Memoria.Tests.Fakes
 M5 Task 2: head 992da14 | Failed: 0, Passed: 146 | AddGroup command persists with next SortOrder and DefaultGroupColor; empty list uses SortOrder 0
 M5 Task 3: head d51d5fb | Failed: 0, Passed: 149 | RenameGroup with system-group protection; CanModifySelected guards RenameGroupCommand CanExecute
+M5 Task 4: head 29711bd | Failed: 0, Passed: 152 | SetGroupColor command; HasSelection CanExecute (selection-only, system groups allowed); NotifyCanExecuteChangedFor wired
+M5 Task 5: head bc7cf03 | Failed: 0, Passed: 154 | DeleteGroup with system-group protection (CanModifySelected guards); notes.group_id ON DELETE SET NULL via DB constraint; NotifyCanExecuteChangedFor(DeleteGroupCommand) wired
+M5 Task 6: head 21a55e1 | Failed: 0, Passed: 156 | MoveGroup index-based reorder + SortOrder reassignment + persistence via IGroupRepository.Update; out-of-range/no-op guard
+
+--- M5 chunk 1 (tasks 1-6) — VERIFIED 156/156 green ---
+M5 Task 1: complete (head 9452aad) [fakes + GroupManagementViewModel load]
+M5 Task 2: complete (head edd20b0) [AddGroup]
+M5 Task 3: complete (head a91c37d) [RenameGroup + system protect]
+M5 Task 4: complete (head 29711bd) [SetGroupColor]
+M5 Task 5: complete (head bc7cf03) [DeleteGroup + SET NULL + system protect]
+M5 Task 6: complete (head 21a55e1) [MoveGroup reorder]
+MINOR (defer): fake test-fidelity (Update by-reference masks persistence calls); FakeNoteRepo _nextId=100/extra Update branch
+M5 Task 7: head 07e2058 | Failed: 0, Passed: 158 | MoveNoteToGroup changes GroupId without bumping UpdatedAt; null target sets unclassified
+M5 Task 8: head c59e78b | Failed: 0, Passed: 164 | TrashItemViewModel purge-countdown + DisplayTitle fallback; TrashViewModel Load + RetentionDays from settings
+M5 Task 9: head b66ba4b | Failed: 0, Passed: 167 | TrashViewModel.DeleteNote SoftDelete + Undo state; DeleteNoteCommand/UndoCommand with CanExecute guard
+M5 Task 10: head 3490b90 | Failed: 0, Passed: 169 | TrashViewModel.Restore/Purge commands; restore clears DeletedAt and reloads list; purge permanently removes note and reloads list
+M5 Task 11: head 12db6b1 | Failed: 0, Passed: 171 | TrashViewModel.PurgeExpiredOnStartup delegates to INoteRepository.PurgeExpiredTrash(RetentionDays); retention setting read from ISettingsRepository, defaults to 30
+M5 Task 12: head 0ca8e78 | Failed: 0, Passed: 171 | DI wiring (AddTransient<GroupManagementViewModel>/AddSingleton<TrashViewModel>) + startup PurgeExpiredOnStartup; TrashView UserControl; MainWindow sidebar context menu + note delete button + Undo toast + drag-drop handlers; all manual checkpoints pending Windows run
