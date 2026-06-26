@@ -1,0 +1,88 @@
+# Memoria SDD Progress Ledger
+
+Branch: impl/memoria
+Plans: docs/superpowers/plans/2026-06-26-memoria-m{1..9}-*.md (+ interface-contracts)
+Build/test: Windows dotnet.exe via WSL interop (validated).
+
+## Status
+(append "Task <id>: complete (commits base7..head7, review clean)" as tasks finish)
+
+### M1 — Core 엔진 (16 tasks) — fully unit-testable here
+### M2 — WPF 셸 (9) — compile-verify here, manual on Windows
+### M3 — 체크리스트 (9)
+### M4 — 주간보고 뷰 (4)
+### M5 — 그룹·휴지통 (12)
+### M6 — Windows 통합 (7)
+### M7 — 테마·설정 (8)
+### M8 — 문서·CI·릴리스 (8)
+### M9 — 셸 통합·데이터안전 (6)
+
+## Log
+Task 1: implemented head 0318d36 | dotnet test: 3 passed, 0 failed
+Task 2: implemented head 4bd0fa1 | dotnet test: 4 passed, 0 failed
+Task 3: implemented head f7d65b2 | dotnet test: 13 passed, 0 failed
+Task 4: implemented head 78c6f3c | dotnet test: 15 passed, 0 failed
+Task 5: implemented head acc9031 | dotnet test: 17 passed, 0 failed
+Task 6: implemented head 330c4a4 | dotnet test: 20 passed, 0 failed
+
+--- M1 chunk 1 (tasks 1-6) — VERIFIED 20/20 tests green @330c4a4 ---
+Task 1: complete (commits 0603284..53364a3, review clean) [solution scaffold + models]
+Task 2: complete (head 4bd0fa1, review clean) [WeekCalculator]
+Task 3: complete (head f7d65b2, review clean) [ClientClassifier]
+Task 4: complete (head 78c6f3c, review clean) [report types + Format A]
+Task 5: complete (head acc9031, review clean) [Format B]
+Task 6: complete (head 330c4a4, review clean) [SQLite schema/migration/seed/FTS5]
+
+Task 7: implemented head 529c53b | dotnet test: 24 passed, 0 failed
+Task 8: implemented head 05c2d64 | dotnet test: 27 passed, 0 failed (1 skipped: Delete_SetsNoteGroupIdToNull pending Task 10 NoteRepository)
+Task 9: implemented head 6991594 | dotnet test: 34 passed, 0 failed
+
+Task 10: implemented head 0b0d9c3 | dotnet test: 40 passed, 0 failed
+
+Task 11: implemented head 3bcf81a | dotnet test: 44 passed, 0 failed
+
+MINOR findings (defer to final review):
+- T1: redundant `using Xunit;` in ModelsTests.cs:3 (csproj has global Using)
+- T3: ClientClassifierTests AllEnabled fixture mutable HashSet -> consider IReadOnlySet/FrozenSet
+- T4: IWeeklyReportRenderer.cs Render XML doc shortened vs contract §3
+- T6: DapperConfig.EnsureRegistered() tiny race window -> Lazy<bool>
+
+--- M1 chunk 2 (tasks 7-11) — VERIFIED 44/44 green ---
+Task 7: complete (head 529c53b, review clean) [SettingsRepository]
+Task 8: complete (head 2af7e65, review clean) [GroupRepository]
+Task 9: complete (head 6991594, review clean) [ClientRepository]
+Task 10: complete (head 0b0d9c3, review clean) [NoteRepository]
+Task 11: complete (head 3bcf81a, review clean) [ChecklistRepository]
+MINOR (defer): T8 group-delete test uses raw SQL; T10 INoteRepository.Update doc trimmed; T11 UpdateItem caller-policy timestamp + dead var
+
+Task 12: implemented head e76ebf1 | dotnet test: 48 passed, 0 failed
+Task 13: implemented head e0894e5 | dotnet test: 53 passed, 0 failed
+Task 14: implemented head 5404b16 | dotnet test: 57 passed, 0 failed
+Task 15: implemented head e0f3918 | dotnet test: 62 passed, 0 failed
+Task 16: implemented head a5baa87 | dotnet test: 64 passed, 0 failed
+
+--- M1 chunk 3 (tasks 12-16) + fixes — VERIFIED 65/65 green (4x stable) ---
+Task 12: complete (head 16c045c, +fix 234a659 ORDER BY rank) [SearchService FTS5]
+Task 13: complete (head e0894e5, review clean) [TaggingService]
+Task 14: complete (head 5404b16, review clean) [WeeklyReportService]
+Task 15: complete (head e0f3918, +fix b338f88 path/lock/.corrupt) [BackupService]
+Task 16: complete (head a5baa87, review clean) [AddMemoriaCore DI]
+*** M1 COMPLETE: 65/65 tests green, full Core engine. HEAD now b338f88. ***
+WATCH: one-off xunit flake (TaggingServiceTests) under heavy parallel load; tests use unique GUID temp paths (isolation OK). Revisit in M8/CI if it recurs.
+
+NEXT: M2 (WPF shell) — build headlessly verified OK via dotnet.exe.
+M2 Task 1: head 86cb9e0 | dotnet test: 67 passed (65 existing + 2 new AppPaths), 0 failed
+M2 Task 2: head 121ca72 | dotnet test: 70 passed (67 existing + 3 new RecoveryJournal), 0 failed
+M2 Task 3: head 936d9e4 | dotnet test: 74 passed (70 existing + 4 new DebounceAutosave), 0 failed
+M2 Task 4: head 2c00d5f | dotnet test: 75 passed (74 existing + 1 new MainViewModelSidebar), 0 failed
+M2 Task 5: head d241f92 | dotnet test: 81 passed (75 existing + 6 new NoteListItem/NoteTitleResolver/MainViewModelNotes), 0 failed
+
+--- M2 chunk 1 (tasks 1-5) + fixes — VERIFIED 85/85 green ---
+M2 Task 1: complete (head 86cb9e0) [App scaffold + AppPaths]
+M2 Task 2: complete (head 121ca72, +fix 7dfae3f JsonException) [RecoveryJournal]
+M2 Task 3: complete (head 936d9e4, +fix 2158212 timer race) [DebounceAutosave]
+M2 Task 4: complete (head 2c00d5f) [sidebar group tree]
+M2 Task 5: complete (head aa9df2a) [note list + title rule + new note]
+MINOR (defer): unused template usings in App.xaml.cs/MainWindow.xaml.cs (MainWindow replaced in T9); RecoveryJournalTests temp dir cleanup
+M2 Task 6: head 6748571 | dotnet test: 90 passed (85 existing + 5 new EditorHeader/MainViewModelEditor), 0 failed
+M2 Task 7: head eae367a | dotnet test: 93 passed (90 existing + 3 new MainViewModelStubCommands), 0 failed
