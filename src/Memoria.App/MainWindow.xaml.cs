@@ -1,9 +1,12 @@
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Memoria.App.ViewModels;
 using Memoria.App.Views;
+using Memoria.Core;
+using Memoria.Core.Data;
 
 namespace Memoria.App;
 
@@ -18,8 +21,15 @@ public partial class MainWindow : Window
     /// M5: 휴지통 ViewModel (DI에서 Resolve; 싱글턴 — Undo 토스트와 TrashView가 공유).
     public TrashViewModel TrashVm { get; }
 
-    public MainWindow()
+    // M6: ISettingsRepository — closeToTray 판단용.
+    private readonly ISettingsRepository _settings;
+
+    /// M6: ExitApplication에서 true로 설정하면 closeToTray 여부와 무관하게 실제 종료 허용.
+    public bool AllowClose { get; set; }
+
+    public MainWindow(ISettingsRepository settings)
     {
+        _settings = settings;
         InitializeComponent();
         GroupVm = AppServices.Resolve<GroupManagementViewModel>();
         TrashVm = AppServices.Resolve<TrashViewModel>();
@@ -31,6 +41,22 @@ public partial class MainWindow : Window
             if (e.PropertyName == nameof(TrashViewModel.IsUndoAvailable))
                 Dispatcher.Invoke(() => ViewModel.LoadNotes());
         };
+    }
+
+    // -----------------------------------------------------------------
+    // M6: closeToTray — X 클릭 시 트레이로 숨기기(HWND 유지)
+    // -----------------------------------------------------------------
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        bool closeToTray = bool.Parse(_settings.GetOrDefault(SettingsKeys.CloseToTray, "true"));
+        if (closeToTray && !AllowClose)
+        {
+            e.Cancel = true;
+            Hide(); // HWND 유지(파괴 금지) — 단축키·트레이 계속 동작
+            return;
+        }
+        base.OnClosing(e);
     }
 
     // -----------------------------------------------------------------

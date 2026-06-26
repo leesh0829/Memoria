@@ -1,7 +1,9 @@
 using System;
 using System.Windows;
+using System.Windows.Interop;
 using Memoria.App.Services;
 using Memoria.App.ViewModels;
+using Memoria.App.Windows;
 using Memoria.Core;
 using Memoria.Core.Data;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +16,12 @@ public partial class App : Application
 {
     private ServiceProvider? _services;
 
+    // M6 — 필드 추가(기존 M2 필드 보존)
+    private ISingleInstanceService _singleInstance = null!;
+    private IGlobalHotkeyService _hotkey = null!;
+    private ITrayService _tray = null!;
+    private IAutostartService _autostart = null!;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -21,7 +29,16 @@ public partial class App : Application
         // (1) M2 — 데이터 디렉터리 보장.
         AppPaths.EnsureDirectories();
 
-        // (2) M6 — SingleInstance: 두 번째 인스턴스면 pipe로 인자 전송 후 Shutdown. (M6에서 추가)
+        // (2) M6 — SingleInstance: 두 번째 인스턴스면 pipe로 인자 전송 후 Shutdown.
+        _singleInstance = new SingleInstanceService();
+        if (!_singleInstance.TryAcquire())
+        {
+            ForegroundHelper.AllowAny(); // 첫 인스턴스가 SetForegroundWindow 가능하도록
+            _singleInstance.SignalExistingInstance(PipeCommand.NewNote);
+            _singleInstance.Dispose();
+            Shutdown();
+            return;
+        }
 
         // (3) M2 — DI 합성 + 서비스 로케이터 초기화. (M6/M7이 자기 서비스 등록을 이 블록에 추가)
         var sc = new ServiceCollection();
@@ -75,12 +92,44 @@ public partial class App : Application
         // (9) M5 — 시작 시 보존기간 만료된 휴지통 항목을 영구삭제 (계약 §9.4 step 9).
         _services.GetRequiredService<TrashViewModel>().PurgeExpiredOnStartup();
 
-        // (10) M2 — MainWindow 생성/표시. (M6 Tray/Hotkey, M7 SystemThemeSource 구독을 이 위치에 추가)
+        // (10) M6 — MainWindow 생성 + Tray/Hotkey/Autostart 배선.
         var window = _services.GetRequiredService<MainWindow>();
         window.DataContext = vm;
         MainWindow = window;
 
-        // (11) M2 — 표시. (M6에서 closeToTray/autostart 정책에 따라 트레이 시작으로 분기)
+        var settings = AppServices.Resolve<ISettingsRepository>(); // 계약 §9.2
+        var mainWindow = (MainWindow)MainWindow!;                   // M2가 생성·할당한 인스턴스 재사용
+
+        _autostart = new AutostartService();
+        _tray = new TrayService();
+        _hotkey = new GlobalHotkeyService();
+
+        // 자동시작 설정 동기화
+        bool autostartWanted = bool.Parse(settings.GetOrDefault(SettingsKeys.Autostart, "true"));
+        if (autostartWanted) _autostart.Enable(); else _autostart.Disable();
+
+        // 트레이
+        _tray.Initialize();
+        _tray.ToggleRequested += (_, _) => ToggleMainWindow();
+        _tray.NewNoteRequested += (_, _) => NewNoteForeground();
+        _tray.OpenRequested += (_, _) => ShowMainWindow();
+        _tray.SettingsRequested += (_, _) => mainWindow.ViewModel.OpenSettingsCommand.Execute(null); // 계약 §9.3 (M2 스텁, 본문 M7)
+        _tray.ExitRequested += (_, _) => ExitApplication();
+
+        // 전역 단축키
+        string hotkeyStr = settings.GetOrDefault(SettingsKeys.HotkeyNewNote, "Ctrl+Alt+N");
+        _hotkey.HotkeyPressed += (_, _) => NewNoteForeground();
+        _hotkey.Register(hotkeyStr); // 등록 실패 시 false 반환(재지정 UI는 M7)
+
+        // 단일 인스턴스 IPC 수신 → UI 스레드로 마샬링
+        _singleInstance.CommandReceived += (_, cmd) =>
+            Dispatcher.Invoke(() =>
+            {
+                if (cmd == PipeCommand.NewNote) NewNoteForeground();
+                else ShowMainWindow();
+            });
+
+        // (11) M6 — 표시. (closeToTray/autostart 정책에 따라 트레이 시작으로 분기 — 기본은 Show)
         window.Show();
     }
 
@@ -89,7 +138,51 @@ public partial class App : Application
         // 계약 §9.4 OnExit
         _services?.GetService<IAutosaveService>()?.FlushAll();   // (M2) 보류 저장 즉시 확정(§7.7)
         _services?.Dispose();                                    // (M2/M9) SqliteConnectionFactory.Dispose가 PRAGMA wal_checkpoint(TRUNCATE) 후 연결 종료
-        // (M6) Tray/Hotkey/Pipe Dispose는 M6에서 추가
+        _hotkey?.Dispose();       // (M6) 전역 단축키 해제
+        _tray?.Dispose();         // (M6) 트레이 아이콘 제거
+        _singleInstance?.Dispose(); // (M6) Mutex/pipe 해제
         base.OnExit(e);
+    }
+
+    // -----------------------------------------------------------------
+    // M6 헬퍼 — 포그라운드 메모 생성 / 창 표시 / 토글 / 종료
+    // -----------------------------------------------------------------
+
+    private void NewNoteForeground()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            ((MainWindow)MainWindow!).ViewModel.NewPlainNoteCommand.Execute(null); // 계약 §9.3
+            ShowMainWindow();
+        });
+    }
+
+    private void ShowMainWindow()
+    {
+        var mainWindow = (MainWindow)MainWindow!;
+        if (!mainWindow.IsVisible) mainWindow.Show();
+        if (mainWindow.WindowState == WindowState.Minimized)
+            mainWindow.WindowState = WindowState.Normal;
+        mainWindow.Activate();
+        var handle = new WindowInteropHelper(mainWindow).Handle;
+        ForegroundHelper.BringToFront(handle);
+    }
+
+    private void ToggleMainWindow()
+    {
+        var mainWindow = (MainWindow)MainWindow!;
+        if (mainWindow.IsVisible && mainWindow.WindowState != WindowState.Minimized)
+            mainWindow.Hide();
+        else
+            ShowMainWindow();
+    }
+
+    private void ExitApplication()
+    {
+        ((MainWindow)MainWindow!).AllowClose = true;
+        _hotkey.Dispose();
+        _tray.Dispose();
+        _singleInstance.Dispose();
+        Shutdown();
     }
 }
