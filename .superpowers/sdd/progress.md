@@ -170,3 +170,4 @@ MINOR (defer): AskInput dialog in code-behind (extract to service in M7); contex
 M6 Task 1: head 5dce4ca | Failed: 0, Passed: 182 (173 existing + 9 new HotkeyParserTests)
 M6 Task 2: head 7da172d | Failed: 0, Passed: 186 (182 existing + 4 new AutostartTests)
 M6 Task 3: head 2a2c531 | Failed: 0, Passed: 195 (186 existing + 9 new PipeMessageTests)
+M6 Task 4: head b4d22af | Failed: 0, Passed: 197 (195 existing + 2 new SingleInstanceServiceTests)
