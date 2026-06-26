@@ -218,3 +218,4 @@ M7 Task 8: complete (head c389cc7) [Settings View + accent picker + theme wiring
 *** M7 COMPLETE: 273/273 tests. ***
 MINOR (defer): SettingsViewModel Autostart wrapper INPC gap (check SettingsView binding); ClientsSettingsVM double OrderBy
 M9 Task 1: head 94f98ff | Failed: 0, Passed: 277 (273 existing + 4 new MainViewModelEditorHostTests)
+M9 Task 2: head 14248b2 | Failed: 0, Passed: 278 (277 existing + 1 new MainViewModelNewChecklistTests)
