@@ -22,5 +22,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 문서: README, 아키텍처, 주간보고 양식 규칙, 사용자 가이드(한글).
 - CI/CD: GitHub Actions(build+test, 태그 릴리스 단일 exe 자산 첨부).
 
-[Unreleased]: https://github.com/OWNER/REPO/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/OWNER/REPO/releases/tag/v0.1.0
+[Unreleased]: https://github.com/leesh0829/Memoria/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/leesh0829/Memoria/releases/tag/v0.1.0
