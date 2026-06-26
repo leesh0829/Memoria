@@ -32,6 +32,9 @@ public partial class MainViewModel : ObservableObject
     private NoteListItemViewModel? selectedNote;
 
     [ObservableProperty]
+    private NoteType currentNoteType;              // 현재 편집 중 NoteType(M9 뷰 호스팅용)
+
+    [ObservableProperty]
     private string searchText = string.Empty;
 
     [ObservableProperty] private string editorTitle = "";
@@ -68,6 +71,11 @@ public partial class MainViewModel : ObservableObject
     }
 
     partial void OnSelectedNodeChanged(SidebarNodeViewModel? value) => LoadNotes();
+
+    partial void OnSelectedNoteChanged(NoteListItemViewModel? value)
+    {
+        if (value is not null) OpenNote(value.Id);
+    }
 
     public void LoadNotes()
     {
@@ -122,6 +130,7 @@ public partial class MainViewModel : ObservableObject
         if (note is null) return;
 
         _current = note;
+        CurrentNoteType = note.Type;   // M9 뷰 호스팅용
         _suppressDirty = true;
         EditorTitle = note.Title ?? "";
         EditorBody = note.Body ?? "";
