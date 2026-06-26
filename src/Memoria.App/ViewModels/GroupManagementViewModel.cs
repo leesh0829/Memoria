@@ -81,6 +81,17 @@ public partial class GroupManagementViewModel : ObservableObject
         Load();
     }
 
+    public void MoveNoteToGroup(int noteId, int? targetGroupId)
+    {
+        var note = _notes.Get(noteId);
+        if (note is null) return;
+        if (note.GroupId == targetGroupId) return;
+
+        note.GroupId = targetGroupId;
+        // §7.7: 그룹 이동은 메타 조작 → UpdatedAt을 갱신하지 않고 그대로 저장한다.
+        _notes.Update(note);
+    }
+
     public void MoveGroup(int fromIndex, int toIndex)
     {
         if (fromIndex < 0 || fromIndex >= Groups.Count) return;

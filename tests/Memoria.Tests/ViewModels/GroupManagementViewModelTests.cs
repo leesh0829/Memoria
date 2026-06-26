@@ -189,4 +189,42 @@ public class GroupManagementViewModelTests
 
         vm.Groups.Select(g => g.Name).Should().Equal("A", "B");
     }
+
+    [Fact]
+    public void MoveNoteToGroup_changes_group_without_touching_updated_at()
+    {
+        var (vm, _, notes) = CreateSut();
+        var fixedClock = new FixedTimeProvider(new DateTimeOffset(2026, 6, 20, 10, 0, 0, TimeSpan.Zero));
+        notes.Clock = fixedClock;
+        var noteId = notes.Create(new Memoria.Core.Models.Note
+        {
+            Type = Memoria.Core.Models.NoteType.Plain,
+            Title = "메모",
+            GroupId = null
+        });
+        var originalUpdatedAt = notes.Get(noteId)!.UpdatedAt;
+
+        // 시간이 흐른 뒤 이동해도 updated_at은 그대로여야 한다.
+        fixedClock.Advance(TimeSpan.FromHours(5));
+        vm.MoveNoteToGroup(noteId, 42);
+
+        var moved = notes.Get(noteId)!;
+        moved.GroupId.Should().Be(42);
+        moved.UpdatedAt.Should().Be(originalUpdatedAt);
+    }
+
+    [Fact]
+    public void MoveNoteToGroup_to_unclassified_sets_group_null()
+    {
+        var (vm, _, notes) = CreateSut();
+        var noteId = notes.Create(new Memoria.Core.Models.Note
+        {
+            Type = Memoria.Core.Models.NoteType.Plain,
+            GroupId = 7
+        });
+
+        vm.MoveNoteToGroup(noteId, null);
+
+        notes.Get(noteId)!.GroupId.Should().BeNull();
+    }
 }
