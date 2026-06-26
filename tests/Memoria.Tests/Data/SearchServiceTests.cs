@@ -51,4 +51,22 @@ public class SearchServiceTests
         var sut = new SearchService(db.Factory);
         sut.Search("   ").Should().BeEmpty();
     }
+
+    [Fact]
+    public void Search_PopulatesSnippetFromMatchedColumn()
+    {
+        using var db = new TestDb();
+        var notes = new NoteRepository(db.Factory);
+        var sut = new SearchService(db.Factory);
+        notes.Create(new Note
+        {
+            Type = NoteType.Plain,
+            Title = "회의록",
+            Body = "오늘 자율형공장 라인에서 SLD 점검을 수행했다",
+        });
+
+        var hit = sut.Search("자율형공장").Should().ContainSingle().Subject;
+        hit.Snippet.Should().NotBeNullOrEmpty();
+        hit.Snippet.Should().Contain("자율형공장");
+    }
 }

@@ -20,16 +20,20 @@ public sealed class SearchService : ISearchService
         // 프로퍼티 기반으로 안전하게 변환한 뒤 SearchHit(record)로 투영한다.
         // FTS5 가상 테이블 컬럼 타입 모호성(BLOB 리포팅)을 피하기 위해
         // FTS5를 서브쿼리로 격리하고 실 데이터는 notes 테이블에서 읽는다.
+        // Snippet은 scalar subquery로 snippet()을 호출해 TEXT 스칼라로 받는다(빈 문자열 고정 금지).
+        // 두번째 인자 -1: 매칭이 가장 잘된 컬럼을 FTS5가 자동 선택한다.
         using var conn = _factory.Open();
         return conn.Query<SearchHitDto>(
             "SELECT n.id AS NoteId, " +
             "       COALESCE(NULLIF(n.title, ''), n.body, '') AS TitlePreview, " +
-            "       '' AS Snippet " +
+            "       (SELECT snippet(notes_fts, -1, '', '', ' … ', 8) " +
+            "          FROM notes_fts " +
+            "         WHERE notes_fts.rowid = n.id AND notes_fts MATCH @q LIMIT 1) AS Snippet " +
             "FROM notes n " +
             "WHERE n.deleted_at IS NULL " +
             "  AND n.id IN (SELECT rowid FROM notes_fts WHERE notes_fts MATCH @q);",
             new { q = ftsQuery })
-            .Select(r => new SearchHit((int)r.NoteId, r.TitlePreview, r.Snippet))
+            .Select(r => new SearchHit((int)r.NoteId, r.TitlePreview, r.Snippet ?? ""))
             .ToList();
     }
 
