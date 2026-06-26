@@ -185,7 +185,13 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenWeeklyReport() { /* M9에서 채움 */ }
+    private void OpenWeeklyReport()
+    {
+        var weekly = _weeklyReportEditorFactory();   // 기본 = 오늘이 포함된 주(M4 생성자)
+        weekly.GenerateCommand.Execute(null);        // 멱등 로드/생성(필요 시 새 주간보고 노트 생성)
+        CurrentNoteType = NoteType.WeeklyReport;
+        CurrentEditor = weekly;
+    }
 
     [RelayCommand]
     private void OpenSettings() => AppServices.Resolve<ISettingsWindowService>().ShowSettings();
