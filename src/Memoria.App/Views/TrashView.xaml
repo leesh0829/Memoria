@@ -1,0 +1,55 @@
+<!-- src/Memoria.App/Views/TrashView.xaml -->
+<UserControl x:Class="Memoria.App.Views.TrashView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource Brush.WindowBackground}">
+    <DockPanel Margin="12">
+
+        <!-- 헤더 -->
+        <TextBlock DockPanel.Dock="Top" Text="휴지통" FontSize="16" FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.Foreground}" Margin="0,0,0,12"/>
+
+        <!-- 항목 목록 -->
+        <ListBox ItemsSource="{Binding Items}"
+                 Background="{DynamicResource Brush.Surface}">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="4,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 제목 -->
+                        <TextBlock Grid.Column="0" Text="{Binding DisplayTitle}"
+                                   Foreground="{DynamicResource Brush.Foreground}"
+                                   VerticalAlignment="Center"/>
+
+                        <!-- 남은 일수 -->
+                        <TextBlock Grid.Column="1" Margin="8,0"
+                                   Text="{Binding DaysUntilPurge, StringFormat={}{0}일 후 삭제}"
+                                   Foreground="{DynamicResource Brush.SecondaryForeground}"
+                                   VerticalAlignment="Center"/>
+
+                        <!-- 복원 버튼 -->
+                        <Button Grid.Column="2" Content="복원" Margin="4,0"
+                                Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                CommandParameter="{Binding Id}"/>
+
+                        <!-- 영구삭제 버튼 -->
+                        <Button Grid.Column="3" Content="영구삭제"
+                                Command="{Binding DataContext.PurgeCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                CommandParameter="{Binding Id}"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</UserControl>

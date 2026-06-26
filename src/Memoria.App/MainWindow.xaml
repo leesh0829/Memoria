@@ -14,6 +14,8 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="8"
                     Background="{DynamicResource Brush.ToolbarBackground}">
             <Button Content="+ 새 메모" Command="{Binding NewPlainNoteCommand}" Padding="10,4" />
+            <!-- M5: 휴지통 진입점 -->
+            <Button Content="휴지통" Click="OnShowTrashClick" Padding="10,4" Margin="4,0,0,0"/>
         </StackPanel>
 
         <Grid Grid.Row="1">
@@ -23,19 +25,72 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- 사이드바: 그룹 트리 -->
-            <ListBox Grid.Column="0"
+            <!-- 사이드바: 그룹 트리 (M5: 컨텍스트 메뉴, 드래그 순서변경, 메모 드롭) -->
+            <ListBox x:Name="GroupListBox" Grid.Column="0"
                      Background="{DynamicResource Brush.SidebarBackground}"
                      ItemsSource="{Binding SidebarNodes}"
                      SelectedItem="{Binding SelectedNode, Mode=TwoWay}"
-                     DisplayMemberPath="Name" />
+                     AllowDrop="True"
+                     Drop="GroupList_Drop"
+                     PreviewMouseMove="GroupList_PreviewMouseMove">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="4,3"
+                                AllowDrop="True"
+                                Drop="GroupNode_DropNote"
+                                ContextMenuOpening="SidebarItem_ContextMenuOpening">
+                            <TextBlock Text="{Binding Name}"
+                                       Foreground="{DynamicResource Brush.Foreground}"/>
+                            <Border.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="새 그룹" Click="OnAddGroupMenuItemClick"/>
+                                    <Separator/>
+                                    <MenuItem Header="이름변경" Tag="Rename" Click="OnRenameGroupMenuItemClick"/>
+                                    <MenuItem Header="색상 변경" Click="OnSetColorMenuItemClick"/>
+                                    <Separator/>
+                                    <MenuItem Header="삭제" Tag="Delete" Click="OnDeleteGroupMenuItemClick"/>
+                                </ContextMenu>
+                            </Border.ContextMenu>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
 
-            <!-- 메모 목록 (SelectedNote 바인딩 → VM.OnSelectedNoteChanged가 OpenNote 호출) -->
-            <ListBox Grid.Column="1"
+            <!-- 메모 목록 (M5: 삭제 버튼 추가, SelectedNote 바인딩) -->
+            <ListBox x:Name="NoteListBox" Grid.Column="1"
                      Background="{DynamicResource Brush.Surface}"
                      ItemsSource="{Binding Notes}"
                      SelectedItem="{Binding SelectedNote, Mode=TwoWay}"
-                     DisplayMemberPath="DisplayTitle" />
+                     PreviewMouseMove="NoteList_PreviewMouseMove">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding DisplayTitle}"
+                                       Foreground="{DynamicResource Brush.Foreground}"
+                                       VerticalAlignment="Center"/>
+                            <!-- M5: 메모 삭제 → 휴지통으로 이동 + Undo 토스트 -->
+                            <Button Grid.Column="1" Content="🗑" Padding="4,2"
+                                    Command="{Binding TrashVm.DeleteNoteCommand,
+                                              RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding Id}"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
 
             <!-- 에디터 (M9가 NoteType별 View 호스팅 ContentControl로 교체) -->
             <Grid Grid.Column="2" Margin="12"
@@ -58,6 +113,26 @@
                          Background="{DynamicResource Brush.EditorBackground}"
                          Foreground="{DynamicResource Brush.Foreground}" />
             </Grid>
+
+            <!-- M5: Undo 토스트 (하단 오버레이, IsUndoAvailable로 Visibility 토글) -->
+            <Border Grid.Column="0" Grid.ColumnSpan="3"
+                    VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                    Margin="0,0,0,20" Padding="12,8"
+                    Background="{DynamicResource Brush.Surface}"
+                    BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
+                    Visibility="{Binding TrashVm.IsUndoAvailable,
+                                         RelativeSource={RelativeSource AncestorType=Window},
+                                         Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding TrashVm.UndoMessage,
+                                              RelativeSource={RelativeSource AncestorType=Window}}"
+                               Foreground="{DynamicResource Brush.Foreground}"
+                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Button Content="실행취소"
+                            Command="{Binding TrashVm.UndoCommand,
+                                     RelativeSource={RelativeSource AncestorType=Window}}"/>
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </Window>

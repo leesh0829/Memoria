@@ -41,6 +41,9 @@ public partial class App : Application
         sc.AddSingleton<IConfirmationDialogService, MessageBoxConfirmationDialogService>();
         // TimeProvider.System 은 위에서 이미 등록됨 → 중복 등록 금지.
         sc.AddTransient<WeeklyReportViewModel>();
+        // M5 — 그룹 CRUD 뷰모델 + 휴지통 뷰모델 등록.
+        sc.AddTransient<GroupManagementViewModel>();
+        sc.AddSingleton<TrashViewModel>();
         _services = sc.BuildServiceProvider();
         AppServices.Initialize(_services);          // 계약 §9.2 — 이후 View/code-behind가 AppServices.Resolve<T>() 사용
 
@@ -69,7 +72,8 @@ public partial class App : Application
             else foreach (var s in pending) recovery.Clear(s.NoteId);
         }
 
-        // (9) M5 — _services.GetRequiredService<INoteRepository>().PurgeExpiredTrash(trashRetentionDays); (M5에서 추가)
+        // (9) M5 — 시작 시 보존기간 만료된 휴지통 항목을 영구삭제 (계약 §9.4 step 9).
+        _services.GetRequiredService<TrashViewModel>().PurgeExpiredOnStartup();
 
         // (10) M2 — MainWindow 생성/표시. (M6 Tray/Hotkey, M7 SystemThemeSource 구독을 이 위치에 추가)
         var window = _services.GetRequiredService<MainWindow>();
