@@ -48,4 +48,45 @@ public class TrashViewModelTests
         vm.Items[0].Id.Should().Be(trashedId);
         vm.Items[0].DisplayTitle.Should().Be("삭제됨");
     }
+
+    [Fact]
+    public void DeleteNote_soft_deletes_and_sets_undo_state()
+    {
+        var (vm, notes, _) = CreateSut();
+        var id = notes.Create(new Note { Type = NoteType.Plain, Title = "메모" });
+
+        vm.DeleteNote(id);
+
+        notes.Get(id)!.DeletedAt.Should().NotBeNull();
+        vm.IsUndoAvailable.Should().BeTrue();
+        vm.UndoMessage.Should().NotBeNullOrEmpty();
+        vm.UndoCommand.CanExecute(null).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Undo_restores_last_deleted_and_clears_state()
+    {
+        var (vm, notes, _) = CreateSut();
+        var id = notes.Create(new Note { Type = NoteType.Plain, Title = "메모" });
+        vm.DeleteNote(id);
+
+        vm.Undo();
+
+        notes.Get(id)!.DeletedAt.Should().BeNull();
+        vm.IsUndoAvailable.Should().BeFalse();
+        vm.UndoMessage.Should().BeNull();
+        vm.UndoCommand.CanExecute(null).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Undo_is_noop_without_pending_deletion()
+    {
+        var (vm, notes, _) = CreateSut();
+        var id = notes.Create(new Note { Type = NoteType.Plain });
+        notes.SoftDelete(id);
+
+        vm.Undo(); // 대기 중인 삭제 없음
+
+        notes.Get(id)!.DeletedAt.Should().NotBeNull(); // 복원되지 않음
+    }
 }

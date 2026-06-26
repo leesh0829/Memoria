@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Memoria.Core;
 using Memoria.Core.Data;
 
@@ -22,6 +23,35 @@ public partial class TrashViewModel : ObservableObject
 
     public int RetentionDays =>
         int.TryParse(_settings.GetOrDefault(SettingsKeys.TrashRetentionDays, "30"), out var d) ? d : 30;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UndoCommand))]
+    private bool _isUndoAvailable;
+
+    [ObservableProperty]
+    private string? _undoMessage;
+
+    private int _lastDeletedNoteId;
+
+    [RelayCommand]
+    public void DeleteNote(int noteId)
+    {
+        _notes.SoftDelete(noteId);
+        _lastDeletedNoteId = noteId;
+        IsUndoAvailable = true;
+        UndoMessage = "메모를 휴지통으로 옮겼습니다.";
+    }
+
+    private bool CanUndo() => IsUndoAvailable;
+
+    [RelayCommand(CanExecute = nameof(CanUndo))]
+    public void Undo()
+    {
+        if (!IsUndoAvailable) return;
+        _notes.Restore(_lastDeletedNoteId);
+        IsUndoAvailable = false;
+        UndoMessage = null;
+    }
 
     public void Load()
     {
