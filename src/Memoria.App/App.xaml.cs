@@ -97,17 +97,29 @@ public partial class App : Application
         sc.AddSingleton<ISettingsWindowService, SettingsWindowService>();
         sc.AddTransient<SettingsViewModel>();                             // 설정 창을 열 때마다 새 인스턴스
         sc.AddTransient<ClientsSettingsViewModel>();
+        // M9 — 시작 안전 코디네이터 (무결성 점검 + 복원 + 일일 백업).
+        sc.AddSingleton<IStartupSafetyCoordinator, StartupSafetyCoordinator>();
         _services = sc.BuildServiceProvider();
         AppServices.Initialize(_services);          // 계약 §9.2 — 이후 View/code-behind가 AppServices.Resolve<T>() 사용
 
         // (4) M2 — DB 준비(파일/PRAGMA/마이그레이션/시드).
         _services.GetRequiredService<IDatabaseInitializer>().EnsureReady();
 
-        // (5) M9 — 무결성 점검 실패 시 최신 백업 복원(+사용자 확인):
-        //     if (!_services.GetRequiredService<IBackupService>().IsDatabaseHealthy())
-        //         _services.GetRequiredService<IBackupService>().TryRestoreFromLatestBackup();   (M9에서 추가)
-        // (6) M9 — 일일 백업:
-        //     _services.GetRequiredService<IBackupService>().BackupIfDue(retentionCount);        (M9에서 추가)
+        // (5) + (6) M9 — 무결성 점검 → (손상 시) 최신 백업 복원 → 일일 백업 (계약 §9.4 step5/6).
+        {
+            var safetySettings = _services.GetRequiredService<ISettingsRepository>();
+            var retentionCount = int.Parse(safetySettings.GetOrDefault(SettingsKeys.BackupRetentionCount, "7"));
+            var safety = _services.GetRequiredService<IStartupSafetyCoordinator>().Run(retentionCount);
+            if (!safety.DatabaseWasHealthy)
+            {
+                var msg = safety.RestoreSucceeded
+                    ? "데이터베이스 손상을 감지하여 최근 정상 백업에서 복원했습니다."
+                    : "데이터베이스 손상을 감지했으나 복원할 백업이 없습니다. 손상 파일은 격리되었습니다.";
+                MessageBox.Show(msg, "Memoria 데이터 복구",
+                    MessageBoxButton.OK,
+                    safety.RestoreSucceeded ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            }
+        }
         // (7) M7 — 저장된 mode/preset/accent를 즉시 적용(시스템 모드 구독은 ThemeService 생성자가 수행).
         AppServices.Resolve<IThemeService>().Initialize();
 

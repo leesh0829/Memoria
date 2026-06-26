@@ -60,6 +60,19 @@ public partial class MainWindow : Window
     }
 
     // -----------------------------------------------------------------
+    // M9: 검색 결과 선택 → 해당 노트로 이동 (code-behind는 VM 명령 위임만)
+    // -----------------------------------------------------------------
+
+    private void SearchResultsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && SearchResultsList.SelectedItem is SearchHit hit)
+        {
+            vm.OpenSearchHitCommand.Execute(hit);
+            SearchResultsList.SelectedItem = null;   // 다음 검색을 위해 선택 해제
+        }
+    }
+
+    // -----------------------------------------------------------------
     // 그룹 컨텍스트 메뉴 — ContextMenuOpening에서 SelectedGroup 동기화
     // -----------------------------------------------------------------
 
