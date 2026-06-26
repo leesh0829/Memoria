@@ -87,6 +87,18 @@ public partial class ChecklistViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void ToggleDone(ChecklistItemViewModel item)
+    {
+        if (!item.IsTask) return;
+
+        item.Done = !item.Done;
+        item.DoneAt = item.Done ? DateTimeOffset.UtcNow : null;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        _checklist.UpdateItem(item.ToModel());
+        TouchNote();
+    }
+
+    [RelayCommand]
     public void RemoveItem(ChecklistItemViewModel item)
     {
         _checklist.DeleteItem(item.Id);

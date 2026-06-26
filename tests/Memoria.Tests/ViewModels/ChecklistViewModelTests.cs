@@ -132,4 +132,67 @@ public class ChecklistViewModelTests
 
         _notes.Get(1)!.UpdatedAt.Should().BeAfter(before);
     }
+
+    [Fact]
+    public void ToggleDone_sets_done_strikethrough_and_done_at()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items[0];
+
+        sut.ToggleDone(item);
+
+        item.Done.Should().BeTrue();
+        item.IsStruck.Should().BeTrue();
+        item.DoneAt.Should().NotBeNull();
+        _checklist.Items.Single(i => i.Id == item.Id).Done.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ToggleDone_twice_clears_done_and_done_at()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items[0];
+
+        sut.ToggleDone(item);
+        sut.ToggleDone(item);
+
+        item.Done.Should().BeFalse();
+        item.DoneAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToggleDone_ignores_issue_items()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddIssue();
+        var item = sut.Items[0];
+
+        sut.ToggleDone(item);
+
+        item.Done.Should().BeFalse();
+        item.DoneAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToggleDone_bumps_parent_note_updated_at()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var before = _notes.Get(1)!.UpdatedAt;
+        var item = sut.Items[0];
+
+        sut.ToggleDone(item);
+
+        _notes.Get(1)!.UpdatedAt.Should().BeOnOrAfter(before);
+    }
 }
