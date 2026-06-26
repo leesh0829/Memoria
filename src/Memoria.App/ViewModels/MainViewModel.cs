@@ -155,7 +155,34 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void NewChecklist() { /* M9에서 채움 */ }
+    private void NewChecklist()
+    {
+        var group = _groupRepo.GetAll()
+            .FirstOrDefault(g => g.IsSystem && g.Name == ChecklistViewModel.DailyLogGroupName);
+
+        var now = _time.GetUtcNow();
+        var note = new Note
+        {
+            Type = NoteType.Checklist,
+            GroupId = group?.Id,
+            LogDate = DateOnly.FromDateTime(now.LocalDateTime.Date),
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        var id = _noteRepo.Create(note);
+        NavigateToNote(id, group?.Id);
+    }
+
+    // 사이드바 노드 선택 → 목록 재로드 → 해당 노트 선택(에디터 호스팅 트리거).
+    public void NavigateToNote(int noteId, int? groupId)
+    {
+        var node = SidebarNodes.FirstOrDefault(n => n.GroupId == groupId)
+                   ?? SidebarNodes.FirstOrDefault(n => n.Kind == SidebarNodeKind.Unclassified);
+        if (node is not null) SelectedNode = node;
+
+        LoadNotes();   // SelectedNode가 이미 동일하면 OnSelectedNodeChanged가 안 울리므로 명시 재로드
+        SelectedNote = Notes.FirstOrDefault(n => n.Id == noteId);
+    }
 
     [RelayCommand]
     private void OpenWeeklyReport() { /* M9에서 채움 */ }
