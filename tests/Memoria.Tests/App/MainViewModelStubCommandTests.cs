@@ -18,12 +18,17 @@ public class MainViewModelStubCommandTests
     private static MainViewModel NewVm(FakeNoteRepository? notes = null, FakeTimeProvider? time = null)
     {
         time ??= new FakeTimeProvider();
+        var groups = new FakeGroupRepository();
+        notes ??= new FakeNoteRepository();
         return new MainViewModel(
-            new FakeGroupRepository(),
-            notes ?? new FakeNoteRepository(),
+            groups,
+            notes,
             new DebounceAutosaveService(time, 500),
             new FakeRecoveryJournal(),
-            time);
+            time,
+            new FakeSearchService(),
+            M9EditorFakes.ChecklistFactory(notes, groups),
+            M9EditorFakes.WeeklyFactory(notes, groups, time));
     }
 
     [Fact]

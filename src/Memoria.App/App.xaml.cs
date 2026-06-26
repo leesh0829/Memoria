@@ -69,7 +69,18 @@ public partial class App : Application
             var ms = int.Parse(settings.GetOrDefault(SettingsKeys.AutosaveDebounceMs, "500"));
             return new DebounceAutosaveService(sp.GetRequiredService<TimeProvider>(), ms);
         });
-        sc.AddSingleton<MainViewModel>();
+        // M9 — MainViewModel 은 ISearchService + 하위 에디터 VM 팩토리(Func<>)를 요구한다.
+        //      MS.DI 는 Func<T> 를 자동 해석하지 않으므로 명시적 팩토리로 등록한다.
+        sc.AddTransient<ChecklistViewModel>();
+        sc.AddSingleton<MainViewModel>(sp => new MainViewModel(
+            sp.GetRequiredService<IGroupRepository>(),
+            sp.GetRequiredService<INoteRepository>(),
+            sp.GetRequiredService<IAutosaveService>(),
+            sp.GetRequiredService<IRecoveryJournal>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ISearchService>(),
+            () => sp.GetRequiredService<ChecklistViewModel>(),
+            () => sp.GetRequiredService<WeeklyReportViewModel>()));
         sc.AddSingleton<MainWindow>();
         // M4 — WPF 서비스 구현체 + WeeklyReportViewModel 등록.
         sc.AddSingleton<IClipboardService, WpfClipboardService>();

@@ -16,7 +16,10 @@ public class MainViewModelNotesTests
         => new MainViewModel(groups, notes,
             new DebounceAutosaveService(time, 500),
             new FakeRecoveryJournal(),
-            time);
+            time,
+            new FakeSearchService(),
+            M9EditorFakes.ChecklistFactory(notes, groups),
+            M9EditorFakes.WeeklyFactory(notes, groups, time));
 
     [Fact]
     public void Selecting_group_loads_notes_pinned_first_then_updated_desc()

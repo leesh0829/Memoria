@@ -18,9 +18,9 @@ public partial class MainViewModel : ObservableObject
     private readonly IAutosaveService _autosave;
     private readonly IRecoveryJournal _recovery;
     private readonly TimeProvider _time;
-    private readonly ISearchService? _search;
-    private readonly Func<ChecklistViewModel>? _checklistEditorFactory;
-    private readonly Func<WeeklyReportViewModel>? _weeklyReportEditorFactory;
+    private readonly ISearchService _search;
+    private readonly Func<ChecklistViewModel> _checklistEditorFactory;
+    private readonly Func<WeeklyReportViewModel> _weeklyReportEditorFactory;
 
     private Note? _current;
     private bool _suppressDirty;
@@ -55,9 +55,9 @@ public partial class MainViewModel : ObservableObject
         IAutosaveService autosave,
         IRecoveryJournal recovery,
         TimeProvider time,
-        ISearchService? search = null,
-        Func<ChecklistViewModel>? checklistEditorFactory = null,
-        Func<WeeklyReportViewModel>? weeklyReportEditorFactory = null)
+        ISearchService search,
+        Func<ChecklistViewModel> checklistEditorFactory,
+        Func<WeeklyReportViewModel> weeklyReportEditorFactory)
     {
         _groupRepo = groupRepo;
         _noteRepo = noteRepo;
@@ -110,11 +110,11 @@ public partial class MainViewModel : ObservableObject
                 OpenNote(note.Id);          // 기존 M2 plain 에디터 로직(헤더/본문/IsEditorVisible) 재사용
                 return this;                // plain DataTemplate은 MainViewModel 자신에 바인딩
             case NoteType.Checklist:
-                var checklist = _checklistEditorFactory!();
+                var checklist = _checklistEditorFactory();
                 checklist.Load(note);
                 return checklist;
             case NoteType.WeeklyReport:
-                var weekly = _weeklyReportEditorFactory!();
+                var weekly = _weeklyReportEditorFactory();
                 if (note.ReportWeekStart is DateOnly ws) weekly.SelectedDate = ws;
                 if (note.ReportFormat is ReportFormatKind fmt) weekly.SelectedFormat = fmt;
                 weekly.GenerateCommand.Execute(null);   // 멱등 로드(M4: 기존 body 재사용)

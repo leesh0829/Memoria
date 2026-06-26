@@ -76,3 +76,19 @@ internal sealed class FakeSearchService : ISearchService
     public string? LastQuery { get; private set; }
     public IReadOnlyList<SearchHit> Search(string query) { LastQuery = query; return Result; }
 }
+
+// M9 MainViewModel 의 신규 required 파라미터(ISearchService + 하위 에디터 VM 팩토리)를
+// 기본 페이크로 채워주는 공용 헬퍼. M9 이전 테스트 헬퍼의 후방 호환성을 위해 사용한다.
+internal static class M9EditorFakes
+{
+    public static Func<Memoria.App.ViewModels.ChecklistViewModel> ChecklistFactory(
+        INoteRepository notes, IGroupRepository groups) =>
+        () => new Memoria.App.ViewModels.ChecklistViewModel(
+            new FakeChecklistRepo(), new FakeClientRepo(), new FakeTagging(), notes, groups);
+
+    public static Func<Memoria.App.ViewModels.WeeklyReportViewModel> WeeklyFactory(
+        INoteRepository notes, IGroupRepository groups, TimeProvider time) =>
+        () => new Memoria.App.ViewModels.WeeklyReportViewModel(
+            new FakeWeeklyReportService(), new FakeWeekCalc(), notes, new FakeClientRepo(),
+            groups, new FakeSettings(), new FakeClipboard(), new FakeConfirm(), time);
+}

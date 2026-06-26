@@ -19,7 +19,10 @@ public class MainViewModelEditorTests
         var rec = new FakeRecoveryJournal();
         var time = new FakeTimeProvider();
         var autosave = new DebounceAutosaveService(time, debounceMs);
-        var vm = new MainViewModel(groups, notes, autosave, rec, time);
+        var vm = new MainViewModel(groups, notes, autosave, rec, time,
+            new FakeSearchService(),
+            M9EditorFakes.ChecklistFactory(notes, groups),
+            M9EditorFakes.WeeklyFactory(notes, groups, time));
         return (vm, notes, rec, time, autosave);
     }
 

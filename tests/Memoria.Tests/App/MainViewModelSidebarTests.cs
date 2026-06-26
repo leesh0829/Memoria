@@ -11,11 +11,17 @@ namespace Memoria.Tests.App;
 
 public class MainViewModelSidebarTests
 {
-    private static MainViewModel NewVm(FakeGroupRepository g, FakeNoteRepository n) =>
-        new MainViewModel(g, n,
-            new DebounceAutosaveService(new FakeTimeProvider(), 500),
+    private static MainViewModel NewVm(FakeGroupRepository g, FakeNoteRepository n)
+    {
+        var time = new FakeTimeProvider();
+        return new MainViewModel(g, n,
+            new DebounceAutosaveService(time, 500),
             new FakeRecoveryJournal(),
-            new FakeTimeProvider());
+            time,
+            new FakeSearchService(),
+            M9EditorFakes.ChecklistFactory(n, g),
+            M9EditorFakes.WeeklyFactory(n, g, time));
+    }
 
     [Fact]
     public void LoadGroups_orders_userGroups_then_unclassified_then_systemGroups()
