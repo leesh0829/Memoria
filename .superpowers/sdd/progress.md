@@ -209,3 +209,4 @@ M7 Task 5: complete (head 8e1622e) [ThemeService]
 MINOR (defer): ApplyAccent brush not Frozen()
 M7 Task 6: head e64da78 | Failed: 0, Passed: 265 (256 existing + 9 new SettingsViewModelTests)
 M7 Task 7: head 0421ae0 | Failed: 0, Passed: 272 (265 existing + 7 new ClientsSettingsViewModelTests)
+M7 Task 8: head f8598c6 | Failed: 0, Passed: 273 (272 existing + 1 new OpenSettingsCommand_delegates_to_ISettingsWindowService)
