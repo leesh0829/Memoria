@@ -59,38 +59,6 @@ internal sealed class FakeClientRepository : IClientRepository
     public void ReplaceRules(int clientId, IEnumerable<ClientRule> rules) { }
 }
 
-internal sealed class FakeNoteRepository : INoteRepository
-{
-    public readonly List<Note> Notes = new();
-    private int _seq = 0;
-
-    public int Create(Note note) { note.Id = ++_seq; Notes.Add(note); return note.Id; }
-    public void Update(Note note)
-    {
-        var idx = Notes.FindIndex(n => n.Id == note.Id);
-        if (idx >= 0) Notes[idx] = note; else Notes.Add(note);
-    }
-    public void SoftDelete(int id) { }
-    public void Restore(int id) { }
-    public void Purge(int id) { }
-    public void PurgeExpiredTrash(int retentionDays) { }
-    public Note? Get(int id) => Notes.FirstOrDefault(n => n.Id == id);
-    public IReadOnlyList<Note> GetByGroup(int? groupId) => new List<Note>();
-    public IReadOnlyList<Note> GetTrash() => new List<Note>();
-    public IReadOnlyList<Note> GetChecklistsInWeek(DateOnly monday, DateOnly friday) => new List<Note>();
-    public Note? FindWeeklyReport(DateOnly weekStart, ReportFormatKind format) => null;
-}
-
-internal sealed class FakeGroupRepository : IGroupRepository
-{
-    public readonly List<Group> Groups = new();
-    public int Create(Group group) { group.Id = Groups.Count + 1; Groups.Add(group); return group.Id; }
-    public void Update(Group group) { }
-    public void Delete(int id) { }
-    public Group? Get(int id) => Groups.FirstOrDefault(g => g.Id == id);
-    public IReadOnlyList<Group> GetAll() => Groups.OrderBy(g => g.SortOrder).ToList();
-}
-
 /// 계약 §5 ITaggingService 의미를 모사: Task & !IsManual 일 때만 키워드로 ClientId 재계산.
 internal sealed class FakeTaggingService : ITaggingService
 {

@@ -5,6 +5,8 @@ using Memoria.Core.Models;
 using Memoria.Core.Reporting;
 using Memoria.Core.Services;
 using Memoria.App.Services;
+// FakeGroupRepository, FakeNoteRepository, FakeSettingsRepository are the canonical
+// Memoria.Tests.Fakes versions (FakeGroupRepository.cs / FakeNoteRepository.cs / FakeSettingsRepository.cs).
 
 namespace Memoria.Tests.ViewModels;
 
@@ -52,43 +54,6 @@ internal sealed class FakeWeeklyReportService : IWeeklyReportService
     }
 }
 
-internal sealed class FakeNoteRepository : INoteRepository
-{
-    public List<Note> Notes { get; } = new();
-    public List<Note> Created { get; } = new();
-    public List<Note> Updated { get; } = new();
-    private int _nextId = 100;
-
-    public int Create(Note note)
-    {
-        note.Id = _nextId++;
-        Notes.Add(note);
-        Created.Add(note);
-        return note.Id;
-    }
-
-    public void Update(Note note)
-    {
-        Updated.Add(note);
-        var idx = Notes.FindIndex(n => n.Id == note.Id);
-        if (idx >= 0) Notes[idx] = note;
-    }
-
-    public Note? FindWeeklyReport(DateOnly weekStart, ReportFormatKind format)
-        => Notes.FirstOrDefault(n => n.Type == NoteType.WeeklyReport
-            && n.ReportWeekStart == weekStart && n.ReportFormat == format);
-
-    public Note? Get(int id) => Notes.FirstOrDefault(n => n.Id == id);
-
-    public void SoftDelete(int id) => throw new NotSupportedException();
-    public void Restore(int id) => throw new NotSupportedException();
-    public void Purge(int id) => throw new NotSupportedException();
-    public void PurgeExpiredTrash(int retentionDays) => throw new NotSupportedException();
-    public IReadOnlyList<Note> GetByGroup(int? groupId) => throw new NotSupportedException();
-    public IReadOnlyList<Note> GetTrash() => throw new NotSupportedException();
-    public IReadOnlyList<Note> GetChecklistsInWeek(DateOnly monday, DateOnly friday) => throw new NotSupportedException();
-}
-
 internal sealed class FakeClientRepository : IClientRepository
 {
     public List<Client> Clients { get; } = new();
@@ -106,27 +71,6 @@ internal sealed class FakeClientRepository : IClientRepository
     public void Delete(int id) => throw new NotSupportedException();
     public IReadOnlyList<ClientRule> GetRules() => throw new NotSupportedException();
     public void ReplaceRules(int clientId, IEnumerable<ClientRule> rules) => throw new NotSupportedException();
-}
-
-internal sealed class FakeGroupRepository : IGroupRepository
-{
-    public List<Group> Groups { get; } = new();
-
-    public IReadOnlyList<Group> GetAll() => Groups.OrderBy(g => g.SortOrder).ToList();
-
-    public int Create(Group group) => throw new NotSupportedException();
-    public void Update(Group group) => throw new NotSupportedException();
-    public void Delete(int id) => throw new NotSupportedException();
-    public Group? Get(int id) => Groups.FirstOrDefault(g => g.Id == id);
-}
-
-internal sealed class FakeSettingsRepository : ISettingsRepository
-{
-    public Dictionary<string, string> Values { get; } = new();
-    public string? Get(string key) => Values.TryGetValue(key, out var v) ? v : null;
-    public string GetOrDefault(string key, string fallback) => Values.TryGetValue(key, out var v) ? v : fallback;
-    public void Set(string key, string value) => Values[key] = value;
-    public IReadOnlyDictionary<string, string> GetAll() => Values;
 }
 
 internal sealed class FakeClipboardService : IClipboardService

@@ -5,6 +5,7 @@ using Memoria.Core;
 using Memoria.Core.Models;
 using Memoria.Core.Reporting;
 using Memoria.Core.Services;
+using Memoria.Tests.Fakes;
 
 namespace Memoria.Tests.ViewModels;
 
