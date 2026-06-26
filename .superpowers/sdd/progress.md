@@ -86,3 +86,4 @@ M2 Task 5: complete (head aa9df2a) [note list + title rule + new note]
 MINOR (defer): unused template usings in App.xaml.cs/MainWindow.xaml.cs (MainWindow replaced in T9); RecoveryJournalTests temp dir cleanup
 M2 Task 6: head 6748571 | dotnet test: 90 passed (85 existing + 5 new EditorHeader/MainViewModelEditor), 0 failed
 M2 Task 7: head eae367a | dotnet test: 93 passed (90 existing + 3 new MainViewModelStubCommands), 0 failed
+M2 Task 8: head f1941ac | dotnet test: 94 passed (93 existing + 1 new AppServicesTests), 0 failed
