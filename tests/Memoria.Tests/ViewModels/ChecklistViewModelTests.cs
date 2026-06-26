@@ -323,4 +323,51 @@ public class ChecklistViewModelTests
         item.IsManual.Should().BeTrue();
         item.IsUnclassified.Should().BeTrue();
     }
+
+    [Fact]
+    public void Changing_log_date_persists_to_note()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+
+        sut.LogDate = new DateOnly(2026, 6, 27);
+
+        _notes.Get(1)!.LogDate.Should().Be(new DateOnly(2026, 6, 27));
+    }
+
+    [Fact]
+    public void Loading_note_does_not_repersist_log_date()
+    {
+        var note = SeedNote();
+        note.LogDate = new DateOnly(2026, 6, 26);
+        var before = note.UpdatedAt;
+        var sut = CreateSut();
+
+        sut.Load(note);   // 로드 자체는 UpdatedAt를 바꾸지 않아야 함
+
+        _notes.Get(1)!.UpdatedAt.Should().Be(before);
+    }
+
+    [Fact]
+    public void CreateChecklistNote_places_note_in_daily_log_system_group()
+    {
+        _groups.Groups.Add(new Group { Id = 1, Name = "일일업무일지", IsSystem = true, SortOrder = 100 });
+        _groups.Groups.Add(new Group { Id = 2, Name = "주간보고", IsSystem = true, SortOrder = 101 });
+
+        var note = ChecklistViewModel.CreateChecklistNote(_notes, _groups, new DateOnly(2026, 6, 26));
+
+        note.Type.Should().Be(NoteType.Checklist);
+        note.GroupId.Should().Be(1);
+        note.LogDate.Should().Be(new DateOnly(2026, 6, 26));
+        note.Id.Should().BeGreaterThan(0);
+        _notes.Get(note.Id).Should().NotBeNull();
+    }
+
+    [Fact]
+    public void CreateChecklistNote_leaves_group_null_when_system_group_missing()
+    {
+        var note = ChecklistViewModel.CreateChecklistNote(_notes, _groups, new DateOnly(2026, 6, 26));
+        note.GroupId.Should().BeNull();
+    }
 }

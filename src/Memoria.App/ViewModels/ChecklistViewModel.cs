@@ -45,7 +45,7 @@ public partial class ChecklistViewModel : ObservableObject
     public void Load(Note note)
     {
         _note = note;
-        LogDate = note.LogDate ?? DateOnly.FromDateTime(DateTime.Today);
+        _logDate = note.LogDate ?? DateOnly.FromDateTime(DateTime.Today);  // 필드 직접 대입 → OnLogDateChanged 미발생
 
         AvailableClients.Clear();
         foreach (var client in _clients.GetAll(enabledOnly: true))
@@ -135,6 +135,39 @@ public partial class ChecklistViewModel : ObservableObject
         item.UpdatedAt = DateTimeOffset.UtcNow;
         _checklist.UpdateItem(item.ToModel());
         TouchNote();
+    }
+
+    partial void OnLogDateChanged(DateOnly value)
+    {
+        if (_note is null) return;     // Load()는 _logDate 필드 직접 대입이라 여기 오지 않음
+        _note.LogDate = value;
+        _note.UpdatedAt = DateTimeOffset.UtcNow;
+        _notes.Update(_note);
+    }
+
+    /// 새 checklist 메모를 시스템 그룹 '일일업무일지'(M1 시드)에 배치하여 생성한다.
+    /// 시스템 그룹이 없으면 GroupId=null(미분류)로 둔다.
+    public static Note CreateChecklistNote(INoteRepository notes, IGroupRepository groups, DateOnly logDate)
+    {
+        var group = groups.GetAll()
+            .FirstOrDefault(g => g.IsSystem && g.Name == DailyLogGroupName);
+
+        var now = DateTimeOffset.UtcNow;
+        var note = new Note
+        {
+            GroupId = group?.Id,
+            Type = NoteType.Checklist,
+            Title = null,
+            Body = null,
+            LogDate = logDate,
+            Pinned = false,
+            SortOrder = 0,
+            DeletedAt = null,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        note.Id = notes.Create(note);
+        return note;
     }
 
     private int NextSortOrder() => Items.Count == 0 ? 0 : Items.Max(i => i.SortOrder) + 1;
