@@ -22,6 +22,10 @@ public partial class App : Application
     private ITrayService _tray = null!;
     private IAutostartService _autostart = null!;
 
+    // ExitApplication()과 OnExit()가 모두 라이프사이클 서비스를 정리하므로,
+    // 정확히 한 번만 Dispose되도록 보장하는 가드.
+    private bool _lifecycleServicesDisposed;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -39,6 +43,18 @@ public partial class App : Application
             Shutdown();
             return;
         }
+
+        // 단일 인스턴스 IPC 수신 구독을 '즉시' 연결한다(서버 루프는 TryAcquire에서 이미 시작됨).
+        // DI 빌드/DB 초기화 등 나머지 부트스트랩 중에 두 번째 인스턴스가 보내는 신호를 놓치지 않기 위함.
+        // BeginInvoke로 디스패처 큐에 넣어, 시작이 끝나 MainWindow가 준비된 뒤 안전하게 실행되도록 한다.
+        // (시작 초기에 신호가 와도 MainWindow가 아직 없으면 throw하지 않고 무시한다.)
+        _singleInstance.CommandReceived += (_, cmd) =>
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (MainWindow is null) return; // 아직 MainWindow 미생성 — 안전하게 무시
+                if (cmd == PipeCommand.NewNote) NewNoteForeground();
+                else ShowMainWindow();
+            });
 
         // (3) M2 — DI 합성 + 서비스 로케이터 초기화. (M6/M7이 자기 서비스 등록을 이 블록에 추가)
         var sc = new ServiceCollection();
@@ -121,13 +137,7 @@ public partial class App : Application
         _hotkey.HotkeyPressed += (_, _) => NewNoteForeground();
         _hotkey.Register(hotkeyStr); // 등록 실패 시 false 반환(재지정 UI는 M7)
 
-        // 단일 인스턴스 IPC 수신 → UI 스레드로 마샬링
-        _singleInstance.CommandReceived += (_, cmd) =>
-            Dispatcher.Invoke(() =>
-            {
-                if (cmd == PipeCommand.NewNote) NewNoteForeground();
-                else ShowMainWindow();
-            });
+        // 단일 인스턴스 IPC 수신 구독은 (2)에서 이미 연결됨(구독 누락 레이스 방지).
 
         // (11) M6 — 표시. (closeToTray/autostart 정책에 따라 트레이 시작으로 분기 — 기본은 Show)
         window.Show();
@@ -138,9 +148,7 @@ public partial class App : Application
         // 계약 §9.4 OnExit
         _services?.GetService<IAutosaveService>()?.FlushAll();   // (M2) 보류 저장 즉시 확정(§7.7)
         _services?.Dispose();                                    // (M2/M9) SqliteConnectionFactory.Dispose가 PRAGMA wal_checkpoint(TRUNCATE) 후 연결 종료
-        _hotkey?.Dispose();       // (M6) 전역 단축키 해제
-        _tray?.Dispose();         // (M6) 트레이 아이콘 제거
-        _singleInstance?.Dispose(); // (M6) Mutex/pipe 해제
+        DisposeLifecycleServices();                              // (M6) Hotkey/Tray/SingleInstance — 정확히 한 번만
         base.OnExit(e);
     }
 
@@ -180,9 +188,18 @@ public partial class App : Application
     private void ExitApplication()
     {
         ((MainWindow)MainWindow!).AllowClose = true;
-        _hotkey.Dispose();
-        _tray.Dispose();
-        _singleInstance.Dispose();
+        DisposeLifecycleServices();   // 여기서 한 번 정리 → 이후 Shutdown()이 부르는 OnExit에서는 가드로 재실행 안 함
         Shutdown();
+    }
+
+    /// Hotkey/Tray/SingleInstance를 정확히 한 번만 Dispose한다.
+    /// ExitApplication()이 먼저 호출되고 Shutdown()→OnExit()가 다시 호출하더라도 이중 Dispose를 방지한다.
+    private void DisposeLifecycleServices()
+    {
+        if (_lifecycleServicesDisposed) return;
+        _lifecycleServicesDisposed = true;
+        _hotkey?.Dispose();         // (M6) 전역 단축키 해제
+        _tray?.Dispose();           // (M6) 트레이 아이콘 제거
+        _singleInstance?.Dispose(); // (M6) Mutex/pipe 해제
     }
 }
