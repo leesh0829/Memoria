@@ -121,25 +121,36 @@ public partial class MainWindow : Window
     // -----------------------------------------------------------------
 
     /// 그룹 순서변경 드래그 시작 (PreviewMouseMove에서 DoDragDrop 호출).
+    /// 드래그 데이터로 SidebarNodes 인덱스가 아닌 실제 Group.Id를 저장한다
+    /// (SidebarNodes는 비시스템→(미분류)→시스템 순서라 GroupVm.Groups 인덱스와 불일치).
     private void GroupList_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed) return;
         if (sender is not ListBox lb) return;
         if (lb.SelectedItem is not SidebarNodeViewModel node) return;
-        if (node.Kind == SidebarNodeKind.Unclassified) return; // 미분류 노드는 드래그 불가
+        if (node.Kind != SidebarNodeKind.Group) return; // (미분류)·시스템 그룹은 드래그 불가
+        if (node.GroupId is not int groupId) return;
 
-        var index = lb.Items.IndexOf(node);
-        if (index < 0) return;
-
-        DragDrop.DoDragDrop(lb, new DataObject("groupFromIndex", index), DragDropEffects.Move);
+        DragDrop.DoDragDrop(lb, new DataObject("groupId", groupId), DragDropEffects.Move);
     }
 
-    /// 그룹 순서변경: 드롭 시 인덱스 계산 후 위임.
+    /// 그룹 순서변경: 드롭 시 Group.Id로 GroupVm.Groups 실제 인덱스를 역산해 위임.
     private void GroupList_Drop(object sender, DragEventArgs e)
     {
-        var (from, to) = ResolveDragIndices(sender, e);
-        if (from < 0 || to < 0 || from == to) return;
-        GroupVm.MoveGroup(from, to);
+        if (!e.Data.GetDataPresent("groupId")) return;
+        if (sender is not ListBox list) return;
+
+        var fromIndex = IndexInGroups((int)e.Data.GetData("groupId"));
+        if (fromIndex < 0) return;
+
+        // 드롭 위치의 사이드바 노드 → 그룹 노드면 그 Id로, (미분류)/시스템 위면 사용자 그룹의 맨 끝으로.
+        var targetNode = ResolveDropTargetNode(list, e);
+        var toIndex = targetNode is { Kind: SidebarNodeKind.Group, GroupId: int targetGroupId }
+            ? IndexInGroups(targetGroupId)
+            : LastUserGroupIndex();
+
+        if (toIndex < 0 || fromIndex == toIndex) return;
+        GroupVm.MoveGroup(fromIndex, toIndex);
         ViewModel.LoadGroups();
     }
 
@@ -163,24 +174,38 @@ public partial class MainWindow : Window
     }
 
     // -----------------------------------------------------------------
-    // 인덱스 계산 헬퍼
+    // 인덱스 계산 헬퍼 (GroupVm.Groups 기준)
     // -----------------------------------------------------------------
 
-    private (int from, int to) ResolveDragIndices(object sender, DragEventArgs e)
+    /// 마우스 위치 아래의 사이드바 노드를 반환(컨테이너 중간점 기준, 없으면 마지막 노드).
+    private static SidebarNodeViewModel? ResolveDropTargetNode(ListBox list, DragEventArgs e)
     {
-        if (!e.Data.GetDataPresent("groupFromIndex")) return (-1, -1);
-        var fromIndex = (int)e.Data.GetData("groupFromIndex");
-        if (sender is not ListBox list) return (fromIndex, fromIndex);
-
         var pos = e.GetPosition(list);
-        var toIndex = list.Items.Count - 1;
         for (var i = 0; i < list.Items.Count; i++)
         {
-            if (list.ItemContainerGenerator.ContainerFromIndex(i) is not ListBoxItem item) continue;
-            var pt = item.TransformToAncestor(list).Transform(new Point(0, 0));
-            if (pos.Y < pt.Y + item.ActualHeight / 2) { toIndex = i; break; }
+            if (list.ItemContainerGenerator.ContainerFromIndex(i) is not ListBoxItem container) continue;
+            var pt = container.TransformToAncestor(list).Transform(new Point(0, 0));
+            if (pos.Y < pt.Y + container.ActualHeight / 2)
+                return list.Items[i] as SidebarNodeViewModel;
         }
-        return (fromIndex, toIndex);
+        return list.Items.Count > 0 ? list.Items[^1] as SidebarNodeViewModel : null;
+    }
+
+    /// Group.Id로 GroupVm.Groups 내 실제 인덱스를 역산(없으면 -1).
+    private int IndexInGroups(int groupId)
+    {
+        for (var i = 0; i < GroupVm.Groups.Count; i++)
+            if (GroupVm.Groups[i].Id == groupId) return i;
+        return -1;
+    }
+
+    /// GroupVm.Groups 내 마지막 사용자(비시스템) 그룹 인덱스(없으면 -1).
+    private int LastUserGroupIndex()
+    {
+        var index = -1;
+        for (var i = 0; i < GroupVm.Groups.Count; i++)
+            if (!GroupVm.Groups[i].IsSystem) index = i;
+        return index;
     }
 
     // -----------------------------------------------------------------
