@@ -27,7 +27,7 @@ public class WeeklyReportViewModelTests
         var dlg = new FakeConfirmationDialogService();
         var vm = new WeeklyReportViewModel(
             svc, new FakeWeekCalculator(), notes, clients, groups, settings, clip, dlg,
-            new FixedTimeProvider(now ?? new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero)));
+            new WeeklyReportFixedTimeProvider(now ?? new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero)));
         return (vm, svc, notes, clients, groups, settings, clip, dlg);
     }
 

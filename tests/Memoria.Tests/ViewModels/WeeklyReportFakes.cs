@@ -10,10 +10,10 @@ using Memoria.App.Services;
 
 namespace Memoria.Tests.ViewModels;
 
-internal sealed class FixedTimeProvider : TimeProvider
+internal sealed class WeeklyReportFixedTimeProvider : TimeProvider
 {
     private readonly DateTimeOffset _now;
-    public FixedTimeProvider(DateTimeOffset now) => _now = now;
+    public WeeklyReportFixedTimeProvider(DateTimeOffset now) => _now = now;
     public override DateTimeOffset GetUtcNow() => _now;
     public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
 }
