@@ -10,11 +10,12 @@ public sealed class BackupService : IBackupService
     private readonly string _databasePath;
     private readonly string _backupDirectory;
 
-    public BackupService(SqliteConnectionFactory factory, string databaseFilePath)
+    public BackupService(SqliteConnectionFactory factory)
     {
         _factory = factory;
-        _databasePath = databaseFilePath;
-        _backupDirectory = Path.Combine(Path.GetDirectoryName(databaseFilePath)!, "backups");
+        // 실제 쓰기 연결과 동일한 DB 경로를 사용해 백업/격리 대상이 어긋나지 않게 한다(계약 §8).
+        _databasePath = factory.DatabasePath;
+        _backupDirectory = Path.Combine(Path.GetDirectoryName(_databasePath)!, "backups");
     }
 
     public bool BackupIfDue(int retentionCount)
@@ -26,12 +27,13 @@ public sealed class BackupService : IBackupService
 
         // VACUUM INTO 는 바인딩 파라미터를 받지 않으므로 경로를 문자열 리터럴로 이스케이프해 주입.
         var literal = target.Replace("'", "''");
+        // 스냅샷(VACUUM INTO)과 로테이션을 모두 쓰기 락 안에서 직렬화한다(계약 §8).
         lock (_factory.WriteSync)
         {
             _factory.Write.Execute($"VACUUM INTO '{literal}';");
+            RotateBackups(retentionCount);
         }
 
-        RotateBackups(retentionCount);
         return true;
     }
 
@@ -88,8 +90,9 @@ public sealed class BackupService : IBackupService
         foreach (var suffix in new[] { "", "-wal", "-shm" })
         {
             var src = _databasePath + suffix;
+            // 모든 격리 파일이 .corrupt 로 끝나게 해 `*.corrupt` glob 으로 세 파일을 모두 잡는다(계약 §8).
             if (File.Exists(src))
-                File.Move(src, $"{_databasePath}.{stamp}.corrupt{suffix}", overwrite: true);
+                File.Move(src, $"{_databasePath}{suffix}.{stamp}.corrupt", overwrite: true);
         }
     }
 }

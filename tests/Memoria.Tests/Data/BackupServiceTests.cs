@@ -36,7 +36,7 @@ public class BackupServiceTests
         try
         {
             new DatabaseInitializer(factory).EnsureReady();
-            var sut = new BackupService(factory, path);
+            var sut = new BackupService(factory);
 
             sut.BackupIfDue(7).Should().BeTrue();
             Directory.GetFiles(BackupsDir(path), "memoria-*.db").Should().HaveCount(1);
@@ -61,7 +61,7 @@ public class BackupServiceTests
             foreach (var d in new[] { "20200101", "20200102", "20200103" })
                 File.WriteAllText(Path.Combine(BackupsDir(path), $"memoria-{d}.db"), "x");
 
-            new BackupService(factory, path).BackupIfDue(2).Should().BeTrue();
+            new BackupService(factory).BackupIfDue(2).Should().BeTrue();
 
             var remaining = Directory.GetFiles(BackupsDir(path), "memoria-*.db")
                 .Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal).ToList();
@@ -81,7 +81,7 @@ public class BackupServiceTests
         try
         {
             new DatabaseInitializer(factory).EnsureReady();
-            new BackupService(factory, path).IsDatabaseHealthy().Should().BeTrue();
+            new BackupService(factory).IsDatabaseHealthy().Should().BeTrue();
         }
         finally { factory.Dispose(); Cleanup(path); }
     }
@@ -95,7 +95,7 @@ public class BackupServiceTests
         try
         {
             new DatabaseInitializer(factory).EnsureReady();
-            new BackupService(factory, path).TryRestoreFromLatestBackup().Should().BeFalse();
+            new BackupService(factory).TryRestoreFromLatestBackup().Should().BeFalse();
         }
         finally { factory.Dispose(); Cleanup(path); }
     }
@@ -112,7 +112,7 @@ public class BackupServiceTests
             var notes = new NoteRepository(factory);
             var beforeId = notes.Create(new Note { Type = NoteType.Plain, Title = "before" });
 
-            var sut = new BackupService(factory, path);
+            var sut = new BackupService(factory);
             sut.BackupIfDue(7).Should().BeTrue();              // 백업 스냅샷에는 'before'만 존재
 
             var afterId = notes.Create(new Note { Type = NoteType.Plain, Title = "after" }); // 백업 이후 추가
@@ -121,7 +121,13 @@ public class BackupServiceTests
 
             notes.Get(beforeId).Should().NotBeNull();          // 복원: 백업 시점 데이터 유지
             notes.Get(afterId).Should().BeNull();              // 복원: 백업 이후 변경은 사라짐
-            Directory.GetFiles(Path.GetDirectoryName(path)!, "*.corrupt").Should().NotBeEmpty(); // 격리 파일 생성
+
+            var dir = Path.GetDirectoryName(path)!;
+            Directory.GetFiles(dir, "*.corrupt").Should().NotBeEmpty(); // 격리 파일 생성
+            // 격리된 모든 파일(db/-wal/-shm)은 .corrupt 로 끝나야 `*.corrupt` glob 이 전부 잡는다(계약 §8c).
+            Directory.GetFiles(dir)
+                .Where(f => f.Contains(".corrupt", StringComparison.Ordinal))
+                .Should().OnlyContain(f => f.EndsWith(".corrupt", StringComparison.Ordinal));
         }
         finally { factory.Dispose(); Cleanup(path); }
     }

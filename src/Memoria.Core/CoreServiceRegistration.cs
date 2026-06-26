@@ -18,7 +18,7 @@ public static class CoreServiceRegistration
 
         services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
         services.AddSingleton<IBackupService>(sp =>
-            new BackupService(sp.GetRequiredService<SqliteConnectionFactory>(), databaseFilePath));
+            new BackupService(sp.GetRequiredService<SqliteConnectionFactory>()));
 
         services.AddSingleton<IGroupRepository, GroupRepository>();
         services.AddSingleton<INoteRepository, NoteRepository>();
