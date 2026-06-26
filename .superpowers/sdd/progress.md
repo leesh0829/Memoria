@@ -114,3 +114,13 @@ M3 Task 6: head 254856f | Failed: 0, Passed: 119 | CommitClient sets IsManual=tr
 M3 Task 7: head 9165e2e | Failed: 0, Passed: 123 | log_date setter persists to note; Load uses field-direct to skip OnLogDateChanged; CreateChecklistNote static factory places note in 일일업무일지 system group
 M3 Task 8: head 00d4554 | Failed: 0, Passed: 126 | MoveItem reorders collection and renumbers sort_order without bumping Note.UpdatedAt; out-of-range index ignored
 M3 Task 9: head 0bc6e73 | Failed: 0, Passed: 126 | ChecklistView XAML+code-behind; DateOnlyToDateTimeConverter; debounced TextBox flush; OnClientSelectionChanged→CommitClientCommand; OnUnloaded immediate flush; build green
+
+--- M3 chunk 2 (tasks 6-9) — VERIFIED 126/126 green ---
+M3 Task 6: complete (head 254856f) [CommitClient manual correction]
+M3 Task 7: complete (head 9165e2e) [log_date + CreateChecklistNote system group]
+M3 Task 8: complete (head 00d4554) [MoveItem reorder]
+M3 Task 9: complete (head 35bff3b) [ChecklistView XAML + debounce wiring]
+*** M3 COMPLETE: 126/126 tests. ***
+MINOR (defer): ChecklistView Window.Deactivated flush; debounce 500ms hardcoded (ignores settings); duplicate BoolToVis/BoolToVisibilityConverter keys in App.xaml
+
+M4 Task 1: head 72b4a75 | Failed: 0, Passed: 128 | WeeklyReportViewModel scaffold + default-week selection + fakes; InvariantCulture MM/dd fix
