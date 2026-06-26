@@ -18,6 +18,9 @@ public partial class MainViewModel : ObservableObject
     private readonly IAutosaveService _autosave;
     private readonly IRecoveryJournal _recovery;
     private readonly TimeProvider _time;
+    private readonly ISearchService? _search;
+    private readonly Func<ChecklistViewModel>? _checklistEditorFactory;
+    private readonly Func<WeeklyReportViewModel>? _weeklyReportEditorFactory;
 
     private Note? _current;
     private bool _suppressDirty;
@@ -36,6 +39,9 @@ public partial class MainViewModel : ObservableObject
     private NoteType currentNoteType;              // 현재 편집 중 NoteType(M9 뷰 호스팅용)
 
     [ObservableProperty]
+    private object? currentEditor;                 // M9: 현재 호스팅 중인 에디터 VM
+
+    [ObservableProperty]
     private string searchText = string.Empty;
 
     [ObservableProperty] private string editorTitle = "";
@@ -48,13 +54,19 @@ public partial class MainViewModel : ObservableObject
         INoteRepository noteRepo,
         IAutosaveService autosave,
         IRecoveryJournal recovery,
-        TimeProvider time)
+        TimeProvider time,
+        ISearchService? search = null,
+        Func<ChecklistViewModel>? checklistEditorFactory = null,
+        Func<WeeklyReportViewModel>? weeklyReportEditorFactory = null)
     {
         _groupRepo = groupRepo;
         _noteRepo = noteRepo;
         _autosave = autosave;
         _recovery = recovery;
         _time = time;
+        _search = search;
+        _checklistEditorFactory = checklistEditorFactory;
+        _weeklyReportEditorFactory = weeklyReportEditorFactory;
     }
 
     public void LoadGroups()
@@ -75,7 +87,41 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedNoteChanged(NoteListItemViewModel? value)
     {
-        if (value is not null) OpenNote(value.Id);
+        if (value is null)
+        {
+            CurrentEditor = null;
+            IsEditorVisible = false;
+            return;
+        }
+
+        var note = _noteRepo.Get(value.Id);
+        if (note is null) return;
+
+        CurrentNoteType = note.Type;
+        CurrentEditor = BuildEditorFor(note);
+    }
+
+    // NoteType → 에디터 VM 매핑(계약 §11: plain/checklist/weekly_report → 각 View 호스팅).
+    private object? BuildEditorFor(Note note)
+    {
+        switch (note.Type)
+        {
+            case NoteType.Plain:
+                OpenNote(note.Id);          // 기존 M2 plain 에디터 로직(헤더/본문/IsEditorVisible) 재사용
+                return this;                // plain DataTemplate은 MainViewModel 자신에 바인딩
+            case NoteType.Checklist:
+                var checklist = _checklistEditorFactory!();
+                checklist.Load(note);
+                return checklist;
+            case NoteType.WeeklyReport:
+                var weekly = _weeklyReportEditorFactory!();
+                if (note.ReportWeekStart is DateOnly ws) weekly.SelectedDate = ws;
+                if (note.ReportFormat is ReportFormatKind fmt) weekly.SelectedFormat = fmt;
+                weekly.GenerateCommand.Execute(null);   // 멱등 로드(M4: 기존 body 재사용)
+                return weekly;
+            default:
+                return null;
+        }
     }
 
     public void LoadNotes()
