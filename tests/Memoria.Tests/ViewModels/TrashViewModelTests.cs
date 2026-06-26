@@ -118,4 +118,33 @@ public class TrashViewModelTests
         notes.Get(id).Should().BeNull();
         vm.Items.Should().BeEmpty();
     }
+
+    [Fact]
+    public void PurgeExpiredOnStartup_uses_retention_setting_and_removes_only_expired()
+    {
+        var (vm, notes, settings) = CreateSut();
+        settings.Set(SettingsKeys.TrashRetentionDays, "30");
+
+        var expiredId = notes.Create(new Note { Type = NoteType.Plain, Title = "오래됨" });
+        var recentId = notes.Create(new Note { Type = NoteType.Plain, Title = "최근" });
+        notes.Get(expiredId)!.DeletedAt = Now.AddDays(-31); // 만료
+        notes.Get(recentId)!.DeletedAt = Now.AddDays(-5);   // 유효
+
+        vm.PurgeExpiredOnStartup();
+
+        notes.Get(expiredId).Should().BeNull();
+        notes.Get(recentId).Should().NotBeNull();
+    }
+
+    [Fact]
+    public void PurgeExpiredOnStartup_defaults_to_30_days_when_setting_absent()
+    {
+        var (vm, notes, _) = CreateSut();
+        var id = notes.Create(new Note { Type = NoteType.Plain });
+        notes.Get(id)!.DeletedAt = Now.AddDays(-40);
+
+        vm.PurgeExpiredOnStartup();
+
+        notes.Get(id).Should().BeNull();
+    }
 }

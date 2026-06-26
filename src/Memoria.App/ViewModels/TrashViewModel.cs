@@ -67,6 +67,11 @@ public partial class TrashViewModel : ObservableObject
         Load();
     }
 
+    public void PurgeExpiredOnStartup()
+    {
+        _notes.PurgeExpiredTrash(RetentionDays);
+    }
+
     public void Load()
     {
         var now = _clock.GetUtcNow();
