@@ -170,6 +170,28 @@ public partial class ChecklistViewModel : ObservableObject
         return note;
     }
 
+    /// 항목 순서 변경(드래그 등). sort_order 재부여는 메타 조작이므로 Note.UpdatedAt를 갱신하지 않는다.
+    public void MoveItem(ChecklistItemViewModel item, int newIndex)
+    {
+        var oldIndex = Items.IndexOf(item);
+        if (oldIndex < 0 || newIndex < 0 || newIndex >= Items.Count) return;
+
+        Items.Move(oldIndex, newIndex);
+        Renumber();
+    }
+
+    private void Renumber()
+    {
+        for (int i = 0; i < Items.Count; i++)
+        {
+            if (Items[i].SortOrder != i)
+            {
+                Items[i].SortOrder = i;
+                _checklist.UpdateItem(Items[i].ToModel());   // UpdatedAt 보존(메타)
+            }
+        }
+    }
+
     private int NextSortOrder() => Items.Count == 0 ? 0 : Items.Max(i => i.SortOrder) + 1;
 
     /// 콘텐츠 변경 시 부모 Note의 UpdatedAt 갱신(메타 조작 제외).

@@ -370,4 +370,55 @@ public class ChecklistViewModelTests
         var note = ChecklistViewModel.CreateChecklistNote(_notes, _groups, new DateOnly(2026, 6, 26));
         note.GroupId.Should().BeNull();
     }
+
+    [Fact]
+    public void MoveItem_reorders_collection_and_renumbers_sort_order()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();   // index 0
+        sut.AddTask();   // index 1
+        sut.AddTask();   // index 2
+        var first = sut.Items[0];
+
+        sut.MoveItem(first, 2);
+
+        sut.Items.IndexOf(first).Should().Be(2);
+        sut.Items[0].SortOrder.Should().Be(0);
+        sut.Items[1].SortOrder.Should().Be(1);
+        sut.Items[2].SortOrder.Should().Be(2);
+        _checklist.Items.Single(i => i.Id == first.Id).SortOrder.Should().Be(2);
+    }
+
+    [Fact]
+    public void MoveItem_does_not_bump_parent_note_updated_at()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        sut.AddTask();
+        var beforeMove = _notes.Get(1)!.UpdatedAt;
+        var first = sut.Items[0];
+
+        sut.MoveItem(first, 1);
+
+        _notes.Get(1)!.UpdatedAt.Should().Be(beforeMove);  // 메타 조작 → 미갱신
+    }
+
+    [Fact]
+    public void MoveItem_ignores_out_of_range_index()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var only = sut.Items[0];
+
+        sut.MoveItem(only, 5);
+
+        sut.Items.Should().HaveCount(1);
+        sut.Items[0].Should().Be(only);
+    }
 }
