@@ -37,13 +37,25 @@ public sealed class RecoveryJournal : IRecoveryJournal
         var result = new List<RecoverySnapshot>();
         foreach (var file in Directory.EnumerateFiles(_dir, "*.json"))
         {
-            string? last = null;
+            // 크래시(이 기능이 대비하는 바로 그 상황)는 마지막 줄을 부분/손상 상태로
+            // 남길 수 있다. 줄별로 역직렬화를 시도하며 손상 줄은 건너뛰고, 노트별로
+            // 마지막으로 성공한 스냅샷을 채택한다. 잘못된 내용에 대해 절대 throw 하지 않는다.
+            RecoverySnapshot? lastValid = null;
             foreach (var line in File.ReadLines(file))
-                if (!string.IsNullOrWhiteSpace(line)) last = line;
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                try
+                {
+                    var snap = JsonSerializer.Deserialize<RecoverySnapshot>(line, JsonOpts);
+                    if (snap is not null) lastValid = snap;
+                }
+                catch (JsonException)
+                {
+                    // 부분/손상 줄(크래시로 인한 미완성 기록) — 건너뛴다.
+                }
+            }
 
-            if (last is null) continue;
-            var snap = JsonSerializer.Deserialize<RecoverySnapshot>(last, JsonOpts);
-            if (snap is not null) result.Add(snap);
+            if (lastValid is not null) result.Add(lastValid);
         }
         return result;
     }
