@@ -157,4 +157,36 @@ public class GroupManagementViewModelTests
         vm.DeleteGroup();
         groups.Get(id).Should().NotBeNull();
     }
+
+    [Fact]
+    public void MoveGroup_reorders_and_reassigns_sort_order()
+    {
+        var (vm, groups, _) = CreateSut();
+        groups.Create(new Group { Name = "A", SortOrder = 0 });
+        groups.Create(new Group { Name = "B", SortOrder = 1 });
+        groups.Create(new Group { Name = "C", SortOrder = 2 });
+        vm.Load();
+
+        vm.MoveGroup(0, 2); // A를 맨 뒤로
+
+        vm.Groups.Select(g => g.Name).Should().Equal("B", "C", "A");
+        groups.Items.Single(g => g.Name == "B").SortOrder.Should().Be(0);
+        groups.Items.Single(g => g.Name == "C").SortOrder.Should().Be(1);
+        groups.Items.Single(g => g.Name == "A").SortOrder.Should().Be(2);
+    }
+
+    [Fact]
+    public void MoveGroup_ignores_out_of_range_or_noop()
+    {
+        var (vm, groups, _) = CreateSut();
+        groups.Create(new Group { Name = "A", SortOrder = 0 });
+        groups.Create(new Group { Name = "B", SortOrder = 1 });
+        vm.Load();
+
+        vm.MoveGroup(0, 0);   // no-op
+        vm.MoveGroup(-1, 1);  // 범위 밖
+        vm.MoveGroup(0, 5);   // 범위 밖
+
+        vm.Groups.Select(g => g.Name).Should().Equal("A", "B");
+    }
 }
