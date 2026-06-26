@@ -269,4 +269,58 @@ public class ChecklistViewModelTests
 
         item.ClientId.Should().BeNull();
     }
+
+    [Fact]
+    public void CommitClient_marks_manual_and_persists()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items[0];
+
+        item.ClientId = 3;          // 드롭다운 two-way 바인딩이 먼저 설정했다고 가정
+        sut.CommitClient(item);
+
+        item.IsManual.Should().BeTrue();
+        item.IsUnclassified.Should().BeFalse();
+        var saved = _checklist.Items.Single(i => i.Id == item.Id);
+        saved.IsManual.Should().BeTrue();
+        saved.ClientId.Should().Be(3);
+    }
+
+    [Fact]
+    public void CommitClient_then_FlushSaves_does_not_overwrite_manual_choice()
+    {
+        _tagging.KeywordToClient["SLD"] = 6;
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items[0];
+
+        item.ClientId = 3;
+        sut.CommitClient(item);
+
+        item.Text = "SLD 작업";   // dirty
+        sut.FlushSaves();
+
+        item.ClientId.Should().Be(3);   // 수동 교정 보호 유지
+    }
+
+    [Fact]
+    public void CommitClient_to_null_marks_manual_unclassified()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items[0];
+
+        item.ClientId = null;       // 사용자가 미분류로 명시 지정
+        sut.CommitClient(item);
+
+        item.IsManual.Should().BeTrue();
+        item.IsUnclassified.Should().BeTrue();
+    }
 }

@@ -124,6 +124,19 @@ public partial class ChecklistViewModel : ObservableObject
         TouchNote();
     }
 
+    /// 드롭다운으로 사용자가 고객사를 교정했을 때 호출(item.ClientId는 바인딩으로 이미 갱신됨).
+    /// 수동 교정으로 표시하여 이후 자동 재분류로부터 보호한다.
+    [RelayCommand]
+    public void CommitClient(ChecklistItemViewModel item)
+    {
+        if (!item.IsTask) return;
+
+        item.IsManual = true;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        _checklist.UpdateItem(item.ToModel());
+        TouchNote();
+    }
+
     private int NextSortOrder() => Items.Count == 0 ? 0 : Items.Max(i => i.SortOrder) + 1;
 
     /// 콘텐츠 변경 시 부모 Note의 UpdatedAt 갱신(메타 조작 제외).
