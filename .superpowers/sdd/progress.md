@@ -169,3 +169,4 @@ M5 Task 12: complete (head 1cff541) [DI + group sidebar menu + trash view + undo
 MINOR (defer): AskInput dialog in code-behind (extract to service in M7); context-menu Click handlers vs Command binding (WPF constraint)
 M6 Task 1: head 5dce4ca | Failed: 0, Passed: 182 (173 existing + 9 new HotkeyParserTests)
 M6 Task 2: head 7da172d | Failed: 0, Passed: 186 (182 existing + 4 new AutostartTests)
+M6 Task 3: head 2a2c531 | Failed: 0, Passed: 195 (186 existing + 9 new PipeMessageTests)
