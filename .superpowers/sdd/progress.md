@@ -124,3 +124,4 @@ M3 Task 9: complete (head 35bff3b) [ChecklistView XAML + debounce wiring]
 MINOR (defer): ChecklistView Window.Deactivated flush; debounce 500ms hardcoded (ignores settings); duplicate BoolToVis/BoolToVisibilityConverter keys in App.xaml
 
 M4 Task 1: head 72b4a75 | Failed: 0, Passed: 128 | WeeklyReportViewModel scaffold + default-week selection + fakes; InvariantCulture MM/dd fix
+M4 Task 2: head b525040 | Failed: 0, Passed: 132 | BuildOptions from settings, GenerateCommand, ReportText, HasUnclassifiedWarning
