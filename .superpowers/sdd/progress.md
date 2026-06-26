@@ -137,3 +137,4 @@ M4 Task 4: complete (head 3fde449) [copy + format toggle + DateOnly conv + WPF v
 MINOR (defer): WeeklyReportVM.Generate redundant GetWorkWeek; WeeklyReportView redundant BoolToVis local converter
 
 M5 Task 1: head f79be0e | Failed: 0, Passed: 144 | GroupManagementViewModel Load + canonical test fakes (FakeGroupRepository/FakeNoteRepository/FakeSettingsRepository/FixedTimeProvider) consolidated in Memoria.Tests.Fakes
+M5 Task 2: head 992da14 | Failed: 0, Passed: 146 | AddGroup command persists with next SortOrder and DefaultGroupColor; empty list uses SortOrder 0
