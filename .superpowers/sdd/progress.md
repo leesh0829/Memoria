@@ -171,3 +171,12 @@ M6 Task 1: head 5dce4ca | Failed: 0, Passed: 182 (173 existing + 9 new HotkeyPar
 M6 Task 2: head 7da172d | Failed: 0, Passed: 186 (182 existing + 4 new AutostartTests)
 M6 Task 3: head 2a2c531 | Failed: 0, Passed: 195 (186 existing + 9 new PipeMessageTests)
 M6 Task 4: head b4d22af | Failed: 0, Passed: 197 (195 existing + 2 new SingleInstanceServiceTests)
+
+--- M6 chunk 1 (tasks 1-4) — VERIFIED 197/197 green ---
+M6 Task 1: complete (head 5dce4ca) [HotkeyParser]
+M6 Task 2: complete (head 2a682e0) [autostart registry + IAutostartService]
+M6 Task 3: complete (head 6d66e08) [PipeCommand/PipeMessage serialization]
+M6 Task 4: complete (head 4f2fdea) [SingleInstanceService Mutex+pipe]
+TO-FIX after M6: SingleInstanceService.ServerLoopAsync ReadLineAsync cancellation (loop dies early) + Dispose await; (minor) autostart tests touch isolated HKCU test key
+M6 Task 5: head 718e2e8 | Failed: 0, Passed: 200 (197 existing + 3 new GlobalHotkeyServiceTests)
+M6 Task 6: head 413f652 | Failed: 0, Passed: 200 (no regression; TrayService + H.NotifyIcon.Wpf + app.ico; build green, manual tray checkpoints pending)
