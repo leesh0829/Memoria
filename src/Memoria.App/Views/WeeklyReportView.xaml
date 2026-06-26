@@ -1,0 +1,50 @@
+<!-- src/Memoria.App/Views/WeeklyReportView.xaml -->
+<UserControl x:Class="Memoria.App.Views.WeeklyReportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Memoria.App.Converters"
+             xmlns:models="clr-namespace:Memoria.Core.Models;assembly=Memoria.Core"
+             Background="{DynamicResource Brush.WindowBackground}">
+    <UserControl.Resources>
+        <conv:DateOnlyConverter x:Key="DateOnlyConverter"/>
+    </UserControl.Resources>
+    <DockPanel Margin="12">
+        <!-- 상단: 주차 선택 + 양식 토글 + 액션 -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="주차:" VerticalAlignment="Center" Margin="0,0,6,0"
+                       Foreground="{DynamicResource Brush.Foreground}"/>
+            <DatePicker SelectedDate="{Binding SelectedDate, Converter={StaticResource DateOnlyConverter}}"
+                        Width="140"/>
+            <TextBlock Text="{Binding WeekRangeLabel}" VerticalAlignment="Center" Margin="10,0"
+                       Foreground="{DynamicResource Brush.Foreground}"/>
+            <RadioButton Content="양식 A" Margin="10,0,4,0" VerticalAlignment="Center"
+                         Foreground="{DynamicResource Brush.Foreground}"
+                         IsChecked="{Binding SelectedFormat, Converter={x:Static conv:EnumMatchConverter.Instance}, ConverterParameter={x:Static models:ReportFormatKind.A}}"/>
+            <RadioButton Content="양식 B" Margin="4,0" VerticalAlignment="Center"
+                         Foreground="{DynamicResource Brush.Foreground}"
+                         IsChecked="{Binding SelectedFormat, Converter={x:Static conv:EnumMatchConverter.Instance}, ConverterParameter={x:Static models:ReportFormatKind.B}}"/>
+            <Button Content="생성" Command="{Binding GenerateCommand}" Margin="16,0,4,0" Padding="10,2"/>
+            <Button Content="다시 생성" Command="{Binding RegenerateCommand}" Margin="4,0" Padding="10,2"/>
+            <Button Content="복사" Command="{Binding CopyCommand}" Margin="4,0" Padding="10,2"/>
+        </StackPanel>
+
+        <!-- 미분류 경고 배너 -->
+        <Border DockPanel.Dock="Top"
+                Visibility="{Binding HasUnclassifiedWarning, Converter={StaticResource BoolToVis}}"
+                Background="{DynamicResource Brush.WarningBackground}"
+                BorderBrush="{DynamicResource Brush.WarningBorder}" BorderThickness="1"
+                Padding="8" Margin="0,0,0,8" CornerRadius="4">
+            <TextBlock Foreground="{DynamicResource Brush.WarningForeground}" TextWrapping="Wrap"
+                       Text="{Binding UnclassifiedTaskCount, StringFormat=미분류 업무가 {0}건 있습니다. 양식 B에 [ 미분류 ] 섹션으로 출력됩니다. 키워드/고객사를 확인하세요.}"/>
+        </Border>
+
+        <!-- 본문(편집 가능) -->
+        <TextBox Text="{Binding ReportText, UpdateSourceTrigger=PropertyChanged}"
+                 AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"
+                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                 FontFamily="Consolas" FontSize="13"
+                 Background="{DynamicResource Brush.EditorBackground}"
+                 Foreground="{DynamicResource Brush.Foreground}"
+                 BorderBrush="{DynamicResource Brush.Border}"/>
+    </DockPanel>
+</UserControl>

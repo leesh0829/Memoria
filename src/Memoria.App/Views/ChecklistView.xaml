@@ -1,0 +1,95 @@
+<!-- src/Memoria.App/Views/ChecklistView.xaml -->
+<UserControl x:Class="Memoria.App.Views.ChecklistView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Memoria.App.ViewModels"
+             d:DataContext="{d:DesignInstance Type=vm:ChecklistViewModel}"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             Background="{DynamicResource Brush.Surface}"
+             Unloaded="OnUnloaded">
+    <DockPanel Margin="12">
+
+        <!-- 헤더: log_date 편집 -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="업무일자:" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Brush.SecondaryForeground}" Margin="0,0,6,0"/>
+            <DatePicker SelectedDate="{Binding LogDate, Converter={StaticResource DateOnlyToDateTimeConverter}, Mode=TwoWay}"/>
+        </StackPanel>
+
+        <!-- 추가 버튼 -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="+ 할 일" Command="{Binding AddTaskCommand}" Margin="0,0,6,0"/>
+            <Button Content="+ 이슈"  Command="{Binding AddIssueCommand}"/>
+        </StackPanel>
+
+        <!-- 항목 목록 -->
+        <ItemsControl ItemsSource="{Binding Items}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:ChecklistItemViewModel}">
+                    <Border Margin="0,2" Padding="4"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource Brush.Border}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 체크박스: task만 표시 -->
+                            <CheckBox Grid.Column="0"
+                                      VerticalAlignment="Center" Margin="0,0,6,0"
+                                      Visibility="{Binding ShowCheckbox, Converter={StaticResource BoolToVis}}"
+                                      IsChecked="{Binding Done, Mode=OneWay}"
+                                      Command="{Binding DataContext.ToggleDoneCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                      CommandParameter="{Binding}"/>
+
+                            <!-- 텍스트: 완료 시 취소선 -->
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                                     Foreground="{DynamicResource Brush.Foreground}">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsStruck}" Value="True">
+                                                <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.StrikethroughForeground}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+
+                            <!-- 고객사 드롭다운: task만, 미분류면 강조 -->
+                            <ComboBox Grid.Column="2" Width="140" Margin="6,0,0,0"
+                                      Visibility="{Binding ShowCheckbox, Converter={StaticResource BoolToVis}}"
+                                      ItemsSource="{Binding DataContext.AvailableClients, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding ClientId, Mode=TwoWay}"
+                                      SelectionChanged="OnClientSelectionChanged">
+                                <ComboBox.Style>
+                                    <Style TargetType="ComboBox">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnclassified}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource Brush.UnclassifiedHighlight}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ComboBox.Style>
+                            </ComboBox>
+
+                            <!-- 삭제 -->
+                            <Button Grid.Column="3" Content="🗑" Margin="6,0,0,0"
+                                    Command="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    CommandParameter="{Binding}"/>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DockPanel>
+</UserControl>
