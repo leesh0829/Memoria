@@ -1,6 +1,9 @@
 using System;
+using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using Memoria.App.Services;
 using Memoria.App.Theming;
 using Memoria.App.ViewModels;
@@ -31,6 +34,11 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // (0) PASS A — 전역 예외 핸들러(마지막 방어선). 부트스트랩보다 먼저 등록해
+        //     이후 모든 단계의 미처리 예외를 로깅하고, 가능하면 계속 실행한다.
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
 
         // (1) M2 — 데이터 디렉터리 보장.
         AppPaths.EnsureDirectories();
@@ -102,8 +110,10 @@ public partial class App : Application
         _services = sc.BuildServiceProvider();
         AppServices.Initialize(_services);          // 계약 §9.2 — 이후 View/code-behind가 AppServices.Resolve<T>() 사용
 
-        // (4) M2 — DB 준비(파일/PRAGMA/마이그레이션/시드).
-        _services.GetRequiredService<IDatabaseInitializer>().EnsureReady();
+        // (4) M2 + PASS A — DB 준비(파일/PRAGMA/마이그레이션/시드)를 예외로부터 보호한다.
+        //     손상으로 EnsureReady가 실패하면 백업 복원(파일 수준) 후 1회 재시도하고,
+        //     그래도 실패하면 손상 파일을 보존(.corrupt)한 채 새 DB로 계속한다.
+        PrepareDatabaseSafely();
 
         // (5) + (6) M9 — 무결성 점검 → (손상 시) 최신 백업 복원 → 일일 백업 (계약 §9.4 step5/6).
         {
@@ -174,6 +184,100 @@ public partial class App : Application
 
         // (11) M6 — 표시. (closeToTray/autostart 정책에 따라 트레이 시작으로 분기 — 기본은 Show)
         window.Show();
+    }
+
+    // -----------------------------------------------------------------
+    // PASS A — 데이터 안전: 손상 DB 부트스트랩 보호 + 전역 예외 핸들러
+    // -----------------------------------------------------------------
+
+    /// EnsureReady를 보호한다. 실패 시: 최신 정상 백업에서 파일 수준 복원 → 1회 재시도.
+    /// 복원할 백업이 없으면 손상 파일을 .corrupt로 격리하고 새 DB로 계속한다(데이터 유실 안내).
+    private void PrepareDatabaseSafely()
+    {
+        try
+        {
+            _services!.GetRequiredService<IDatabaseInitializer>().EnsureReady();
+            return; // 정상 경로
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Bootstrap.EnsureReady", ex);
+        }
+
+        // 1차 실패 — 최신 정상 백업에서 복원 시도.
+        var restored = false;
+        try
+        {
+            restored = _services!.GetRequiredService<IBackupService>().TryRestoreFromLatestBackup();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Bootstrap.TryRestoreFromLatestBackup", ex);
+        }
+
+        // 복원할 정상 백업이 없으면 손상 파일을 파일 수준으로 격리(새 DB로 계속).
+        if (!restored) QuarantineDatabaseFiles();
+
+        // 복원/격리 후 1회 재시도.
+        try
+        {
+            _services!.GetRequiredService<IDatabaseInitializer>().EnsureReady();
+            MessageBox.Show(
+                restored
+                    ? "데이터베이스 손상을 감지하여 최근 정상 백업에서 복원했습니다."
+                    : "데이터베이스가 손상되어 복원할 백업이 없습니다. 손상 파일은 보존(.corrupt)되었고 새 데이터베이스로 시작합니다.",
+                "Memoria 데이터 복구", MessageBoxButton.OK,
+                restored ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Bootstrap.EnsureReady.Retry", ex);
+            MessageBox.Show(
+                "데이터베이스를 준비하지 못했습니다. 일부 기능이 정상 동작하지 않을 수 있습니다.",
+                "Memoria 오류", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// 손상 DB 파일(.db/-wal/-shm)을 파일 수준으로 *.corrupt 격리한다(팩토리 의존 없음).
+    private static void QuarantineDatabaseFiles()
+    {
+        try
+        {
+            var dbPath = AppPaths.DatabaseFile;
+            var stamp = DateTimeOffset.Now.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+            foreach (var suffix in new[] { "", "-wal", "-shm" })
+            {
+                var src = dbPath + suffix;
+                if (File.Exists(src))
+                    File.Move(src, $"{dbPath}{suffix}.{stamp}.corrupt", overwrite: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Bootstrap.QuarantineDatabaseFiles", ex);
+        }
+    }
+
+    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        AppLog.Error("DispatcherUnhandledException", e.Exception);
+        try
+        {
+            MessageBox.Show(
+                "예기치 않은 오류가 발생했지만 계속 실행합니다.\n문제가 반복되면 앱을 재시작하세요.",
+                "Memoria", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        catch
+        {
+            // 안내 다이얼로그 실패는 무시.
+        }
+        e.Handled = true; // 마지막 방어선 — 가능하면 계속 실행
+    }
+
+    private void OnDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception ex) AppLog.Error("AppDomain.UnhandledException", ex);
+        else AppLog.Warn("AppDomain.UnhandledException (non-Exception object)");
     }
 
     protected override void OnExit(ExitEventArgs e)

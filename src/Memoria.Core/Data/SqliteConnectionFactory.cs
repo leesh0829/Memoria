@@ -54,6 +54,10 @@ public sealed class SqliteConnectionFactory : IDisposable
     {
         lock (WriteSync)
         {
+            // 풀링된 읽기 연결이 살아 있으면 wal_checkpoint(TRUNCATE)가 부분 적용되어
+            // 종료 후에도 WAL 이 남는다. 체크포인트 직전에 모든 풀을 비워 WAL 이 메인 DB 로
+            // 완전히 합쳐지도록 보장한다.
+            SqliteConnection.ClearAllPools();
             try { _writeConnection.Execute("PRAGMA wal_checkpoint(TRUNCATE);"); }
             catch (SqliteException) { /* best-effort checkpoint */ }
             _writeConnection.Dispose();

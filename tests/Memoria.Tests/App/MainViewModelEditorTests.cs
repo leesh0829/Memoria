@@ -74,6 +74,38 @@ public class MainViewModelEditorTests
         notes.Items[0].Title.Should().BeNull();
     }
 
+    // 교차노트 레이스 회귀: 노트1의 자동저장 콜백이 노트2로 전환된 뒤 뒤늦게(in-flight) 발화해도
+    // 변경 시점 스냅샷으로 저장하므로 라이브 에디터(노트2) 상태가 노트1을 오염시키지 않아야 한다.
+    [Fact]
+    public void Late_autosave_for_previous_note_uses_snapshot_not_live_editor_state()
+    {
+        var groups = new FakeGroupRepository();
+        var notes = new FakeNoteRepository();
+        var rec = new FakeRecoveryJournal();
+        var time = new FakeTimeProvider();
+        var autosave = new CapturingAutosaveService();
+        var vm = new MainViewModel(groups, notes, autosave, rec, time,
+            new FakeSearchService(),
+            M9EditorFakes.ChecklistFactory(notes, groups),
+            M9EditorFakes.WeeklyFactory(notes, groups, time));
+
+        var t0 = time.GetUtcNow();
+        notes.Create(new Note { Type = NoteType.Plain, Body = "alpha", CreatedAt = t0, UpdatedAt = t0 });
+        notes.Create(new Note { Type = NoteType.Plain, Body = "beta", CreatedAt = t0, UpdatedAt = t0 });
+
+        vm.OpenNote(1);
+        vm.EditorBody = "alpha-edited";   // 노트1 변경 → 노트1 스냅샷이 캡처/보류됨
+
+        vm.OpenNote(2);                    // 노트2로 전환 → 라이브 에디터 = 'beta'
+        vm.EditorBody = "beta-edited";     // 노트2 변경
+
+        // 노트1의 보류 자동저장이 전환 후 뒤늦게 발화하는 상황.
+        autosave.FirePending(1);
+
+        notes.Get(1)!.Body.Should().Be("alpha-edited");  // 라이브(노트2) 상태로 오염되면 안 됨
+        notes.Get(2)!.Body.Should().Be("beta");          // 노트2는 아직 저장 전(보류)
+    }
+
     [Fact]
     public void ApplyRecovery_writes_snapshot_back_and_clears_journal()
     {
@@ -85,5 +117,20 @@ public class MainViewModelEditorTests
 
         notes.Items[0].Body.Should().Be("recovered body");
         rec.Cleared.Should().Contain(1);
+    }
+
+    // 보류 저장을 즉시 실행하지 않고 보관해, in-flight 타이머가 전환 후 뒤늦게 발화하는
+    // 상황을 결정론적으로 재현하는 자동저장 페이크.
+    private sealed class CapturingAutosaveService : IAutosaveService
+    {
+        private readonly System.Collections.Generic.Dictionary<int, Action<AutosaveSnapshot>> _actions = new();
+        private readonly System.Collections.Generic.Dictionary<int, AutosaveSnapshot> _pending = new();
+
+        public void Register(int noteId, Action<AutosaveSnapshot> saveAction) => _actions[noteId] = saveAction;
+        public void Unregister(int noteId) { _actions.Remove(noteId); _pending.Remove(noteId); }
+        public void NotifyChanged(int noteId, AutosaveSnapshot snapshot) => _pending[noteId] = snapshot;
+        public void FlushAll() { /* 의도적으로 비움 — 보류 저장을 즉시 확정하지 않는다 */ }
+
+        public void FirePending(int noteId) => _actions[noteId](_pending[noteId]);
     }
 }

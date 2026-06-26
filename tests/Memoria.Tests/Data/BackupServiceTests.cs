@@ -101,6 +101,61 @@ public class BackupServiceTests
     }
 
     [Fact]
+    public void TryRestoreFromLatestBackup_SkipsCorruptBackup_AndUsesNewestHealthyOne()
+    {
+        var path = NewDbPath();
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var factory = new SqliteConnectionFactory(path);
+        try
+        {
+            new DatabaseInitializer(factory).EnsureReady();
+            var notes = new NoteRepository(factory);
+            var beforeId = notes.Create(new Note { Type = NoteType.Plain, Title = "before" });
+
+            var sut = new BackupService(factory);
+            sut.BackupIfDue(7).Should().BeTrue();              // 오늘 날짜의 정상 백업 생성
+
+            // 더 최신 이름(미래 날짜)의 손상 백업 — 무결성 검증에서 건너뛰어야 한다.
+            File.WriteAllText(Path.Combine(BackupsDir(path), "memoria-99991231.db"), "not a database");
+
+            var afterId = notes.Create(new Note { Type = NoteType.Plain, Title = "after" });
+
+            sut.TryRestoreFromLatestBackup().Should().BeTrue();
+
+            notes.Get(beforeId).Should().NotBeNull();          // 정상(오늘) 백업으로 복원됨
+            notes.Get(afterId).Should().BeNull();              // 백업 이후 변경은 사라짐
+        }
+        finally { factory.Dispose(); Cleanup(path); }
+    }
+
+    [Fact]
+    public void TryRestoreFromLatestBackup_ReturnsFalse_AndKeepsOriginal_WhenOnlyCorruptBackups()
+    {
+        var path = NewDbPath();
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var factory = new SqliteConnectionFactory(path);
+        try
+        {
+            new DatabaseInitializer(factory).EnsureReady();
+            var notes = new NoteRepository(factory);
+            var id = notes.Create(new Note { Type = NoteType.Plain, Title = "live" });
+
+            Directory.CreateDirectory(BackupsDir(path));
+            File.WriteAllText(Path.Combine(BackupsDir(path), "memoria-20200101.db"), "garbage");
+
+            new BackupService(factory).TryRestoreFromLatestBackup().Should().BeFalse();
+
+            // 정상 백업이 없으면 원본을 격리/교체하지 않고 그대로 보존 + 쓰기 연결도 계속 사용 가능.
+            notes.Get(id).Should().NotBeNull();
+            var dir = Path.GetDirectoryName(path)!;
+            Directory.GetFiles(dir, "*.corrupt").Should().BeEmpty();
+            notes.Create(new Note { Type = NoteType.Plain, Title = "after-failed-restore" })
+                .Should().BePositive();                        // 복원 실패 후에도 쓰기 가능(연결 재개 보장)
+        }
+        finally { factory.Dispose(); Cleanup(path); }
+    }
+
+    [Fact]
     public void TryRestoreFromLatestBackup_RollsBackToBackupState_AndQuarantinesCurrent()
     {
         var path = NewDbPath();

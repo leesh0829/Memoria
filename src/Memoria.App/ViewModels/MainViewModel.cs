@@ -230,7 +230,7 @@ public partial class MainViewModel : ObservableObject
 
         HeaderText = EditorHeaderFormatter.Format(note.CreatedAt.ToLocalTime(), note.UpdatedAt.ToLocalTime());
         IsEditorVisible = true;
-        _autosave.Register(noteId, () => SaveCurrent(noteId));
+        _autosave.Register(noteId, snapshot => SaveCurrent(noteId, snapshot));
     }
 
     partial void OnEditorTitleChanged(string value) => OnContentChanged();
@@ -239,18 +239,22 @@ public partial class MainViewModel : ObservableObject
     private void OnContentChanged()
     {
         if (_suppressDirty || _current is null) return;
+        // 변경 시점에 (title, body) 스냅샷을 캡처해 복구 저널과 자동저장에 동일하게 전달한다.
+        // 자동저장 콜백이 뒤늦게(다른 노트로 전환된 뒤) 발화해도 라이브 에디터 상태를
+        // 다시 읽지 않으므로 노트 간 내용 오염 레이스가 발생하지 않는다.
         _recovery.Append(new RecoverySnapshot(_current.Id, EditorTitle, EditorBody, _time.GetUtcNow()));
-        _autosave.NotifyChanged(_current.Id);
+        _autosave.NotifyChanged(_current.Id, new AutosaveSnapshot(EditorTitle, EditorBody));
     }
 
-    // 자동저장 콜백(백그라운드 스레드). 리포지토리/저널만 접근하고 ObservableCollection은 건드리지 않는다.
-    private void SaveCurrent(int noteId)
+    // 자동저장 콜백(백그라운드 스레드). 변경 시점 스냅샷만 사용하고 라이브 에디터 상태나
+    // ObservableCollection은 건드리지 않는다.
+    private void SaveCurrent(int noteId, AutosaveSnapshot snapshot)
     {
         var note = _noteRepo.Get(noteId);
         if (note is null) return;
 
-        note.Title = string.IsNullOrWhiteSpace(EditorTitle) ? null : EditorTitle;
-        note.Body = EditorBody;
+        note.Title = string.IsNullOrWhiteSpace(snapshot.Title) ? null : snapshot.Title;
+        note.Body = snapshot.Body;
         note.UpdatedAt = _time.GetUtcNow();         // §7.7 콘텐츠 변경 시에만 갱신
         _noteRepo.Update(note);
         _recovery.Clear(noteId);

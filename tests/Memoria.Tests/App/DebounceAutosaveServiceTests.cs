@@ -11,15 +11,73 @@ namespace Memoria.Tests.App;
 
 public class DebounceAutosaveServiceTests
 {
+    private static readonly AutosaveSnapshot Snap = new("t", "b");
+
+    [Fact]
+    public void Save_receives_snapshot_captured_at_notify_time()
+    {
+        var time = new FakeTimeProvider();
+        var svc = new DebounceAutosaveService(time, 500);
+        AutosaveSnapshot? received = null;
+        svc.Register(1, s => received = s);
+
+        svc.NotifyChanged(1, new AutosaveSnapshot("title-1", "body-1"));
+        time.Advance(TimeSpan.FromMilliseconds(500));
+
+        received.Should().Be(new AutosaveSnapshot("title-1", "body-1"));
+    }
+
+    [Fact]
+    public void Each_note_saves_its_own_snapshot_without_cross_contamination()
+    {
+        var time = new FakeTimeProvider();
+        var svc = new DebounceAutosaveService(time, 500);
+        var saved = new Dictionary<int, AutosaveSnapshot>();
+        svc.Register(1, s => saved[1] = s);
+        svc.Register(2, s => saved[2] = s);
+
+        svc.NotifyChanged(1, new AutosaveSnapshot(null, "note-1"));
+        svc.NotifyChanged(2, new AutosaveSnapshot(null, "note-2"));
+        time.Advance(TimeSpan.FromMilliseconds(500));
+
+        saved[1].Body.Should().Be("note-1");
+        saved[2].Body.Should().Be("note-2");
+    }
+
+    [Fact]
+    public void Save_callback_exception_is_swallowed_and_does_not_propagate()
+    {
+        var time = new FakeTimeProvider();
+        var svc = new DebounceAutosaveService(time, 500);
+        svc.Register(1, _ => throw new InvalidOperationException("boom"));
+
+        svc.NotifyChanged(1, Snap);
+        // 콜백이 throw 해도 타이머 발화(Advance)가 예외를 전파하지 않아야 한다.
+        var act = () => time.Advance(TimeSpan.FromMilliseconds(500));
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void FlushAll_swallows_save_callback_exception()
+    {
+        var time = new FakeTimeProvider();
+        var svc = new DebounceAutosaveService(time, 500);
+        svc.Register(1, _ => throw new InvalidOperationException("boom"));
+
+        svc.NotifyChanged(1, Snap);
+        var act = () => svc.FlushAll();
+        act.Should().NotThrow();
+    }
+
     [Fact]
     public void Save_fires_only_after_debounce_window_elapses()
     {
         var time = new FakeTimeProvider();
         var svc = new DebounceAutosaveService(time, 500);
         var saves = 0;
-        svc.Register(1, () => saves++);
+        svc.Register(1, _ => saves++);
 
-        svc.NotifyChanged(1);
+        svc.NotifyChanged(1, Snap);
         time.Advance(TimeSpan.FromMilliseconds(300));
         saves.Should().Be(0);
 
@@ -33,11 +91,11 @@ public class DebounceAutosaveServiceTests
         var time = new FakeTimeProvider();
         var svc = new DebounceAutosaveService(time, 500);
         var saves = 0;
-        svc.Register(1, () => saves++);
+        svc.Register(1, _ => saves++);
 
-        svc.NotifyChanged(1);
+        svc.NotifyChanged(1, Snap);
         time.Advance(TimeSpan.FromMilliseconds(300));
-        svc.NotifyChanged(1);                       // 타이머 리셋
+        svc.NotifyChanged(1, Snap);                       // 타이머 리셋
         time.Advance(TimeSpan.FromMilliseconds(300));
         saves.Should().Be(0);                       // 리셋 후 아직 500ms 미경과
 
@@ -51,9 +109,9 @@ public class DebounceAutosaveServiceTests
         var time = new FakeTimeProvider();
         var svc = new DebounceAutosaveService(time, 500);
         var saves = 0;
-        svc.Register(1, () => saves++);
+        svc.Register(1, _ => saves++);
 
-        svc.NotifyChanged(1);
+        svc.NotifyChanged(1, Snap);
         svc.FlushAll();
 
         saves.Should().Be(1);
@@ -65,7 +123,7 @@ public class DebounceAutosaveServiceTests
         var time = new FakeTimeProvider();
         var svc = new DebounceAutosaveService(time, 500);
 
-        svc.NotifyChanged(99);
+        svc.NotifyChanged(99, Snap);
         time.Advance(TimeSpan.FromMilliseconds(1000));
         // 예외 없이 통과하면 성공.
     }
@@ -76,11 +134,11 @@ public class DebounceAutosaveServiceTests
         var time = new FakeTimeProvider();
         var svc = new DebounceAutosaveService(time, 500);
         var saves = 0;
-        svc.Register(1, () => saves++);
+        svc.Register(1, _ => saves++);
 
-        svc.NotifyChanged(1);                          // t=0, 첫 변경 (원래 타이머 t=500 만료 예정)
+        svc.NotifyChanged(1, Snap);                          // t=0, 첫 변경 (원래 타이머 t=500 만료 예정)
         time.Advance(TimeSpan.FromMilliseconds(400));  // t=400, 윈도 이전
-        svc.NotifyChanged(1);                          // t=400, 리셋 (새 타이머 t=900 만료 예정)
+        svc.NotifyChanged(1, Snap);                          // t=400, 리셋 (새 타이머 t=900 만료 예정)
 
         time.Advance(TimeSpan.FromMilliseconds(200));  // t=600: 원래 타이머가 만료됐을 시점은 지났지만
         saves.Should().Be(0);                          // 리셋되었으므로 저장되면 안 됨
@@ -101,10 +159,10 @@ public class DebounceAutosaveServiceTests
         var time = new ManualTimeProvider();
         var svc = new DebounceAutosaveService(time, 500);
         var saves = 0;
-        svc.Register(1, () => saves++);
+        svc.Register(1, _ => saves++);
 
-        svc.NotifyChanged(1);   // 타이머 A 생성 (Timers[0])
-        svc.NotifyChanged(1);   // 리셋: A Dispose, 타이머 B 생성 (Timers[1])
+        svc.NotifyChanged(1, Snap);   // 타이머 A 생성 (Timers[0])
+        svc.NotifyChanged(1, Snap);   // 리셋: A Dispose, 타이머 B 생성 (Timers[1])
 
         // A 의 콜백이 Dispose 직전 이미 ThreadPool 에 올라가 뒤늦게 발화하는 경우.
         // 가드가 stale 콜백을 무시해야 한다.

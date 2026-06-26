@@ -20,8 +20,16 @@ public sealed class RecoveryJournal : IRecoveryJournal
 
     public void Append(RecoverySnapshot snapshot)
     {
-        var line = JsonSerializer.Serialize(snapshot, JsonOpts);
-        File.AppendAllText(PathFor(snapshot.NoteId), line + Environment.NewLine);
+        // UI 스레드(입력 중)에서 호출되므로 저널 기록 실패가 편집을 막거나 앱을 죽이면 안 된다.
+        try
+        {
+            var line = JsonSerializer.Serialize(snapshot, JsonOpts);
+            File.AppendAllText(PathFor(snapshot.NoteId), line + Environment.NewLine);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("RecoveryJournal.Append", ex);
+        }
     }
 
     public void Clear(int noteId)
