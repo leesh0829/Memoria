@@ -197,10 +197,22 @@ public partial class MainViewModel : ObservableObject
     private void OpenSettings() => AppServices.Resolve<ISettingsWindowService>().ShowSettings();
 
     [RelayCommand]
-    private void Search() { /* M9에서 채움 */ }
+    private void Search()
+    {
+        SearchResults.Clear();
+        if (string.IsNullOrWhiteSpace(SearchText)) return;
+        foreach (var hit in _search.Search(SearchText))
+            SearchResults.Add(hit);
+    }
 
     [RelayCommand]
-    private void OpenSearchHit(SearchHit hit) { /* M9에서 채움 */ }
+    private void OpenSearchHit(SearchHit hit)    // 계약 §9.3 / M2 시그니처: non-nullable SearchHit
+    {
+        if (hit is null) return;                 // 내부 null 가드(외부에서 null 전달 방지)
+        var note = _noteRepo.Get(hit.NoteId);
+        if (note is null) return;
+        NavigateToNote(hit.NoteId, note.GroupId);
+    }
 
     public void OpenNote(int noteId)
     {
