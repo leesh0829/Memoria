@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Memoria.Core.Data;
 using Memoria.Core.Models;
 
@@ -9,6 +11,8 @@ public partial class GroupManagementViewModel : ObservableObject
 {
     private readonly IGroupRepository _groups;
     private readonly INoteRepository _notes;
+
+    public const string DefaultGroupColor = "#9E9E9E";
 
     public GroupManagementViewModel(IGroupRepository groups, INoteRepository notes)
     {
@@ -26,5 +30,21 @@ public partial class GroupManagementViewModel : ObservableObject
         Groups.Clear();
         foreach (var g in _groups.GetAll())
             Groups.Add(g);
+    }
+
+    [RelayCommand]
+    public void AddGroup(string name)
+    {
+        var nextOrder = Groups.Count == 0 ? 0 : Groups.Max(g => g.SortOrder) + 1;
+        var group = new Group
+        {
+            Name = name,
+            IsSystem = false,
+            SortOrder = nextOrder,
+            Color = DefaultGroupColor,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        group.Id = _groups.Create(group);
+        Load();
     }
 }
