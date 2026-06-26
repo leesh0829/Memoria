@@ -94,4 +94,39 @@ public class GroupManagementViewModelTests
 
         vm.RenameGroupCommand.CanExecute("x").Should().BeTrue();
     }
+
+    [Fact]
+    public void SetGroupColor_persists_color()
+    {
+        var (vm, groups, _) = CreateSut();
+        var id = groups.Create(new Group { Name = "업무", SortOrder = 0, IsSystem = false });
+        vm.Load();
+        vm.SelectedGroup = vm.Groups.Single(g => g.Id == id);
+
+        vm.SetGroupColor("#FF5722");
+
+        groups.Get(id)!.Color.Should().Be("#FF5722");
+    }
+
+    [Fact]
+    public void SetGroupColor_is_allowed_for_system_group()
+    {
+        var (vm, groups, _) = CreateSut();
+        var id = groups.Create(new Group { Name = "일일업무일지", SortOrder = 0, IsSystem = true });
+        vm.Load();
+        vm.SelectedGroup = vm.Groups.Single(g => g.Id == id);
+
+        vm.SetGroupColorCommand.CanExecute("#000000").Should().BeTrue();
+        vm.SetGroupColor("#000000");
+        groups.Get(id)!.Color.Should().Be("#000000");
+    }
+
+    [Fact]
+    public void SetGroupColor_is_disabled_without_selection()
+    {
+        var (vm, _, _) = CreateSut();
+        vm.Load();
+
+        vm.SetGroupColorCommand.CanExecute("#000000").Should().BeFalse();
+    }
 }

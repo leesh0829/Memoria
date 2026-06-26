@@ -24,6 +24,7 @@ public partial class GroupManagementViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RenameGroupCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SetGroupColorCommand))]
     private Group? _selectedGroup;
 
     public void Load()
@@ -35,11 +36,22 @@ public partial class GroupManagementViewModel : ObservableObject
 
     private bool CanModifySelected() => SelectedGroup is { IsSystem: false };
 
+    private bool HasSelection() => SelectedGroup is not null;
+
     [RelayCommand(CanExecute = nameof(CanModifySelected))]
     public void RenameGroup(string newName)
     {
         if (SelectedGroup is null || SelectedGroup.IsSystem) return;
         SelectedGroup.Name = newName;
+        _groups.Update(SelectedGroup);
+        Load();
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    public void SetGroupColor(string color)
+    {
+        if (SelectedGroup is null) return;
+        SelectedGroup.Color = color;
         _groups.Update(SelectedGroup);
         Load();
     }
