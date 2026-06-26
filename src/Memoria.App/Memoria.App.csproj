@@ -17,4 +17,8 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Memoria.Tests" />
+  </ItemGroup>
+
 </Project>
