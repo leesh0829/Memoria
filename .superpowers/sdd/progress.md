@@ -138,3 +138,4 @@ MINOR (defer): WeeklyReportVM.Generate redundant GetWorkWeek; WeeklyReportView r
 
 M5 Task 1: head f79be0e | Failed: 0, Passed: 144 | GroupManagementViewModel Load + canonical test fakes (FakeGroupRepository/FakeNoteRepository/FakeSettingsRepository/FixedTimeProvider) consolidated in Memoria.Tests.Fakes
 M5 Task 2: head 992da14 | Failed: 0, Passed: 146 | AddGroup command persists with next SortOrder and DefaultGroupColor; empty list uses SortOrder 0
+M5 Task 3: head d51d5fb | Failed: 0, Passed: 149 | RenameGroup with system-group protection; CanModifySelected guards RenameGroupCommand CanExecute
