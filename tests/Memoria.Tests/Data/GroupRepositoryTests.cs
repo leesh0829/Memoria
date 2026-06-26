@@ -1,3 +1,4 @@
+using Dapper;
 using FluentAssertions;
 using Memoria.Core.Data;
 using Memoria.Core.Models;
@@ -53,11 +54,31 @@ public class GroupRepositoryTests
         sut.Get(id)!.SortOrder.Should().Be(5);
     }
 
-    [Fact(Skip = "needs Task 10 NoteRepository")]
+    [Fact]
     public void Delete_SetsNoteGroupIdToNull()
     {
-        // Body references NoteRepository which will be added in Task 10.
-        // Activate this test (remove Skip) when NoteRepository is implemented.
-        throw new NotImplementedException("NoteRepository not yet implemented (Task 10)");
+        using var db = new TestDb();
+        var groups = new GroupRepository(db.Factory);
+        var gid = groups.Create(new Group { Name = "temp" });
+
+        // Seed a note referencing the group via direct SQL; NoteRepository arrives in Task 10.
+        var now = DateTimeOffset.UtcNow.ToString("o");
+        int nid;
+        lock (db.Factory.WriteSync)
+        {
+            db.Factory.Write.Execute(
+                "INSERT INTO notes(group_id, type, title, created_at, updated_at) " +
+                "VALUES(@gid, 'plain', 'n', @now, @now);",
+                new { gid, now });
+            nid = db.Factory.Write.ExecuteScalar<int>("SELECT last_insert_rowid();");
+        }
+
+        groups.Delete(gid);
+
+        groups.Get(gid).Should().BeNull();
+        using var conn = db.Factory.Open();
+        var groupId = conn.ExecuteScalar<int?>(
+            "SELECT group_id FROM notes WHERE id = @nid;", new { nid });
+        groupId.Should().BeNull();
     }
 }
