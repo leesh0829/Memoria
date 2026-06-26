@@ -5,6 +5,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Memoria.App.Services;
+using Memoria.App.Views;
 using Memoria.Core.Data;
 using Memoria.Core.Models;
 
@@ -114,7 +115,7 @@ public partial class MainViewModel : ObservableObject
     private void OpenWeeklyReport() { /* M9에서 채움 */ }
 
     [RelayCommand]
-    private void OpenSettings() { /* M7에서 채움 */ }
+    private void OpenSettings() => AppServices.Resolve<ISettingsWindowService>().ShowSettings();
 
     [RelayCommand]
     private void Search() { /* M9에서 채움 */ }

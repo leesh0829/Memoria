@@ -2,7 +2,9 @@ using System;
 using System.Windows;
 using System.Windows.Interop;
 using Memoria.App.Services;
+using Memoria.App.Theming;
 using Memoria.App.ViewModels;
+using Memoria.App.Views;
 using Memoria.App.Windows;
 using Memoria.Core;
 using Memoria.Core.Data;
@@ -77,6 +79,13 @@ public partial class App : Application
         // M5 — 그룹 CRUD 뷰모델 + 휴지통 뷰모델 등록.
         sc.AddTransient<GroupManagementViewModel>();
         sc.AddSingleton<TrashViewModel>();
+        // M7 — 테마 서비스 + 설정 창 서비스 + 설정 뷰모델 등록.
+        sc.AddSingleton<IThemeApplier, WpfThemeApplier>();
+        sc.AddSingleton<ISystemThemeSource, SystemEventsThemeSource>();   // M6 message-only 창과 동일 프로세스 수명
+        sc.AddSingleton<IThemeService, ThemeService>();
+        sc.AddSingleton<ISettingsWindowService, SettingsWindowService>();
+        sc.AddTransient<SettingsViewModel>();                             // 설정 창을 열 때마다 새 인스턴스
+        sc.AddTransient<ClientsSettingsViewModel>();
         _services = sc.BuildServiceProvider();
         AppServices.Initialize(_services);          // 계약 §9.2 — 이후 View/code-behind가 AppServices.Resolve<T>() 사용
 
@@ -88,7 +97,8 @@ public partial class App : Application
         //         _services.GetRequiredService<IBackupService>().TryRestoreFromLatestBackup();   (M9에서 추가)
         // (6) M9 — 일일 백업:
         //     _services.GetRequiredService<IBackupService>().BackupIfDue(retentionCount);        (M9에서 추가)
-        // (7) M7 — _services.GetRequiredService<IThemeService>().Initialize();                   (M7에서 추가)
+        // (7) M7 — 저장된 mode/preset/accent를 즉시 적용(시스템 모드 구독은 ThemeService 생성자가 수행).
+        AppServices.Resolve<IThemeService>().Initialize();
 
         var vm = _services.GetRequiredService<MainViewModel>();
         vm.LoadGroups();
@@ -146,9 +156,10 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         // 계약 §9.4 OnExit
-        _services?.GetService<IAutosaveService>()?.FlushAll();   // (M2) 보류 저장 즉시 확정(§7.7)
-        _services?.Dispose();                                    // (M2/M9) SqliteConnectionFactory.Dispose가 PRAGMA wal_checkpoint(TRUNCATE) 후 연결 종료
-        DisposeLifecycleServices();                              // (M6) Hotkey/Tray/SingleInstance — 정확히 한 번만
+        _services?.GetService<IAutosaveService>()?.FlushAll();                         // (M2) 보류 저장 즉시 확정(§7.7)
+        (_services?.GetService<IThemeService>() as IDisposable)?.Dispose();            // (M7) SystemEvents 구독 해제
+        _services?.Dispose();                                                           // (M2/M9) SqliteConnectionFactory.Dispose가 PRAGMA wal_checkpoint(TRUNCATE) 후 연결 종료
+        DisposeLifecycleServices();                                                     // (M6) Hotkey/Tray/SingleInstance — 정확히 한 번만
         base.OnExit(e);
     }
 

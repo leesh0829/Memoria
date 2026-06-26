@@ -1,10 +1,13 @@
 using System;
 using FluentAssertions;
+using Memoria.App;
 using Memoria.App.Services;
 using Memoria.App.ViewModels;
+using Memoria.App.Views;
 using Memoria.Core.Data;
 using Memoria.Core.Models;
 using Memoria.Tests.App.Fakes;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Xunit;
 
@@ -28,14 +31,31 @@ public class MainViewModelStubCommandTests
     {
         var vm = NewVm();
 
+        // M9 stubs: NewChecklist/OpenWeeklyReport/Search/OpenSearchHit — still empty bodies.
         vm.NewChecklistCommand.Execute(null);
         vm.OpenWeeklyReportCommand.Execute(null);
-        vm.OpenSettingsCommand.Execute(null);
         vm.SearchCommand.Execute(null);
         vm.OpenSearchHitCommand.Execute(new SearchHit(1, "title", "snippet"));
 
         vm.SearchResults.Should().BeEmpty();
         vm.SearchText.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void OpenSettingsCommand_delegates_to_ISettingsWindowService()
+    {
+        // AppServices에 no-op 구현을 등록하여 WPF 없이 동작 검증.
+        var fake = new FakeSettingsWindowService();
+        var sc = new ServiceCollection();
+        sc.AddSingleton<ISettingsWindowService>(fake);
+        AppServices.Initialize(sc.BuildServiceProvider());
+
+        var vm = NewVm();
+        vm.OpenSettingsCommand.Execute(null);
+
+        fake.ShowSettingsCalled.Should().BeTrue();
+
+        AppServices.Reset(); // 정적 상태 초기화 — 다른 테스트와 격리
     }
 
     [Fact]
@@ -66,4 +86,11 @@ public class MainViewModelStubCommandTests
         vm.IsEditorVisible.Should().BeTrue();
         vm.EditorBody.Should().Be("body");
     }
+}
+
+/// OpenSettingsCommand 위임 검증용 no-op 가짜 서비스.
+file sealed class FakeSettingsWindowService : ISettingsWindowService
+{
+    public bool ShowSettingsCalled { get; private set; }
+    public void ShowSettings() => ShowSettingsCalled = true;
 }
