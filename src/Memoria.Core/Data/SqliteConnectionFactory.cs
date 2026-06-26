@@ -22,6 +22,10 @@ public sealed class SqliteConnectionFactory : IDisposable
         {
             DataSource = dbPath,
             Mode = SqliteOpenMode.ReadWriteCreate,
+            // 연결 풀링 비활성화: 단일 영속 쓰기 연결 + 단명 읽기 연결 구조라 풀링 이득이 없고,
+            // 풀에 남은 읽기 핸들이 종료 시 wal_checkpoint(TRUNCATE)를 부분 적용시키는 문제를 원천 차단한다.
+            // (프로세스 전역 ClearAllPools 사용을 피해 병렬 테스트 간섭도 제거)
+            Pooling = false,
         }.ToString();
 
         _writeConnection = OpenConfigured(setWal: true);
@@ -54,10 +58,8 @@ public sealed class SqliteConnectionFactory : IDisposable
     {
         lock (WriteSync)
         {
-            // 풀링된 읽기 연결이 살아 있으면 wal_checkpoint(TRUNCATE)가 부분 적용되어
-            // 종료 후에도 WAL 이 남는다. 체크포인트 직전에 모든 풀을 비워 WAL 이 메인 DB 로
-            // 완전히 합쳐지도록 보장한다.
-            SqliteConnection.ClearAllPools();
+            // 읽기 연결은 Pooling=false 로 즉시 완전히 닫히므로 잔존 핸들이 없다.
+            // 영속 쓰기 연결에서 wal_checkpoint(TRUNCATE)를 수행해 WAL 을 메인 DB 로 합친다.
             try { _writeConnection.Execute("PRAGMA wal_checkpoint(TRUNCATE);"); }
             catch (SqliteException) { /* best-effort checkpoint */ }
             _writeConnection.Dispose();
