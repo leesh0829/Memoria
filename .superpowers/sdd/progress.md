@@ -126,3 +126,4 @@ MINOR (defer): ChecklistView Window.Deactivated flush; debounce 500ms hardcoded 
 M4 Task 1: head 72b4a75 | Failed: 0, Passed: 128 | WeeklyReportViewModel scaffold + default-week selection + fakes; InvariantCulture MM/dd fix
 M4 Task 2: head b525040 | Failed: 0, Passed: 132 | BuildOptions from settings, GenerateCommand, ReportText, HasUnclassifiedWarning
 M4 Task 3: head 1566ef7 | Failed: 0, Passed: 137 | idempotent reuse, regenerate confirm, system-group placement
+M4 Task 4: head 3fde449 | Failed: 0, Passed: 143 | clipboard copy, format toggle reload, WPF weekly report view and DI
