@@ -111,3 +111,6 @@ M3 Task 3: complete (head ad19053) [add/remove + parent updated_at]
 M3 Task 4: complete (head 29767cf) [done toggle + strikethrough + done_at]
 M3 Task 5: complete (head 7611f48) [FlushSaves auto-tag + manual protection]
 M3 Task 6: head 254856f | Failed: 0, Passed: 119 | CommitClient sets IsManual=true, persists, protects from re-tagging
+M3 Task 7: head 9165e2e | Failed: 0, Passed: 123 | log_date setter persists to note; Load uses field-direct to skip OnLogDateChanged; CreateChecklistNote static factory places note in 일일업무일지 system group
+M3 Task 8: head 00d4554 | Failed: 0, Passed: 126 | MoveItem reorders collection and renumbers sort_order without bumping Note.UpdatedAt; out-of-range index ignored
+M3 Task 9: head 0bc6e73 | Failed: 0, Passed: 126 | ChecklistView XAML+code-behind; DateOnlyToDateTimeConverter; debounced TextBox flush; OnClientSelectionChanged→CommitClientCommand; OnUnloaded immediate flush; build green
