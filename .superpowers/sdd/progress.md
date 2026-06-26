@@ -157,3 +157,15 @@ M5 Task 9: head b66ba4b | Failed: 0, Passed: 167 | TrashViewModel.DeleteNote Sof
 M5 Task 10: head 3490b90 | Failed: 0, Passed: 169 | TrashViewModel.Restore/Purge commands; restore clears DeletedAt and reloads list; purge permanently removes note and reloads list
 M5 Task 11: head 12db6b1 | Failed: 0, Passed: 171 | TrashViewModel.PurgeExpiredOnStartup delegates to INoteRepository.PurgeExpiredTrash(RetentionDays); retention setting read from ISettingsRepository, defaults to 30
 M5 Task 12: head 0ca8e78 | Failed: 0, Passed: 171 | DI wiring (AddTransient<GroupManagementViewModel>/AddSingleton<TrashViewModel>) + startup PurgeExpiredOnStartup; TrashView UserControl; MainWindow sidebar context menu + note delete button + Undo toast + drag-drop handlers; all manual checkpoints pending Windows run
+
+--- M5 chunk 2 (tasks 7-12) — VERIFIED 171/171 green ---
+M5 Task 7: complete (head 07e2058) [MoveNoteToGroup]
+M5 Task 8: complete (head c59e78b) [TrashViewModel + expiry calc]
+M5 Task 9: complete (head b66ba4b) [SoftDelete + Undo state]
+M5 Task 10: complete (head 3490b90) [Restore/Purge]
+M5 Task 11: complete (head 12db6b1) [PurgeExpiredOnStartup]
+M5 Task 12: complete (head 1cff541) [DI + group sidebar menu + trash view + undo toast]
+*** M5 COMPLETE: 171/171 tests. ***
+MINOR (defer): AskInput dialog in code-behind (extract to service in M7); context-menu Click handlers vs Command binding (WPF constraint)
+M6 Task 1: head 5dce4ca | Failed: 0, Passed: 182 (173 existing + 9 new HotkeyParserTests)
+M6 Task 2: head 7da172d | Failed: 0, Passed: 186 (182 existing + 4 new AutostartTests)
