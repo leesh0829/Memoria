@@ -238,3 +238,4 @@ M8 Task 1: head de42d02 | 285 passed, 0 failed (README.md written, all sections 
 M8 Task 2: head 17d050b | 285 passed, 0 failed (docs/architecture.md written, all sections verified)
 M8 Task 3: head fd4536e | 285 passed, 0 failed (docs/weekly-report-format.md written, all grep checks verified)
 M8 Task 4: head 855cc1a | 285 passed, 0 failed (docs/user-guide.md written, all section grep checks verified)
+M8 Task 5: head e22b6f8 | 285 passed, 0 failed (CHANGELOG.md written, Keep a Changelog format + v0.1.0 entry verified)
