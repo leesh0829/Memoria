@@ -195,4 +195,78 @@ public class ChecklistViewModelTests
 
         _notes.Get(1)!.UpdatedAt.Should().BeOnOrAfter(before);
     }
+
+    [Fact]
+    public void FlushSaves_applies_auto_tag_to_dirty_task()
+    {
+        _tagging.KeywordToClient["SLD"] = 6;
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items[0];
+
+        item.Text = "SLD 자율형공장 정리";   // dirty
+        sut.FlushSaves();
+
+        item.ClientId.Should().Be(6);
+        item.IsDirty.Should().BeFalse();
+        _checklist.Items.Single(i => i.Id == item.Id).ClientId.Should().Be(6);
+    }
+
+    [Fact]
+    public void FlushSaves_does_not_touch_non_dirty_items()
+    {
+        _tagging.KeywordToClient["SLD"] = 6;
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items[0];
+        // 텍스트를 직접 만들었지만 FlushSaves 전에 dirty 해제 상황을 모사: 한번 flush
+        item.Text = "SLD";
+        sut.FlushSaves();
+        item.IsDirty.Should().BeFalse();
+
+        // 키워드 맵을 바꿔도, 다시 dirty 되지 않았으면 재태깅하지 않음
+        _tagging.KeywordToClient.Clear();
+        _tagging.KeywordToClient["MTP"] = 2;
+        sut.FlushSaves();
+
+        item.ClientId.Should().Be(6);   // 그대로 유지(재계산 안 함)
+    }
+
+    [Fact]
+    public void FlushSaves_respects_manual_protection()
+    {
+        _tagging.KeywordToClient["SLD"] = 6;
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items[0];
+        item.IsManual = true;
+        item.ClientId = 99;
+
+        item.Text = "SLD";   // dirty
+        sut.FlushSaves();
+
+        item.ClientId.Should().Be(99);  // 수동보호: 자동태깅이 덮지 않음
+    }
+
+    [Fact]
+    public void FlushSaves_keeps_issue_client_null()
+    {
+        _tagging.KeywordToClient["SLD"] = 6;
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddIssue();
+        var item = sut.Items[0];
+
+        item.Text = "SLD 관련 이슈";
+        sut.FlushSaves();
+
+        item.ClientId.Should().BeNull();
+    }
 }

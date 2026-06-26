@@ -106,6 +106,24 @@ public partial class ChecklistViewModel : ObservableObject
         TouchNote();
     }
 
+    /// 디바운스 저장 시점에 호출. dirty(텍스트 변경) 항목만 자동태깅 적용 후 영속화한다.
+    /// ApplyAutoTag는 Task & !IsManual 일 때만 ClientId를 재계산한다(Issue/수동보호 항목은 보존).
+    public void FlushSaves()
+    {
+        var dirty = Items.Where(i => i.IsDirty).ToList();
+        if (dirty.Count == 0) return;
+
+        foreach (var item in dirty)
+        {
+            var tagged = _tagging.ApplyAutoTag(item.ToModel());
+            item.ClientId = tagged.ClientId;
+            item.UpdatedAt = DateTimeOffset.UtcNow;
+            _checklist.UpdateItem(item.ToModel());
+            item.IsDirty = false;
+        }
+        TouchNote();
+    }
+
     private int NextSortOrder() => Items.Count == 0 ? 0 : Items.Max(i => i.SortOrder) + 1;
 
     /// 콘텐츠 변경 시 부모 Note의 UpdatedAt 갱신(메타 조작 제외).
