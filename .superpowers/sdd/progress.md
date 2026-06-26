@@ -88,3 +88,14 @@ M2 Task 6: head 6748571 | dotnet test: 90 passed (85 existing + 5 new EditorHead
 M2 Task 7: head eae367a | dotnet test: 93 passed (90 existing + 3 new MainViewModelStubCommands), 0 failed
 M2 Task 8: head f1941ac | dotnet test: 94 passed (93 existing + 1 new AppServicesTests), 0 failed
 M2 Task 9: head 7c50d41 | dotnet test: 94 passed, 0 failed (DI composition root + MainWindow shell + startup recovery wiring; manual MV-1~MV-8 pending Windows run)
+
+--- M2 chunk 2 (tasks 6-9) + post-fix — VERIFIED 94/94 green ---
+M2 Task 6: complete (head 6748571) [plain editor + autosave/recovery wiring + header]
+M2 Task 7: complete (head eae367a) [MainViewModel stub commands + SelectedNote/CurrentNoteType]
+M2 Task 8: complete (head be24a15) [AppServices locator]
+M2 Task 9: complete (head 7c50d41) [DI composition root + MainWindow + bootstrap §9.4]
+post-fix: 17 brush keys complete + AppServices hardened
+*** M2 COMPLETE: 94/94 tests, App is runnable (App.xaml.cs bootstrap wired). ***
+MINOR (defer to final review): unused template usings; SaveCurrent bg-thread reads VM props (safe now); AppServices Reset test-only
+
+M3 Task 1: head f35348d | dotnet test: 101 passed (94 existing + 7 new ChecklistItemViewModel), 0 failed
