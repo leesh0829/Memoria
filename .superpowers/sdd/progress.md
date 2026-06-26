@@ -181,3 +181,31 @@ TO-FIX after M6: SingleInstanceService.ServerLoopAsync ReadLineAsync cancellatio
 M6 Task 5: head 718e2e8 | Failed: 0, Passed: 200 (197 existing + 3 new GlobalHotkeyServiceTests)
 M6 Task 6: head 413f652 | Failed: 0, Passed: 200 (no regression; TrayService + H.NotifyIcon.Wpf + app.ico; build green, manual tray checkpoints pending)
 M6 Task 7: head a851d56 | Failed: 0, Passed: 200 (all green; App.xaml.cs M6 wiring: single-instance gate, tray/hotkey/autostart, IPC dispatch; MainWindow closeToTray OnClosing; build succeeded 0 errors)
+
+--- M6 chunk 2 (tasks 5-7) — VERIFIED 200/200 green ---
+M6 Task 5: complete (head 718e2e8) [GlobalHotkeyService message-only + ForegroundHelper]
+M6 Task 6: complete (head 065f89b) [TrayService H.NotifyIcon.Wpf + app.ico]
+M6 Task 7: complete (head c0d3f45) [App assembly: hotkey/tray/single-instance/autostart/closeToTray]
+*** M6 COMPLETE: 200/200 tests. ***
+TO-FIX (M6 robustness pass): (1) SingleInstanceService.ServerLoopAsync cancellation + Dispose await; (2) CommandReceived subscribe at step2 not step10 (dropped signal race); (3) App double-Dispose guard. MINOR-defer: ASFW int->uint, DllImport->LibraryImport, redundant Dispatcher.Invoke
+
+--- M6 robustness pass — VERIFIED 204/204 green ---
+fix 3c2294d: SingleInstanceService loop cancellation + bounded Dispose
+fix c3f5002: IPC CommandReceived subscribed at step2 (BeginInvoke, null guard) + dispose-once guard
+*** M6 fully complete + hardened: 204/204 ***
+
+M7 Task 1: head ffe13b1 | Failed: 0, Passed: 223 (204 existing + 19 new ThemeResolverTests)
+M7 Task 2: head cbf9971 | Failed: 0, Passed: 242 (223 existing + 19 new AccentColorTests + SystemThemeReaderTests)
+M7 Task 3: head a96968a | Failed: 0, Passed: 242 (242 existing, no new unit tests; 9 XAML ResourceDictionary files + App.xaml MergedDictionaries slot)
+M7 Task 4: head 48d8f0d | Failed: 0, Passed: 244 (242 existing + 2 new SystemEventsThemeSourceTests)
+M7 Task 5: head 8e1622e | Failed: 0, Passed: 256 (244 existing + 12 new ThemeServiceTests)
+
+--- M7 chunk 1 (tasks 1-5) — VERIFIED 256/256 green ---
+M7 Task 1: complete (head ffe13b1) [ThemeResolver]
+M7 Task 2: complete (head cbf9971) [AccentColor + SystemThemeReader]
+M7 Task 3: complete (head a96968a) [8 palette dictionaries + App.xaml MergedDictionaries]
+M7 Task 4: complete (head 48d8f0d) [WpfThemeApplier + SystemEventsThemeSource]
+M7 Task 5: complete (head 8e1622e) [ThemeService]
+MINOR (defer): ApplyAccent brush not Frozen()
+M7 Task 6: head e64da78 | Failed: 0, Passed: 265 (256 existing + 9 new SettingsViewModelTests)
+M7 Task 7: head 0421ae0 | Failed: 0, Passed: 272 (265 existing + 7 new ClientsSettingsViewModelTests)
