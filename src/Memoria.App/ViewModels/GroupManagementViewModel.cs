@@ -23,6 +23,7 @@ public partial class GroupManagementViewModel : ObservableObject
     public ObservableCollection<Group> Groups { get; } = new();
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RenameGroupCommand))]
     private Group? _selectedGroup;
 
     public void Load()
@@ -30,6 +31,17 @@ public partial class GroupManagementViewModel : ObservableObject
         Groups.Clear();
         foreach (var g in _groups.GetAll())
             Groups.Add(g);
+    }
+
+    private bool CanModifySelected() => SelectedGroup is { IsSystem: false };
+
+    [RelayCommand(CanExecute = nameof(CanModifySelected))]
+    public void RenameGroup(string newName)
+    {
+        if (SelectedGroup is null || SelectedGroup.IsSystem) return;
+        SelectedGroup.Name = newName;
+        _groups.Update(SelectedGroup);
+        Load();
     }
 
     [RelayCommand]
