@@ -118,7 +118,8 @@ public partial class WeeklyReportViewModel : ObservableObject
     [RelayCommand]
     private void Generate()
     {
-        var (monday, friday) = _weekCalculator.GetWorkWeek(SelectedDate);
+        var monday = WeekStart;   // RecomputeWeek가 SelectedDate에 맞춰 이미 채움
+        var friday = WeekEnd;
         var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
         if (existing is not null && !string.IsNullOrEmpty(existing.Body))
         {
@@ -138,7 +139,8 @@ public partial class WeeklyReportViewModel : ObservableObject
     [RelayCommand]
     private void Regenerate()
     {
-        var (monday, friday) = _weekCalculator.GetWorkWeek(SelectedDate);
+        var monday = WeekStart;   // RecomputeWeek가 SelectedDate에 맞춰 이미 채움
+        var friday = WeekEnd;
         var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
         if (existing is not null && !string.IsNullOrEmpty(existing.Body))
         {
@@ -184,7 +186,7 @@ public partial class WeeklyReportViewModel : ObservableObject
 
     private void LoadExisting()
     {
-        var (monday, _) = _weekCalculator.GetWorkWeek(SelectedDate);
+        var monday = WeekStart;   // RecomputeWeek가 SelectedDate에 맞춰 이미 채움
         var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
         _currentNoteId = existing?.Id;
         ReportText = existing?.Body ?? "";

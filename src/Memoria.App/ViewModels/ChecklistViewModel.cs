@@ -21,6 +21,7 @@ public partial class ChecklistViewModel : ObservableObject
     private readonly IGroupRepository _groups;
 
     private Note? _note;
+    private bool _loading;
 
     public ObservableCollection<ChecklistItemViewModel> Items { get; } = new();
     public ObservableCollection<Client> AvailableClients { get; } = new();
@@ -44,16 +45,24 @@ public partial class ChecklistViewModel : ObservableObject
 
     public void Load(Note note)
     {
-        _note = note;
-        _logDate = note.LogDate ?? DateOnly.FromDateTime(DateTime.Today);  // 필드 직접 대입 → OnLogDateChanged 미발생
+        _loading = true;
+        try
+        {
+            _note = note;
+            LogDate = note.LogDate ?? DateOnly.FromDateTime(DateTime.Today);  // _loading 가드로 OnLogDateChanged 재영속화 방지
 
-        AvailableClients.Clear();
-        foreach (var client in _clients.GetAll(enabledOnly: true))
-            AvailableClients.Add(client);
+            AvailableClients.Clear();
+            foreach (var client in _clients.GetAll(enabledOnly: true))
+                AvailableClients.Add(client);
 
-        Items.Clear();
-        foreach (var item in _checklist.GetByNote(note.Id))
-            Items.Add(new ChecklistItemViewModel(item));
+            Items.Clear();
+            foreach (var item in _checklist.GetByNote(note.Id))
+                Items.Add(new ChecklistItemViewModel(item));
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     [RelayCommand]
@@ -139,7 +148,8 @@ public partial class ChecklistViewModel : ObservableObject
 
     partial void OnLogDateChanged(DateOnly value)
     {
-        if (_note is null) return;     // Load()는 _logDate 필드 직접 대입이라 여기 오지 않음
+        if (_loading) return;          // Load() 중 초기값 설정은 재영속화하지 않음
+        if (_note is null) return;
         _note.LogDate = value;
         _note.UpdatedAt = DateTimeOffset.UtcNow;
         _notes.Update(_note);

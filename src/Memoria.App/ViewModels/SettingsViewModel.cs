@@ -86,6 +86,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnModeChanged(ThemeMode value) => ApplyTheme();
     partial void OnPresetChanged(string value) => ApplyTheme();
 
+    // XAML은 래퍼 프로퍼티 Autostart에 바인딩하므로, backing 변경 시 INPC를 포워딩한다.
+    partial void OnAutostartEnabledChanged(bool value) => OnPropertyChanged(nameof(Autostart));
+
     partial void OnAccentChanged(string value)
     {
         IsAccentValid = AccentColor.IsValid(value);

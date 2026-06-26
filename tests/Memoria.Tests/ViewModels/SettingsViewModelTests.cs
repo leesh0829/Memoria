@@ -158,6 +158,22 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public void Changing_autostart_enabled_raises_property_changed_for_wrapper()
+    {
+        var (vm, _, _, _) = Create();
+        var raised = false;
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SettingsViewModel.Autostart))
+                raised = true;
+        };
+
+        vm.AutostartEnabled = !vm.AutostartEnabled;
+
+        raised.Should().BeTrue();
+    }
+
+    [Fact]
     public void AvailablePresets_matches_resolver()
     {
         var (vm, _, _, _) = Create();

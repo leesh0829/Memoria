@@ -24,6 +24,8 @@ public sealed class WpfThemeApplier : IThemeApplier
     public void ApplyAccent(string accentHex)
     {
         var color = (Color)ColorConverter.ConvertFromString(AccentColor.Normalize(accentHex));
-        Application.Current.Resources["Brush.Accent"] = new SolidColorBrush(color);
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();   // 불변 브러시 → 크로스 스레드 안전 + 렌더 최적화
+        Application.Current.Resources["Brush.Accent"] = brush;
     }
 }

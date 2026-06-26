@@ -102,6 +102,7 @@ public partial class App : Application
         sc.AddSingleton<IThemeApplier, WpfThemeApplier>();
         sc.AddSingleton<ISystemThemeSource, SystemEventsThemeSource>();   // M6 message-only 창과 동일 프로세스 수명
         sc.AddSingleton<IThemeService, ThemeService>();
+        sc.AddSingleton<IAutostartService, AutostartService>();           // 설정 창(SettingsViewModel)이 생성자 주입으로 요구
         sc.AddSingleton<ISettingsWindowService, SettingsWindowService>();
         sc.AddTransient<SettingsViewModel>();                             // 설정 창을 열 때마다 새 인스턴스
         sc.AddTransient<ClientsSettingsViewModel>();
@@ -159,7 +160,7 @@ public partial class App : Application
         var settings = AppServices.Resolve<ISettingsRepository>(); // 계약 §9.2
         var mainWindow = (MainWindow)MainWindow!;                   // M2가 생성·할당한 인스턴스 재사용
 
-        _autostart = new AutostartService();
+        _autostart = AppServices.Resolve<IAutostartService>();  // 계약 §9.2 — DI에서 단일 인스턴스 재사용
         _tray = new TrayService();
         _hotkey = new GlobalHotkeyService();
 

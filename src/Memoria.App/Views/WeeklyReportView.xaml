@@ -7,7 +7,6 @@
              Background="{DynamicResource Brush.WindowBackground}">
     <UserControl.Resources>
         <conv:DateOnlyConverter x:Key="DateOnlyConverter"/>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </UserControl.Resources>
     <DockPanel Margin="12">
         <!-- 상단: 주차 선택 + 양식 토글 + 액션 -->

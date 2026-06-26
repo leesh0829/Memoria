@@ -42,7 +42,7 @@
                             <!-- 체크박스: task만 표시 -->
                             <CheckBox Grid.Column="0"
                                       VerticalAlignment="Center" Margin="0,0,6,0"
-                                      Visibility="{Binding ShowCheckbox, Converter={StaticResource BoolToVisibilityConverter}}"
+                                      Visibility="{Binding ShowCheckbox, Converter={StaticResource BoolToVis}}"
                                       IsChecked="{Binding Done, Mode=OneWay}"
                                       Command="{Binding DataContext.ToggleDoneCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                       CommandParameter="{Binding}"/>
@@ -65,7 +65,7 @@
 
                             <!-- 고객사 드롭다운: task만, 미분류면 강조 -->
                             <ComboBox Grid.Column="2" Width="140" Margin="6,0,0,0"
-                                      Visibility="{Binding ShowCheckbox, Converter={StaticResource BoolToVisibilityConverter}}"
+                                      Visibility="{Binding ShowCheckbox, Converter={StaticResource BoolToVis}}"
                                       ItemsSource="{Binding DataContext.AvailableClients, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                       DisplayMemberPath="Name"
                                       SelectedValuePath="Id"

@@ -139,9 +139,9 @@
                 </Border>
             </Grid>
 
-            <!-- 에디터 영역: NoteType별 DataTemplate (M9) -->
-            <ContentControl Grid.Column="2" Margin="12" Content="{Binding CurrentEditor}"
-                            Background="{DynamicResource Brush.EditorBackground}">
+            <!-- 에디터 영역: NoteType별 DataTemplate (M9). Border로 빈 상태 배경 보장 -->
+            <Border Grid.Column="2" Background="{DynamicResource Brush.EditorBackground}">
+            <ContentControl Margin="12" Content="{Binding CurrentEditor}">
                 <ContentControl.Resources>
                     <!-- plain: CurrentEditor == MainViewModel 자신 -->
                     <DataTemplate DataType="{x:Type vm:MainViewModel}">
@@ -174,6 +174,7 @@
                     </DataTemplate>
                 </ContentControl.Resources>
             </ContentControl>
+            </Border>
 
             <!-- M5: Undo 토스트 (하단 오버레이, IsUndoAvailable로 Visibility 토글) -->
             <Border Grid.Column="0" Grid.ColumnSpan="3"

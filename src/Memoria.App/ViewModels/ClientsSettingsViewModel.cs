@@ -27,7 +27,7 @@ public sealed partial class ClientsSettingsViewModel : ObservableObject
     private void LoadClients()
     {
         Clients.Clear();
-        foreach (var c in _clients.GetAll().OrderBy(c => c.SortOrder))
+        foreach (var c in _clients.GetAll())   // GetAll은 이미 sort_order 정렬됨
             Clients.Add(new ClientRowViewModel(c.Id, c.Name, c.Enabled, c.SortOrder));
     }
 
