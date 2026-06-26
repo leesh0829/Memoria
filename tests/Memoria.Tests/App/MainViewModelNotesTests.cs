@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using FluentAssertions;
+using Memoria.App.Services;
 using Memoria.App.ViewModels;
 using Memoria.Core.Models;
 using Memoria.Tests.App.Fakes;
@@ -12,7 +13,10 @@ namespace Memoria.Tests.App;
 public class MainViewModelNotesTests
 {
     private static MainViewModel Build(FakeGroupRepository groups, FakeNoteRepository notes, TimeProvider time)
-        => new MainViewModel(groups, notes, time);
+        => new MainViewModel(groups, notes,
+            new DebounceAutosaveService(time, 500),
+            new FakeRecoveryJournal(),
+            time);
 
     [Fact]
     public void Selecting_group_loads_notes_pinned_first_then_updated_desc()

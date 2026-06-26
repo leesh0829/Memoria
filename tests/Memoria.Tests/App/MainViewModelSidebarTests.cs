@@ -1,5 +1,6 @@
 using System.Linq;
 using FluentAssertions;
+using Memoria.App.Services;
 using Memoria.App.ViewModels;
 using Memoria.Core.Models;
 using Memoria.Tests.App.Fakes;
@@ -10,6 +11,12 @@ namespace Memoria.Tests.App;
 
 public class MainViewModelSidebarTests
 {
+    private static MainViewModel NewVm(FakeGroupRepository g, FakeNoteRepository n) =>
+        new MainViewModel(g, n,
+            new DebounceAutosaveService(new FakeTimeProvider(), 500),
+            new FakeRecoveryJournal(),
+            new FakeTimeProvider());
+
     [Fact]
     public void LoadGroups_orders_userGroups_then_unclassified_then_systemGroups()
     {
@@ -18,7 +25,7 @@ public class MainViewModelSidebarTests
         groups.Create(new Group { Name = "개인", IsSystem = false, SortOrder = 2 });
         groups.Create(new Group { Name = "일일업무일지", IsSystem = true, SortOrder = 10 });
         groups.Create(new Group { Name = "주간보고", IsSystem = true, SortOrder = 11 });
-        var vm = new MainViewModel(groups, new FakeNoteRepository(), new FakeTimeProvider());
+        var vm = NewVm(groups, new FakeNoteRepository());
 
         vm.LoadGroups();
 
