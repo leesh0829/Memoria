@@ -62,4 +62,74 @@ public class ChecklistViewModelTests
         sut.AvailableClients.Select(c => c.Name).Should().ContainInOrder("SLD", "MTP");
         sut.AvailableClients.Should().HaveCount(2);
     }
+
+    [Fact]
+    public void AddTask_creates_task_item_with_checkbox_and_persists()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+
+        sut.AddTask();
+
+        sut.Items.Should().HaveCount(1);
+        sut.Items[0].Kind.Should().Be(ItemKind.Task);
+        sut.Items[0].ShowCheckbox.Should().BeTrue();
+        _checklist.Items.Should().ContainSingle(i => i.NoteId == 1 && i.Kind == ItemKind.Task);
+    }
+
+    [Fact]
+    public void AddIssue_creates_issue_item_without_checkbox()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+
+        sut.AddIssue();
+
+        sut.Items[0].Kind.Should().Be(ItemKind.Issue);
+        sut.Items[0].ShowCheckbox.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Added_items_get_increasing_sort_order()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+
+        sut.AddTask();
+        sut.AddTask();
+
+        sut.Items[0].SortOrder.Should().Be(0);
+        sut.Items[1].SortOrder.Should().Be(1);
+    }
+
+    [Fact]
+    public void RemoveItem_deletes_from_collection_and_repository()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items[0];
+
+        sut.RemoveItem(item);
+
+        sut.Items.Should().BeEmpty();
+        _checklist.Items.Should().NotContain(i => i.Id == item.Id);
+    }
+
+    [Fact]
+    public void AddItem_bumps_parent_note_updated_at()
+    {
+        var note = SeedNote();
+        var before = note.UpdatedAt;
+        var sut = CreateSut();
+        sut.Load(note);
+
+        sut.AddTask();
+
+        _notes.Get(1)!.UpdatedAt.Should().BeAfter(before);
+    }
 }

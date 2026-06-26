@@ -55,4 +55,52 @@ public partial class ChecklistViewModel : ObservableObject
         foreach (var item in _checklist.GetByNote(note.Id))
             Items.Add(new ChecklistItemViewModel(item));
     }
+
+    [RelayCommand]
+    public void AddTask() => AddItem(ItemKind.Task);
+
+    [RelayCommand]
+    public void AddIssue() => AddItem(ItemKind.Issue);
+
+    private ChecklistItemViewModel AddItem(ItemKind kind)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var model = new ChecklistItem
+        {
+            NoteId = _note!.Id,
+            Kind = kind,
+            Text = "",
+            Done = false,
+            DoneAt = null,
+            ClientId = null,
+            IsManual = false,
+            SortOrder = NextSortOrder(),
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        model.Id = _checklist.AddItem(model);
+
+        var vm = new ChecklistItemViewModel(model);
+        Items.Add(vm);
+        TouchNote();
+        return vm;
+    }
+
+    [RelayCommand]
+    public void RemoveItem(ChecklistItemViewModel item)
+    {
+        _checklist.DeleteItem(item.Id);
+        Items.Remove(item);
+        TouchNote();
+    }
+
+    private int NextSortOrder() => Items.Count == 0 ? 0 : Items.Max(i => i.SortOrder) + 1;
+
+    /// 콘텐츠 변경 시 부모 Note의 UpdatedAt 갱신(메타 조작 제외).
+    private void TouchNote()
+    {
+        if (_note is null) return;
+        _note.UpdatedAt = DateTimeOffset.UtcNow;
+        _notes.Update(_note);
+    }
 }
