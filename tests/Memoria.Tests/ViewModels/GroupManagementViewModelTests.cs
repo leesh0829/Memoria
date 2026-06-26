@@ -129,4 +129,32 @@ public class GroupManagementViewModelTests
 
         vm.SetGroupColorCommand.CanExecute("#000000").Should().BeFalse();
     }
+
+    [Fact]
+    public void DeleteGroup_removes_user_group()
+    {
+        var (vm, groups, _) = CreateSut();
+        var id = groups.Create(new Group { Name = "업무", SortOrder = 0, IsSystem = false });
+        vm.Load();
+        vm.SelectedGroup = vm.Groups.Single(g => g.Id == id);
+
+        vm.DeleteGroup();
+
+        groups.Get(id).Should().BeNull();
+        vm.Groups.Should().NotContain(g => g.Id == id);
+    }
+
+    [Fact]
+    public void DeleteGroup_is_disabled_for_system_group()
+    {
+        var (vm, groups, _) = CreateSut();
+        var id = groups.Create(new Group { Name = "일일업무일지", SortOrder = 0, IsSystem = true });
+        vm.Load();
+        vm.SelectedGroup = vm.Groups.Single(g => g.Id == id);
+
+        vm.DeleteGroupCommand.CanExecute(null).Should().BeFalse();
+
+        vm.DeleteGroup();
+        groups.Get(id).Should().NotBeNull();
+    }
 }

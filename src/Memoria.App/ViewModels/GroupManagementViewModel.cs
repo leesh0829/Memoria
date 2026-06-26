@@ -25,6 +25,7 @@ public partial class GroupManagementViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RenameGroupCommand))]
     [NotifyCanExecuteChangedFor(nameof(SetGroupColorCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteGroupCommand))]
     private Group? _selectedGroup;
 
     public void Load()
@@ -53,6 +54,14 @@ public partial class GroupManagementViewModel : ObservableObject
         if (SelectedGroup is null) return;
         SelectedGroup.Color = color;
         _groups.Update(SelectedGroup);
+        Load();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanModifySelected))]
+    public void DeleteGroup()
+    {
+        if (SelectedGroup is null || SelectedGroup.IsSystem) return;
+        _groups.Delete(SelectedGroup.Id); // notes.group_id ON DELETE SET NULL → 메모는 (미분류)로
         Load();
     }
 
