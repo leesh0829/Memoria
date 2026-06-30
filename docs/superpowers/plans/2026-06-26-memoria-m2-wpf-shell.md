@@ -74,17 +74,17 @@ public class AppPathsTests
 
 먼저 프로젝트를 만들고 솔루션/참조/패키지를 연결한다(이 단계가 없으면 `Memoria.App` 네임스페이스를 찾을 수 없어 컴파일 자체가 실패한다):
 ```bash
-dotnet.exe new wpf -o "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App" -n Memoria.App
-dotnet.exe sln "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln" add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\Memoria.App.csproj"
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\Memoria.App.csproj" reference "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.Core\Memoria.Core.csproj"
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\Memoria.App.csproj" package CommunityToolkit.Mvvm
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\Memoria.App.csproj" package Microsoft.Extensions.DependencyInjection
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\Memoria.Tests.csproj" reference "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\Memoria.App.csproj"
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\Memoria.Tests.csproj" package Microsoft.Extensions.TimeProvider.Testing
+dotnet.exe new wpf -o "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App" -n Memoria.App
+dotnet.exe sln "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln" add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\Memoria.App.csproj"
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\Memoria.App.csproj" reference "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.Core\Memoria.Core.csproj"
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\Memoria.App.csproj" package CommunityToolkit.Mvvm
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\Memoria.App.csproj" package Microsoft.Extensions.DependencyInjection
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\Memoria.Tests.csproj" reference "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\Memoria.App.csproj"
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\Memoria.Tests.csproj" package Microsoft.Extensions.TimeProvider.Testing
 ```
 그 다음 테스트 실행:
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~AppPathsTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~AppPathsTests"
 ```
 예상 실패: `error CS0103: The name 'AppPaths' does not exist` 또는 `Memoria.App.AppPaths` 미존재로 빌드 실패.
 
@@ -117,14 +117,14 @@ public static class AppPaths
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~AppPathsTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~AppPathsTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): scaffold Memoria.App WPF project and AppPaths data-dir resolution
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): scaffold Memoria.App WPF project and AppPaths data-dir resolution
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -196,7 +196,7 @@ public class RecoveryJournalTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~RecoveryJournalTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~RecoveryJournalTests"
 ```
 예상 실패: `error CS0246: The type or namespace name 'RecoveryJournal' could not be found`.
 
@@ -281,14 +281,14 @@ public sealed class RecoveryJournal : IRecoveryJournal
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~RecoveryJournalTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~RecoveryJournalTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): add crash recovery journal (JSON-lines, per-note latest snapshot)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): add crash recovery journal (JSON-lines, per-note latest snapshot)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -381,7 +381,7 @@ public class DebounceAutosaveServiceTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~DebounceAutosaveServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~DebounceAutosaveServiceTests"
 ```
 예상 실패: `error CS0246: The type or namespace name 'DebounceAutosaveService' could not be found`.
 
@@ -489,14 +489,14 @@ public sealed class DebounceAutosaveService : IAutosaveService, IDisposable
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~DebounceAutosaveServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~DebounceAutosaveServiceTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 4`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): add TimeProvider-based debounce autosave service
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): add TimeProvider-based debounce autosave service
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -572,7 +572,7 @@ public class MainViewModelSidebarTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelSidebarTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelSidebarTests"
 ```
 예상 실패: `error CS0246: The type or namespace name 'MainViewModel' / 'SidebarNodeViewModel' could not be found`.
 
@@ -642,14 +642,14 @@ public partial class MainViewModel : ObservableObject
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelSidebarTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelSidebarTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 1`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): build sidebar group tree with unclassified + system nodes
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): build sidebar group tree with unclassified + system nodes
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -815,7 +815,7 @@ public class MainViewModelNotesTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelNotesTests|FullyQualifiedName~NoteTitleResolverTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelNotesTests|FullyQualifiedName~NoteTitleResolverTests"
 ```
 예상 실패: `NoteTitleResolver` 미존재 + `MainViewModel` 생성자(2→3 인자) 불일치로 컴파일 실패(`error CS1729: 'MainViewModel' does not contain a constructor that takes 3 arguments`).
 
@@ -932,14 +932,14 @@ using Memoria.Core.Models;
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModel|FullyQualifiedName~NoteTitleResolverTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModel|FullyQualifiedName~NoteTitleResolverTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 7` (사이드바 1 + 노트 3 + 제목 3).
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): load note list (pinned/updated sort), title display rule, new plain note
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): load note list (pinned/updated sort), title display rule, new plain note
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -1093,7 +1093,7 @@ public class MainViewModelEditorTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelEditorTests|FullyQualifiedName~EditorHeaderFormatterTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelEditorTests|FullyQualifiedName~EditorHeaderFormatterTests"
 ```
 예상 실패: `EditorHeaderFormatter` 미존재 + `MainViewModel` 생성자(3→5 인자) 불일치(`error CS1729`).
 
@@ -1222,14 +1222,14 @@ using Memoria.App.Services;
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"
 ```
 예상: 전체 통과 — `Passed!  - Failed: 0` (Task 1~6 누적: AppPaths 2 + Recovery 3 + Autosave 4 + Sidebar 1 + Notes 3 + Title 3 + Editor 4 + Header 1).
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): plain editor with debounce autosave, recovery journal, updated_at rule, header
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): plain editor with debounce autosave, recovery journal, updated_at rule, header
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -1326,7 +1326,7 @@ public class MainViewModelStubCommandTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelStubCommandTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelStubCommandTests"
 ```
 예상 실패: `error CS1061`/`CS0246` — `NewChecklistCommand`/`OpenWeeklyReportCommand`/`OpenSettingsCommand`/`SearchCommand`/`OpenSearchHitCommand`/`SearchResults`/`SearchText`/`SelectedNote`/`CurrentNoteType` 미존재로 컴파일 실패.
 
@@ -1361,14 +1361,14 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelStubCommandTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelStubCommandTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): add MainViewModel stub commands + SelectedNote/CurrentNoteType for later milestones
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): add MainViewModel stub commands + SelectedNote/CurrentNoteType for later milestones
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -1417,7 +1417,7 @@ public class AppServicesTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~AppServicesTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~AppServicesTests"
 ```
 예상 실패: `error CS0103: The name 'AppServices' does not exist` 또는 `Initialize` 접근 불가로 빌드 실패.
 
@@ -1454,14 +1454,14 @@ public static class AppServices
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~AppServicesTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~AppServicesTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 1`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): add AppServices static locator (contract 9.2)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): add AppServices static locator (contract 9.2)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -1684,7 +1684,7 @@ public partial class MainWindow : Window
 
 - [ ] **Step 3: 빌드 검증**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상: `Build succeeded. 0 Error(s)`. (M1의 `AddMemoriaCore`가 없으면 여기서 컴파일 에러 → Global Constraints의 "M1 의존 가정"대로 각 interface→concrete를 개별 등록으로 대체.)
 
@@ -1692,7 +1692,7 @@ dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\
 
 앱 실행:
 ```bash
-dotnet.exe run --project "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App"
+dotnet.exe run --project "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App"
 ```
 다음을 눈으로 확인한다:
 - [ ] **MV-1 창 표시**: MainWindow가 뜨고 좌측 사이드바 / 가운데 목록 / 우측 에디터 3분할이 보인다.
@@ -1708,8 +1708,8 @@ dotnet.exe run --project "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJE
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): DI composition root, MainWindow shell, startup recovery wiring
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): DI composition root, MainWindow shell, startup recovery wiring
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```

@@ -37,13 +37,13 @@ WPF는 Linux 네이티브 `dotnet`으로 빌드할 수 없습니다. **Windows .
 
 WSL에서 호출(Windows 절대경로 사용):
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
-dotnet.exe test  "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
+dotnet.exe test  "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"
 ```
 
 Windows PowerShell에서 단일 exe 퍼블리시:
 ```powershell
-cd "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled"
+cd "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria"
 dotnet publish src\Memoria.App -c Release -r win-x64 --self-contained `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
   -p:EnableCompressionInSingleFile=false -p:PublishTrimmed=false

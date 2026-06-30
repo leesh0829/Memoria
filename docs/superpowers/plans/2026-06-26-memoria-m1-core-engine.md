@@ -13,7 +13,7 @@
 - TFM: **Core = net9.0**, **App = net9.0-windows**(M2에서 생성), **Tests = net9.0-windows**.
 - DB 위치(런타임): `%LOCALAPPDATA%\Memoria\memoria.db` (테스트는 임시 파일 경로 사용).
 - WPF publish는 **트리밍/압축 금지**(M1과 무관하나 솔루션 정책으로 명기) — `PublishTrimmed`/`EnableCompressionInSingleFile` 금지.
-- 빌드/테스트는 **Windows `dotnet.exe`** + **Windows 절대경로**로 수행(WSL 호출 시에도 동일). 저장소 Windows 경로: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled`.
+- 빌드/테스트는 **Windows `dotnet.exe`** + **Windows 절대경로**로 수행(WSL 호출 시에도 동일). 저장소 Windows 경로: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria`.
 - 고객사 분류 우선순위: **`자율형공장` > `SLD`** (자율형공장 키워드가 있으면 자율형 공장으로, 없고 SLD만 있으면 SLD). 규칙은 `priority` 오름차순 첫 매칭, **대소문자 무시**, **비활성 고객사 규칙 제외**.
 - 양식 A: `[업무 내용]` 블록과 `[이슈]` 머리글 사이 **빈 줄 정확히 1개**.
 - 양식 B: 제목줄 `[ {이름} {주간 보고} (MM/dd ~ MM/dd) ]:`(0 포함 2자리 날짜, ` ~ ` 구분, 끝 콜론, 📢 미출력), 고객사 섹션은 표시순(SortOrder)으로 **빈 섹션 머리글도 출력**, `[ 미분류 ]`는 미분류 task가 1개 이상일 때만 이슈 섹션 직전 출력, 이슈는 `* 이슈사항:` 뒤 나열.
@@ -40,20 +40,20 @@
 
 ```bash
 # 솔루션 + 프로젝트 생성 (Windows dotnet.exe, Windows 절대경로)
-dotnet.exe new sln -n Memoria -o "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled"
-dotnet.exe new classlib -n Memoria.Core -o "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.Core"
-dotnet.exe new xunit  -n Memoria.Tests -o "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"
+dotnet.exe new sln -n Memoria -o "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria"
+dotnet.exe new classlib -n Memoria.Core -o "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.Core"
+dotnet.exe new xunit  -n Memoria.Tests -o "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"
 
 # 솔루션에 추가
-dotnet.exe sln "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln" add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.Core\Memoria.Core.csproj"
-dotnet.exe sln "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln" add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\Memoria.Tests.csproj"
+dotnet.exe sln "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln" add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.Core\Memoria.Core.csproj"
+dotnet.exe sln "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln" add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\Memoria.Tests.csproj"
 
 # 참조 + NuGet
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\Memoria.Tests.csproj" reference "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.Core\Memoria.Core.csproj"
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.Core\Memoria.Core.csproj" package Microsoft.Data.Sqlite
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.Core\Memoria.Core.csproj" package Dapper
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\Memoria.Tests.csproj" package Microsoft.Data.Sqlite
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\Memoria.Tests.csproj" package FluentAssertions --version 7.2.0
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\Memoria.Tests.csproj" reference "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.Core\Memoria.Core.csproj"
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.Core\Memoria.Core.csproj" package Microsoft.Data.Sqlite
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.Core\Memoria.Core.csproj" package Dapper
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\Memoria.Tests.csproj" package Microsoft.Data.Sqlite
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\Memoria.Tests.csproj" package FluentAssertions --version 7.2.0
 ```
 
 `tests/Memoria.Tests/Memoria.Tests.csproj`의 TFM을 `net9.0` → `net9.0-windows`로 바꾼다(계약 §0, App ViewModel 테스트 호환). 기본 classlib 더미 파일 `src/Memoria.Core/Class1.cs`는 삭제한다. (csproj 편집은 Edit 도구로 `<TargetFramework>net9.0</TargetFramework>` → `<TargetFramework>net9.0-windows</TargetFramework>`.)
@@ -107,7 +107,7 @@ public class ModelsTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0234: The type or namespace name 'Models' does not exist in the namespace 'Memoria.Core'` (모델 미구현으로 컴파일 실패).
 
@@ -187,14 +187,14 @@ public sealed class ClientRule
 - [ ] **Step 4: Run test to verify it passes**
 
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ModelsTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ModelsTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "chore: scaffold solution and Memoria.Core domain models
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "chore: scaffold solution and Memoria.Core domain models
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -263,7 +263,7 @@ public class WeekCalculatorTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'IWeekCalculator' could not be found`.
 
@@ -299,14 +299,14 @@ public sealed class WeekCalculator : IWeekCalculator
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeekCalculatorTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeekCalculatorTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 4`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add WeekCalculator (Mon-Fri work week)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add WeekCalculator (Mon-Fri work week)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -394,7 +394,7 @@ public class ClientClassifierTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'IClientClassifier' could not be found`.
 
@@ -438,14 +438,14 @@ public sealed class ClientClassifier : IClientClassifier
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ClientClassifierTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ClientClassifierTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 6`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add ClientClassifier with priority/case-insensitive/enabled rules
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add ClientClassifier with priority/case-insensitive/enabled rules
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -521,7 +521,7 @@ public class WeeklyReportRendererFormatATests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'WeeklyReportData' could not be found`.
 
@@ -607,14 +607,14 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportRendererFormatATests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportRendererFormatATests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add report types and Format A renderer (golden)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add report types and Format A renderer (golden)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -734,7 +734,7 @@ public class WeeklyReportRendererFormatBTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportRendererFormatBTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportRendererFormatBTests"
 ```
 예상 실패: `System.NotImplementedException : 양식 B는 Task 5에서 구현`.
 
@@ -783,14 +783,14 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportRendererFormatBTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportRendererFormatBTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): implement Format B renderer (golden, conditional unclassified)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): implement Format B renderer (golden, conditional unclassified)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -913,7 +913,7 @@ public class DatabaseInitializerTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'SqliteConnectionFactory' could not be found` / `'SettingsKeys' could not be found`.
 
@@ -1369,14 +1369,14 @@ internal sealed class TestDb : IDisposable
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~DatabaseInitializerTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~DatabaseInitializerTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add SQLite schema v1, migration runner, seed, FTS5 triggers
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add SQLite schema v1, migration runner, seed, FTS5 triggers
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -1453,7 +1453,7 @@ public class SettingsRepositoryTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'SettingsRepository' could not be found`.
 
@@ -1515,14 +1515,14 @@ public sealed class SettingsRepository : ISettingsRepository
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~SettingsRepositoryTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~SettingsRepositoryTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 4`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add SettingsRepository (upsert + GetAll)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add SettingsRepository (upsert + GetAll)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -1617,7 +1617,7 @@ public class GroupRepositoryTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'GroupRepository' could not be found` (그리고 Task 10 전이면 `NoteRepository`도 미존재). **순서 메모:** 본 태스크의 4번째 테스트는 `NoteRepository`(Task 10)를 참조하므로, Task 10 완료 후 활성화하거나 Task 10과 함께 통과시킨다. 1~3번 테스트만으로 Group 구현을 먼저 검증하려면 4번 테스트에 `[Fact(Skip="needs Task 10 NoteRepository")]`를 붙였다가 Task 10에서 해제한다.
 
@@ -1706,14 +1706,14 @@ public sealed class GroupRepository : IGroupRepository
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupRepositoryTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupRepositoryTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`(4번째는 Task 10 후 통과; 또는 Skip 해제 후 4 Passed).
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add GroupRepository (CRUD, SET NULL on delete)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add GroupRepository (CRUD, SET NULL on delete)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -1823,7 +1823,7 @@ public class ClientRepositoryTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'ClientRepository' could not be found`.
 
@@ -1928,14 +1928,14 @@ public sealed class ClientRepository : IClientRepository
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ClientRepositoryTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ClientRepositoryTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 6`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add ClientRepository (clients + rules, cascade delete)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add ClientRepository (clients + rules, cascade delete)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -2077,7 +2077,7 @@ public class NoteRepositoryTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'NoteRepository' could not be found`.
 
@@ -2240,14 +2240,14 @@ public sealed class NoteRepository : INoteRepository
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~NoteRepositoryTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~NoteRepositoryTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 6`. (그리고 `GroupRepositoryTests` 전체 4 Passed 재확인.)
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add NoteRepository (CRUD, soft delete, week/report queries)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add NoteRepository (CRUD, soft delete, week/report queries)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -2349,7 +2349,7 @@ public class ChecklistRepositoryTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'ChecklistRepository' could not be found`.
 
@@ -2437,14 +2437,14 @@ public sealed class ChecklistRepository : IChecklistRepository
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistRepositoryTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistRepositoryTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 4`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add ChecklistRepository (item CRUD, ordered by sort_order)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add ChecklistRepository (item CRUD, ordered by sort_order)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -2523,7 +2523,7 @@ public class SearchServiceTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'SearchService' could not be found`.
 
@@ -2578,14 +2578,14 @@ public sealed class SearchService : ISearchService
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~SearchServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~SearchServiceTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 4`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add SearchService (FTS5 over title/body/items)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add SearchService (FTS5 over title/body/items)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -2675,7 +2675,7 @@ public class TaggingServiceTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'TaggingService' could not be found`.
 
@@ -2729,14 +2729,14 @@ public sealed class TaggingService : ITaggingService
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~TaggingServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~TaggingServiceTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 4`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add TaggingService (auto-tag tasks, protect manual)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add TaggingService (auto-tag tasks, protect manual)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -2886,7 +2886,7 @@ public class WeeklyReportServiceTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'WeeklyReportService' could not be found`.
 
@@ -2989,20 +2989,20 @@ public sealed class WeeklyReportService : IWeeklyReportService
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportServiceTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 4`.
 
 - [ ] **Step 5: Commit + 중간 테스트 스위트 검증**
 ```bash
 # 이 시점(Task 1~14)까지의 전체 스위트
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"
 # 예상: Passed! - Failed: 0  (Models 3 + WeekCalc 4 + Classifier 6 + RendererA 2 + RendererB 2
 #        + Init 3 + Settings 4 + Group 4 + Client 6 + Note 6 + Checklist 4 + Search 4
 #        + Tagging 4 + WeeklyReportSvc 4 = 60 Passed; 이후 Task 15(Backup) +5, Task 16(CoreDI) +2 → 최종 67)
 
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add WeeklyReportService (collect, reclassify auto, render delegate)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add WeeklyReportService (collect, reclassify auto, render delegate)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -3157,7 +3157,7 @@ public class BackupServiceTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS0246: The type or namespace name 'BackupService' could not be found`.
 
@@ -3280,14 +3280,14 @@ public sealed class BackupService : IBackupService
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~BackupServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~BackupServiceTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 5`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add BackupService (daily VACUUM INTO snapshot, rotation, integrity, restore)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add BackupService (daily VACUUM INTO snapshot, rotation, integrity, restore)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -3306,8 +3306,8 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 먼저 DI 패키지를 추가한다(계약 §9.1 — Core는 추상화만, Tests는 컨테이너 구현 포함):
 ```bash
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.Core\Memoria.Core.csproj" package Microsoft.Extensions.DependencyInjection.Abstractions
-dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\Memoria.Tests.csproj" package Microsoft.Extensions.DependencyInjection
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.Core\Memoria.Core.csproj" package Microsoft.Extensions.DependencyInjection.Abstractions
+dotnet.exe add "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\Memoria.Tests.csproj" package Microsoft.Extensions.DependencyInjection
 ```
 
 - [ ] **Step 1: Write the failing test**
@@ -3398,7 +3398,7 @@ public class CoreServiceRegistrationTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상 실패: `error CS1061: 'IServiceCollection' does not contain a definition for 'AddMemoriaCore'`.
 
@@ -3451,18 +3451,18 @@ public static class CoreServiceRegistration
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~CoreServiceRegistrationTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~CoreServiceRegistrationTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
 - [ ] **Step 5: Commit + 전체 테스트 스위트 검증**
 ```bash
 # 전체 스위트(모든 Task 통합)
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"
 # 예상: Passed! - Failed: 0 (Task 1~14의 60 + Backup 5 + CoreDI 2 = 67 Passed)
 
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(core): add AddMemoriaCore DI registration for all Core services
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(core): add AddMemoriaCore DI registration for all Core services
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```

@@ -29,8 +29,8 @@
 ### Task 1: ChecklistItemViewModel (항목 래퍼 VM)
 
 **Files:**
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\ViewModels\ChecklistItemViewModel.cs`
-- Test: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\ViewModels\ChecklistItemViewModelTests.cs`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\ViewModels\ChecklistItemViewModel.cs`
+- Test: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\ViewModels\ChecklistItemViewModelTests.cs`
 
 **Interfaces:**
 - Consumes (계약 §1): `Memoria.Core.Models.ChecklistItem`, `Memoria.Core.Models.ItemKind`.
@@ -148,7 +148,7 @@ public class ChecklistItemViewModelTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistItemViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistItemViewModelTests"
 ```
 예상 실패: `error CS0246: The type or namespace name 'ChecklistItemViewModel' could not be found` (컴파일 실패).
 
@@ -231,7 +231,7 @@ public partial class ChecklistItemViewModel : ObservableObject
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistItemViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistItemViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 7`.
 
@@ -249,9 +249,9 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ### Task 2: Test fakes + ChecklistViewModel.Load (항목/고객사 로드)
 
 **Files:**
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\Fakes\ChecklistFakes.cs`
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
-- Test: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\Fakes\ChecklistFakes.cs`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
+- Test: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
 
 **Interfaces:**
 - Consumes (계약 §4): `IChecklistRepository.GetByNote(int)`, `IClientRepository.GetAll(bool enabledOnly = false)`; (계약 §1) `Note`, `Client`, `ChecklistItem`, `ItemKind`.
@@ -447,7 +447,7 @@ public class ChecklistViewModelTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상 실패: `error CS0246: The type or namespace name 'ChecklistViewModel' could not be found`.
 
@@ -518,7 +518,7 @@ public partial class ChecklistViewModel : ObservableObject
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
@@ -536,8 +536,8 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ### Task 3: 항목 추가/삭제 + 부모 Note updated_at 갱신
 
 **Files:**
-- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
-- Test: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
+- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
+- Test: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
 
 **Interfaces:**
 - Consumes: `IChecklistRepository.AddItem(ChecklistItem)`, `IChecklistRepository.DeleteItem(int)`, `INoteRepository.Update(Note)`.
@@ -621,7 +621,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상 실패: `error CS1061: 'ChecklistViewModel' does not contain a definition for 'AddTask'`.
 
@@ -682,7 +682,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 7`.
 
@@ -700,8 +700,8 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ### Task 4: done 토글 (취소선 + done_at + 즉시 저장)
 
 **Files:**
-- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
-- Test: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
+- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
+- Test: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
 
 **Interfaces:**
 - Consumes: `IChecklistRepository.UpdateItem(ChecklistItem)`, `INoteRepository.Update(Note)`.
@@ -778,7 +778,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상 실패: `error CS1061: 'ChecklistViewModel' does not contain a definition for 'ToggleDone'`.
 
@@ -803,7 +803,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 11`.
 
@@ -821,8 +821,8 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ### Task 5: 디바운스 저장 시 자동태깅(FlushSaves) + 수동보호
 
 **Files:**
-- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
-- Test: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
+- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
+- Test: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
 
 **Interfaces:**
 - Consumes: `ITaggingService.ApplyAutoTag(ChecklistItem)`, `IChecklistRepository.UpdateItem(ChecklistItem)`, `INoteRepository.Update(Note)`.
@@ -910,7 +910,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상 실패: `error CS1061: 'ChecklistViewModel' does not contain a definition for 'FlushSaves'`.
 
@@ -941,7 +941,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 15`.
 
@@ -959,8 +959,8 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ### Task 6: 고객사 수동 교정 (IsManual=1 + 즉시 저장 + 강조 해제)
 
 **Files:**
-- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
-- Test: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
+- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
+- Test: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
 
 **Interfaces:**
 - Consumes: `IChecklistRepository.UpdateItem(ChecklistItem)`, `INoteRepository.Update(Note)`.
@@ -1028,7 +1028,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상 실패: `error CS1061: 'ChecklistViewModel' does not contain a definition for 'CommitClient'`.
 
@@ -1054,7 +1054,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 18`.
 
@@ -1072,8 +1072,8 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ### Task 7: log_date 편집 + 신규 checklist 노트 생성(시스템 그룹 배치)
 
 **Files:**
-- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
-- Test: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
+- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
+- Test: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
 
 **Interfaces:**
 - Consumes: `INoteRepository.Update(Note)`, `INoteRepository.Create(Note)`, `IGroupRepository.GetAll()`; (계약 §1) `Note`, `NoteType.Checklist`, `Group`.
@@ -1136,7 +1136,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상 실패: `error CS0117: 'ChecklistViewModel' does not contain a definition for 'CreateChecklistNote'` (및 `LogDate` 변경 영속화 단언 실패).
 
@@ -1182,7 +1182,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 22`.
 
@@ -1200,8 +1200,8 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ### Task 8: 항목 정렬(MoveItem, sort_order, updated_at 미갱신)
 
 **Files:**
-- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
-- Test: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
+- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\ViewModels\ChecklistViewModel.cs`
+- Test: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests\ViewModels\ChecklistViewModelTests.cs`
 
 **Interfaces:**
 - Consumes: `IChecklistRepository.UpdateItem(ChecklistItem)`.
@@ -1266,7 +1266,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상 실패: `error CS1061: 'ChecklistViewModel' does not contain a definition for 'MoveItem'`.
 
@@ -1301,7 +1301,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ChecklistViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 25`.
 
@@ -1319,8 +1319,8 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ### Task 9: ChecklistView (WPF) + 디바운스 배선 + 수동 검증
 
 **Files:**
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\Views\ChecklistView.xaml`
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App\Views\ChecklistView.xaml.cs`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\Views\ChecklistView.xaml`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App\Views\ChecklistView.xaml.cs`
 - Test: (자동 테스트 없음 — View/시각 동작. 로직은 Task 1~8에서 검증 완료. 빌드만 검증.)
 
 **Interfaces:**
@@ -1485,14 +1485,14 @@ public partial class ChecklistView : UserControl
 - [ ] **Step 2: Build to verify the View compiles**
 
 ```
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상: `Build succeeded.` (경고 0~소수, 오류 0). 만약 `DateOnlyToDateTimeConverter`/`BoolToVisibilityConverter` 리소스가 M2에 없다면 `Memoria.App`의 공용 리소스 사전에 추가한 뒤 재빌드.
 
 - [ ] **Step 3: 전체 회귀 테스트(로직 무결성 확인)**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~Checklist"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~Checklist"
 ```
 예상: `Passed!  - Failed: 0, Passed: 32` (ChecklistItemViewModelTests 7 + ChecklistViewModelTests 25).
 

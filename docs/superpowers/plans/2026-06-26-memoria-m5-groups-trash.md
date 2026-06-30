@@ -210,7 +210,7 @@ public class GroupManagementViewModelTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.Load_populates_groups_in_sort_order"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.Load_populates_groups_in_sort_order"
 ```
 예상: 컴파일 실패 — `error CS0246: The type or namespace name 'GroupManagementViewModel' could not be found`.
 
@@ -253,7 +253,7 @@ public partial class GroupManagementViewModel : ObservableObject
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.Load_populates_groups_in_sort_order"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.Load_populates_groups_in_sort_order"
 ```
 예상: `Passed!  - Failed: 0, Passed: 1`.
 
@@ -313,7 +313,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.AddGroup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.AddGroup"
 ```
 예상: 컴파일 실패 — `error CS1061: 'GroupManagementViewModel' does not contain a definition for 'AddGroup'`.
 
@@ -347,7 +347,7 @@ using CommunityToolkit.Mvvm.Input;
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.AddGroup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.AddGroup"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
@@ -419,7 +419,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.RenameGroup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.RenameGroup"
 ```
 예상: 컴파일 실패 — `error CS1061: ... does not contain a definition for 'RenameGroup'`.
 
@@ -448,7 +448,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.RenameGroup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.RenameGroup"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`.
 
@@ -518,7 +518,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.SetGroupColor"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.SetGroupColor"
 ```
 예상: 컴파일 실패 — `error CS1061: ... does not contain a definition for 'SetGroupColor'`.
 
@@ -547,7 +547,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.SetGroupColor"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.SetGroupColor"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`.
 
@@ -610,7 +610,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.DeleteGroup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.DeleteGroup"
 ```
 예상: 컴파일 실패 — `error CS1061: ... does not contain a definition for 'DeleteGroup'`.
 
@@ -637,7 +637,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.DeleteGroup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.DeleteGroup"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
@@ -704,7 +704,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.MoveGroup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.MoveGroup"
 ```
 예상: 컴파일 실패 — `error CS1061: ... does not contain a definition for 'MoveGroup'`.
 
@@ -736,7 +736,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.MoveGroup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.MoveGroup"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
@@ -809,7 +809,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.MoveNoteToGroup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.MoveNoteToGroup"
 ```
 예상: 컴파일 실패 — `error CS1061: ... does not contain a definition for 'MoveNoteToGroup'`.
 
@@ -832,7 +832,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.MoveNoteToGroup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GroupManagementViewModelTests.MoveNoteToGroup"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
@@ -962,7 +962,7 @@ public class TrashViewModelTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashItemViewModelTests|FullyQualifiedName~TrashViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashItemViewModelTests|FullyQualifiedName~TrashViewModelTests"
 ```
 예상: 컴파일 실패 — `error CS0246: The type or namespace name 'TrashItemViewModel'/'TrashViewModel' could not be found`.
 
@@ -1051,7 +1051,7 @@ public partial class TrashViewModel : ObservableObject
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashItemViewModelTests|FullyQualifiedName~TrashViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashItemViewModelTests|FullyQualifiedName~TrashViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 6`.
 
@@ -1127,7 +1127,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.DeleteNote|FullyQualifiedName~TrashViewModelTests.Undo"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.DeleteNote|FullyQualifiedName~TrashViewModelTests.Undo"
 ```
 예상: 컴파일 실패 — `error CS1061: ... does not contain a definition for 'DeleteNote'`.
 
@@ -1171,7 +1171,7 @@ using CommunityToolkit.Mvvm.Input;
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.DeleteNote|FullyQualifiedName~TrashViewModelTests.Undo"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.DeleteNote|FullyQualifiedName~TrashViewModelTests.Undo"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`.
 
@@ -1233,7 +1233,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.Restore|FullyQualifiedName~TrashViewModelTests.Purge"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.Restore|FullyQualifiedName~TrashViewModelTests.Purge"
 ```
 예상: 컴파일 실패 — `error CS1061: ... does not contain a definition for 'Restore'`.
 
@@ -1259,7 +1259,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.Restore|FullyQualifiedName~TrashViewModelTests.Purge"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.Restore|FullyQualifiedName~TrashViewModelTests.Purge"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
@@ -1323,7 +1323,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.PurgeExpiredOnStartup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.PurgeExpiredOnStartup"
 ```
 예상: 컴파일 실패 — `error CS1061: ... does not contain a definition for 'PurgeExpiredOnStartup'`.
 
@@ -1340,7 +1340,7 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.PurgeExpiredOnStartup"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~TrashViewModelTests.PurgeExpiredOnStartup"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
@@ -1446,13 +1446,13 @@ private void GroupNode_DropNote(object sender, DragEventArgs e)
 - [ ] **Step 4: 빌드 검증**
 
 ```
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상: `Build succeeded. 0 Error(s)`.
 
 - [ ] **Step 5: 수동 검증 체크포인트 (Windows 실행)**
 
-`dotnet.exe run --project "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App"` 로 실행 후 눈으로 확인:
+`dotnet.exe run --project "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App"` 로 실행 후 눈으로 확인:
 - [ ] 사이드바에서 "새 그룹" → 그룹이 목록 맨 아래에 추가되고 즉시 이름 편집 가능.
 - [ ] 사용자 그룹 우클릭 → "이름변경"/"삭제" 활성. **시스템 그룹(일일업무일지/주간보고) 우클릭 → "이름변경"/"삭제" 회색 비활성**, "색상" 변경은 가능.
 - [ ] 그룹에 색상 지정 → 사이드바 색 점/막대가 즉시 바뀜(DynamicResource 적용, 테마 전환에도 깨지지 않음).

@@ -11,8 +11,8 @@
 ## Global Constraints
 - 런타임: **.NET 9**. TFM: **Core=net9.0, App=net9.0-windows(+`<UseWPF>true</UseWPF>`), Tests=net9.0-windows**.
 - 빌드/테스트: **Windows `dotnet.exe` + Windows 절대경로**(WSL에서 호출, WPF는 Linux dotnet 불가).
-  - 솔루션 빌드: `dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"`
-  - 테스트: `dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"`
+  - 솔루션 빌드: `dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"`
+  - 테스트: `dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"`
 - 의존 방향: `Memoria.App` → `Memoria.Core`(역방향 금지). ViewModel/App 서비스는 WPF 타입에 의존하지 않고 `CommunityToolkit.Mvvm`만 사용한다(코디네이터/검색/매핑 로직은 모두 자동 테스트 가능). code-behind는 얇게 유지.
 - 색상: **모든 색/브러시는 `DynamicResource`만 사용(StaticResource 금지)**. M9가 새로 추가하는 모든 View 마크업은 **계약 §10의 정식 브러시 키만** 참조한다: `Brush.WindowBackground`, `Brush.Surface`, `Brush.SidebarBackground`, `Brush.ToolbarBackground`, `Brush.EditorBackground`, `Brush.Foreground`, `Brush.SecondaryForeground`, `Brush.Border`, `Brush.ListItemHover`, `Brush.ListItemSelected`, `Brush.Accent`, `Brush.AccentForeground`, `Brush.StrikethroughForeground`, `Brush.UnclassifiedHighlight`, `Brush.WarningBackground`, `Brush.WarningBorder`, `Brush.WarningForeground`. (이 사전은 M7이 정의/교체한다.)
 - 명령명(계약 §9.3, 단일 진리원천): `NewPlainNoteCommand`(M2), `NewChecklistCommand`, `OpenWeeklyReportCommand`, `OpenSettingsCommand`(M7 본문), `SearchCommand` + `string SearchText` + `ObservableCollection<SearchHit> SearchResults` + `OpenSearchHitCommand(SearchHit)`. **M9는 `NewChecklistCommand`/`OpenWeeklyReportCommand`/`SearchCommand`/`OpenSearchHitCommand` 의 본문을 채운다.**
@@ -227,7 +227,7 @@ public class MainViewModelEditorHostTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelEditorHostTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelEditorHostTests"
 ```
 예상 실패: `MainViewModel` 생성자가 아직 M9 신규 파라미터(`ISearchService`/`Func<ChecklistViewModel>`/`Func<WeeklyReportViewModel>`)를 받지 않아 인자 불일치(`CS1729`), 그리고 신규 멤버 `CurrentEditor` 미존재(`CS1061`). `SelectedNote`/`CurrentNoteType`는 M2 스텁으로 **이미 존재**하지만 선택해도 에디터 호스팅이 일어나지 않으므로(M2 `OnSelectedNoteChanged` 스텁이 OpenNote만 호출) `CurrentEditor`/`IsEditorVisible` 동작 어서션이 실패한다.
 
@@ -317,14 +317,14 @@ using Memoria.Core.Models;
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelEditorHostTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelEditorHostTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 4`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): route SelectedNote to NoteType-specific editor host (CurrentEditor)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): route SelectedNote to NoteType-specific editor host (CurrentEditor)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -380,7 +380,7 @@ public class MainViewModelNewChecklistTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelNewChecklistTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelNewChecklistTests"
 ```
 예상 실패: M2 `NewChecklistCommand` 스텁 본문이 아직 비어 있어(no-op) 노트가 생성·선택되지 않으므로 `ContainSingle`/`SelectedNote`/`CurrentEditor` 어서션 실패(명령 자체는 M2 스텁으로 이미 존재).
 
@@ -421,14 +421,14 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelNewChecklistTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelNewChecklistTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 1`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): implement NewChecklistCommand (create+select daily-log checklist)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): implement NewChecklistCommand (create+select daily-log checklist)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -470,7 +470,7 @@ public class MainViewModelWeeklyReportTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelWeeklyReportTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelWeeklyReportTests"
 ```
 예상 실패: M2 `OpenWeeklyReportCommand` 스텁 본문이 아직 비어 있어(no-op) `CurrentEditor`가 `WeeklyReportViewModel`로 설정되지 않아 어서션 실패(명령 자체는 M2 스텁으로 이미 존재).
 
@@ -491,14 +491,14 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelWeeklyReportTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelWeeklyReportTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 1`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): implement OpenWeeklyReportCommand (host weekly report editor)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): implement OpenWeeklyReportCommand (host weekly report editor)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -575,7 +575,7 @@ public class MainViewModelSearchTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelSearchTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelSearchTests"
 ```
 예상 실패: M2 `SearchCommand`/`OpenSearchHitCommand` 스텁 본문이 아직 비어 있어(no-op) `SearchResults`가 채워지지 않고 hit 이동도 일어나지 않아 어서션 실패(`SearchText`/`SearchResults`/명령 자체는 M2 스텁으로 이미 존재).
 
@@ -607,14 +607,14 @@ dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\U
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelSearchTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~MainViewModelSearchTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): implement search command, results, and open-hit navigation
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): implement search command, results, and open-hit navigation
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -711,7 +711,7 @@ public class StartupSafetyCoordinatorTests
 
 - [ ] **Step 2: Run test to verify it fails**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~StartupSafetyCoordinatorTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~StartupSafetyCoordinatorTests"
 ```
 예상 실패: `StartupSafetyCoordinator`/`StartupSafetyOutcome` 미존재(`CS0246`).
 
@@ -769,14 +769,14 @@ public sealed class StartupSafetyCoordinator : IStartupSafetyCoordinator
 
 - [ ] **Step 4: Run test to verify it passes**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~StartupSafetyCoordinatorTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~StartupSafetyCoordinatorTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`.
 
 - [ ] **Step 5: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): add StartupSafetyCoordinator (integrity/restore/daily-backup decision)
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): add StartupSafetyCoordinator (integrity/restore/daily-backup decision)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -1004,19 +1004,19 @@ if (!safety.DatabaseWasHealthy)
 
 - [ ] **Step 4: 빌드 검증**
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상: `Build succeeded. 0 Error(s)`.
 
 - [ ] **Step 5: 전체 자동 테스트 회귀 검증**
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"
 ```
 예상: 전체 통과(`Failed: 0`). M9 신규: EditorHost 4 + NewChecklist 1 + WeeklyReport 1 + Search 3 + StartupSafety 3 = 12 (+ M1~M8 누적).
 
 - [ ] **Step 6: 수동 검증 체크포인트(Windows 실제 실행)**
 ```bash
-dotnet.exe run --project "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App"
+dotnet.exe run --project "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App"
 ```
 다음을 눈으로 확인한다:
 - [ ] **MV9-1 plain 호스팅**: plain 메모를 선택하면 우측에 제목/헤더/본문 에디터가 뜬다(M2 동작 유지).
@@ -1035,8 +1035,8 @@ dotnet.exe run --project "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJE
 
 - [ ] **Step 7: Commit**
 ```bash
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" add -A
-git -C "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled" commit -m "feat(app): integrate shell (NoteType view hosting, toolbar entries, search UI) and wire data-safety bootstrap
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" add -A
+git -C "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria" commit -m "feat(app): integrate shell (NoteType view hosting, toolbar entries, search UI) and wire data-safety bootstrap
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```

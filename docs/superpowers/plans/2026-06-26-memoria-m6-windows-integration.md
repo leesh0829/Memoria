@@ -94,7 +94,7 @@ public class HotkeyParserTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~HotkeyParserTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~HotkeyParserTests"
 ```
 예상 실패: `error CS0246: The type or namespace name 'HotkeyParser'/'HotkeyModifiers'/'ParsedHotkey' could not be found` (컴파일 실패).
 
@@ -195,7 +195,7 @@ public static class HotkeyParser
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~HotkeyParserTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~HotkeyParserTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 9` (Theory 7 + Fact 2 = 9건 통과).
 
@@ -297,7 +297,7 @@ public class AutostartTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~AutostartTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~AutostartTests"
 ```
 예상 실패: `error CS0246: ... 'AutostartRegistry'/'AutostartService'/'IAutostartService' ...` (컴파일 실패).
 
@@ -368,7 +368,7 @@ public sealed class AutostartService : IAutostartService
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~AutostartTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~AutostartTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 4`.
 
@@ -444,7 +444,7 @@ public class PipeMessageTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~PipeMessageTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~PipeMessageTests"
 ```
 예상 실패: `error CS0246: ... 'PipeCommand'/'PipeMessage' ...`.
 
@@ -492,7 +492,7 @@ public static class PipeMessage
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~PipeMessageTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~PipeMessageTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 9`.
 
@@ -566,7 +566,7 @@ public class SingleInstanceServiceTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~SingleInstanceServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~SingleInstanceServiceTests"
 ```
 예상 실패: `error CS0246: ... 'SingleInstanceService'/'ISingleInstanceService' ...`.
 
@@ -669,7 +669,7 @@ public sealed class SingleInstanceService : ISingleInstanceService
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~SingleInstanceServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~SingleInstanceServiceTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
@@ -737,7 +737,7 @@ public class GlobalHotkeyServiceTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GlobalHotkeyServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GlobalHotkeyServiceTests"
 ```
 예상 실패: `error CS0246: ... 'GlobalHotkeyService' ...`.
 
@@ -861,7 +861,7 @@ public sealed class GlobalHotkeyService : IGlobalHotkeyService
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~GlobalHotkeyServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~GlobalHotkeyServiceTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 3`.
 
@@ -910,7 +910,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: 빌드로 패키지 복원/참조 확인**
 
 ```
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상: `Build succeeded`(H.NotifyIcon.Wpf 복원 성공). 실패 시 버전 가용성 확인 후 최신 2.x로 조정.
 
@@ -1183,14 +1183,14 @@ public partial class MainWindow : Window
 - [ ] **Step 3: 빌드로 배선 컴파일 검증**
 
 ```
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상: `Build succeeded`. 계약 §9.2/§9.3이 보장하는 `AppServices.Resolve<T>()`·`MainWindow.ViewModel`·`MainViewModel.NewPlainNoteCommand`·`OpenSettingsCommand`(M2 스텁) 심볼에 연결되므로 추가 치환은 불필요하다.
 
 - [ ] **Step 4: 전체 테스트 회귀 확인**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"
 ```
 예상: M1~M6 전체 통과(`Failed: 0`). M6 신규 단위 테스트(파서/자동시작/파이프/단일인스턴스/단축키거부)가 모두 PASS.
 

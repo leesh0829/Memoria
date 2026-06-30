@@ -285,10 +285,10 @@ public static class SettingsKeys
 
 - 빌드/테스트는 **Windows .NET 9 SDK(`dotnet.exe`)** 로 수행한다(WPF는 Linux dotnet 불가).
 - WSL에서 호출 시 **Windows 절대경로** 사용. 저장소 Windows 경로:
-  `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled`
+  `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria`
 - 표준 명령:
-  - 솔루션 빌드: `dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"`
-  - 테스트: `dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"`
+  - 솔루션 빌드: `dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"`
+  - 테스트: `dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"`
   - 단일 테스트: `dotnet.exe test ... --filter "FullyQualifiedName~ClassName.TestName"`
 - `Memoria.Core`는 `net9.0`, `Memoria.Tests`는 `net9.0-windows`. 자동 테스트는 Windows 툴체인(`dotnet.exe`)에서 정상 동작.
 - **UI/Win32(M2~M9)** 의 시각·전역동작은 자동 테스트 불가 → 각 계획에 **수동 검증 체크포인트**를 둔다. 단, 로직은 ViewModel/서비스로 분리해 자동 테스트한다(code-behind는 얇게).

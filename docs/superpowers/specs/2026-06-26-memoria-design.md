@@ -427,7 +427,7 @@ CREATE VIRTUAL TABLE notes_fts USING fts5(title, body, items, content='');
 - **WPF는 Linux 네이티브 `dotnet`으로 빌드 불가.** 빌드는 **Windows .NET 9 SDK(`dotnet.exe`)** 로 수행한다. WSL에서 호출 시 **Windows 절대경로**를 인자로 전달(`dotnet.exe build "C:\...\Memoria.sln"`). 권장 경로는 §10.4 CI.
 - **사용자 Windows 폴백(PowerShell)**: 
   ```powershell
-  cd "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled"
+  cd "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria"
   dotnet publish src\Memoria.App -c Release -r win-x64 --self-contained `
     -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
   ```

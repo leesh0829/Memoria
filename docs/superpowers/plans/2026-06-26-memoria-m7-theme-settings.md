@@ -101,7 +101,7 @@ public class ThemeResolverTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ThemeResolverTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ThemeResolverTests"
 ```
 예상 실패: `error CS0246: The type or namespace name 'ThemeResolver' could not be found` (컴파일 실패).
 
@@ -150,7 +150,7 @@ public static class ThemeResolver
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ThemeResolverTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ThemeResolverTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 19` (Theory 6+7+5 + Fact 1).
 
@@ -274,7 +274,7 @@ public class SystemThemeReaderTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~AccentColorTests|FullyQualifiedName~SystemThemeReaderTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~AccentColorTests|FullyQualifiedName~SystemThemeReaderTests"
 ```
 예상 실패: `error CS0246: ... 'AccentColor'/'SystemThemeReader' ...` (컴파일 실패).
 
@@ -339,7 +339,7 @@ public static class SystemThemeReader
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~AccentColorTests|FullyQualifiedName~SystemThemeReaderTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~AccentColorTests|FullyQualifiedName~SystemThemeReaderTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 16` (AccentColor 8+4+1, SystemThemeReader 2+1+2+1+1 → 합 16).
 
@@ -613,7 +613,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 4: 빌드로 XAML 컴파일/리소스 포함 검증**
 
 ```
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상: `Build succeeded`(9개 ResourceDictionary가 `Page`로 컴파일되고 App.xaml MergedDictionaries 해석 성공). 키 누락은 빌드가 아닌 런타임 바인딩 실패이므로 Step 5에서 시각 확인.
 
@@ -683,7 +683,7 @@ public class SystemEventsThemeSourceTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~SystemEventsThemeSourceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~SystemEventsThemeSourceTests"
 ```
 예상 실패: `error CS0246: ... 'SystemEventsThemeSource' ...`.
 
@@ -788,7 +788,7 @@ public sealed class SystemEventsThemeSource : ISystemThemeSource
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~SystemEventsThemeSourceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~SystemEventsThemeSourceTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 2`.
 
@@ -1006,7 +1006,7 @@ public class ThemeServiceTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ThemeServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ThemeServiceTests"
 ```
 예상 실패: `error CS0246: ... 'ThemeService'/'IThemeService' ...`.
 
@@ -1117,7 +1117,7 @@ public sealed class ThemeService : IThemeService, IDisposable
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ThemeServiceTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ThemeServiceTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 12` (Fact 7 + Theory 5).
 
@@ -1331,7 +1331,7 @@ public class SettingsViewModelTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~SettingsViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~SettingsViewModelTests"
 ```
 예상 실패: `error CS0246: ... 'SettingsViewModel' ...`.
 
@@ -1480,7 +1480,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~SettingsViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~SettingsViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 9`.
 
@@ -1671,7 +1671,7 @@ public class ClientsSettingsViewModelTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ClientsSettingsViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ClientsSettingsViewModelTests"
 ```
 예상 실패: `error CS0246: ... 'ClientsSettingsViewModel' ...`.
 
@@ -1840,7 +1840,7 @@ public sealed partial class ClientsSettingsViewModel : ObservableObject
 - [ ] **Step 4: Run test to verify it passes**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~ClientsSettingsViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~ClientsSettingsViewModelTests"
 ```
 예상: `Passed!  - Failed: 0, Passed: 7`.
 
@@ -2080,14 +2080,14 @@ AppServices.Resolve<IThemeService>().Initialize();   // 저장된 mode/preset/ac
 - [ ] **Step 4: 빌드로 View/배선 컴파일 검증**
 
 ```
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상: `Build succeeded`. (M2 `MainViewModel.OpenSettingsCommand`/`AppServices`/M1 `IClientRepository` 심볼이 실제 이름과 일치해야 함 — 불일치 시 해당 한 줄만 실제 이름으로 교정.)
 
 - [ ] **Step 5: 전체 테스트 회귀 확인**
 
 ```
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"
 ```
 예상: M1~M7 전체 통과(`Failed: 0`). M7 신규 단위 테스트(ThemeResolver/AccentColor/SystemThemeReader/SystemEventsThemeSource/ThemeService/SettingsViewModel/ClientsSettingsViewModel)가 모두 PASS.
 

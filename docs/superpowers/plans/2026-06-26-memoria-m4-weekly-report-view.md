@@ -252,7 +252,7 @@ public class WeeklyReportViewModelTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
 ```
 예상 실패: 컴파일 에러 `CS0246: The type or namespace name 'WeeklyReportViewModel' could not be found` 및 `IClipboardService`/`IConfirmationDialogService` 미정의.
 
@@ -364,7 +364,7 @@ public partial class WeeklyReportViewModel : ObservableObject
 - [ ] **Step 4: Run test to verify it passes**
 
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
 ```
 예상 PASS: `Passed!  - Failed: 0, Passed: 2`.
 
@@ -487,7 +487,7 @@ using Memoria.Core.Services;
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
 ```
 예상 실패: `CS1061: 'WeeklyReportViewModel' does not contain a definition for 'GenerateCommand'` / `ReportText` / `HasUnclassifiedWarning`.
 
@@ -556,7 +556,7 @@ using Memoria.Core.Reporting;
 - [ ] **Step 4: Run test to verify it passes**
 
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
 ```
 예상 PASS: `Passed!  - Failed: 0, Passed: 6`.
 
@@ -691,7 +691,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
 ```
 예상 실패: `Generate_reuses_existing_report_body...`에서 `notes.Created`가 비어있지 않거나(현재 Generate가 항상 새로 생성), `RegenerateCommand` 미정의(`CS1061`).
 
@@ -772,7 +772,7 @@ Task 2의 `Generate`를 멱등 로드로 교체하고, 신규 생성/덮어쓰�
 - [ ] **Step 4: Run test to verify it passes**
 
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests"
 ```
 예상 PASS: `Passed!  - Failed: 0, Passed: 11`.
 
@@ -897,7 +897,7 @@ public class DateOnlyConverterTests
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests|FullyQualifiedName~DateOnlyConverterTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests|FullyQualifiedName~DateOnlyConverterTests"
 ```
 예상 실패: `CS1061: ... 'CopyCommand'`, `CS0246: ... 'DateOnlyConverter'`, 그리고 양식 토글 시 `ReportText`가 갱신되지 않아 어서션 실패.
 
@@ -1077,12 +1077,12 @@ sc.AddTransient<WeeklyReportViewModel>();
 - [ ] **Step 4: Run test to verify it passes**
 
 ```bash
-dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests|FullyQualifiedName~DateOnlyConverterTests"
+dotnet.exe test "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests" --filter "FullyQualifiedName~WeeklyReportViewModelTests|FullyQualifiedName~DateOnlyConverterTests"
 ```
 예상 PASS: `Passed!  - Failed: 0, Passed: 17`.
 이어서 전체 솔루션 빌드로 WPF 뷰/컨버터/DI 컴파일을 검증:
 ```bash
-dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
+dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
 ```
 예상: `Build succeeded. 0 Error(s)`.
 

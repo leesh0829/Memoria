@@ -14,7 +14,7 @@
 - DB 위치: **`%LOCALAPPDATA%\Memoria`** (문서에 명시; 로밍/네트워크 경로 금지).
 - WPF 배포: **트리밍 금지(`PublishTrimmed=false`)**, **단일파일 압축 금지(`EnableCompressionInSingleFile=false`)**.
 - 단일 exe 옵션: **self-contained, `-r win-x64`, `PublishSingleFile=true`, `IncludeNativeLibrariesForSelfExtract=true`**.
-- 빌드/테스트/퍼블리시는 **Windows .NET 9 SDK(`dotnet.exe`)** 로 수행하며, WSL에서 호출 시 **Windows 절대경로** 사용. 저장소 Windows 경로: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled`.
+- 빌드/테스트/퍼블리시는 **Windows .NET 9 SDK(`dotnet.exe`)** 로 수행하며, WSL에서 호출 시 **Windows 절대경로** 사용. 저장소 Windows 경로: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria`.
 - 릴리스 트리거: **태그 `v*` 푸시**, 러너 **`windows-latest`**. 첫 릴리스 **`v0.1.0`**.
 - 액션 버전 핀 고정: `actions/checkout@v4`, `actions/setup-dotnet@v4`, `softprops/action-gh-release@v2`.
 - 전역 단축키: 새 메모 **`Ctrl+Alt+N`** (문서/단축키 표에 명시).
@@ -28,7 +28,7 @@
 ### Task 1: README.md 작성 (소개/기능/스크린샷/설치/실행/빌드/단축키/데이터 위치)
 
 **Files:**
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\README.md`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\README.md`
 - Test(검증 스크립트, WSL): `grep` 기반 섹션 존재 점검 (아래 Step 2 명령)
 
 **Interfaces:**
@@ -40,7 +40,7 @@
 - [ ] **Step 1: Write the failing test** (필수 섹션 점검 스크립트 준비)
   아래 한 줄 검증 명령을 사용한다. README가 없으면 grep이 비정상 종료(파일 없음)하거나 매칭 0건으로 실패한다.
   ```bash
-  README="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled/README.md"
+  README="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria/README.md"
   for h in "# Memoria" "## 소개" "## 주요 기능" "## 스크린샷" "## 설치" "## 실행" "## 빌드" "## 단축키" "## 데이터 위치" "Ctrl+Alt+N" '%LOCALAPPDATA%\Memoria'; do
     grep -qF "$h" "$README" || { echo "MISSING: $h"; exit 1; }
   done
@@ -49,7 +49,7 @@
 
 - [ ] **Step 2: Run test to verify it fails**
   ```bash
-  README="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled/README.md"
+  README="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria/README.md"
   for h in "# Memoria" "## 소개" "## 주요 기능" "## 스크린샷" "## 설치" "## 실행" "## 빌드" "## 단축키" "## 데이터 위치" "Ctrl+Alt+N" '%LOCALAPPDATA%\Memoria'; do grep -qF "$h" "$README" 2>/dev/null || { echo "MISSING: $h"; exit 1; }; done; echo "README OK"
   ```
   예상 실패: `grep: ...README.md: No such file or directory` 후 `MISSING: # Memoria` 출력, 종료코드 1.
@@ -95,13 +95,13 @@
 
   WSL에서 호출(Windows 절대경로 사용):
   ```bash
-  dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\Memoria.sln"
-  dotnet.exe test  "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\tests\Memoria.Tests"
+  dotnet.exe build "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\Memoria.sln"
+  dotnet.exe test  "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\tests\Memoria.Tests"
   ```
 
   Windows PowerShell에서 단일 exe 퍼블리시:
   ```powershell
-  cd "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled"
+  cd "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria"
   dotnet publish src\Memoria.App -c Release -r win-x64 --self-contained `
     -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:EnableCompressionInSingleFile=false -p:PublishTrimmed=false
@@ -135,14 +135,14 @@
 
 - [ ] **Step 4: Run test to verify it passes**
   ```bash
-  README="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled/README.md"
+  README="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria/README.md"
   for h in "# Memoria" "## 소개" "## 주요 기능" "## 스크린샷" "## 설치" "## 실행" "## 빌드" "## 단축키" "## 데이터 위치" "Ctrl+Alt+N" '%LOCALAPPDATA%\Memoria'; do grep -qF "$h" "$README" || { echo "MISSING: $h"; exit 1; }; done; echo "README OK"
   ```
   예상 통과: `README OK`, 종료코드 0.
 
 - [ ] **Step 5: Commit**
   ```bash
-  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   git add README.md
   git commit -m "docs: add README with intro, features, install, build, shortcuts, data location
 
@@ -154,7 +154,7 @@
 ### Task 2: docs/architecture.md 작성
 
 **Files:**
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\docs\architecture.md`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\docs\architecture.md`
 - Test(검증 스크립트, WSL): 필수 섹션/경로 grep 점검
 
 **Interfaces:**
@@ -163,7 +163,7 @@
 
 - [ ] **Step 1: Write the failing test**
   ```bash
-  DOC="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled/docs/architecture.md"
+  DOC="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria/docs/architecture.md"
   for h in "# Memoria 아키텍처" "## 프로젝트 구조" "## 의존 방향" "## 데이터 모델" "## Windows 통합" "## 인터페이스 계약" "Memoria.Core" "net9.0-windows" "DynamicResource"; do
     grep -qF "$h" "$DOC" || { echo "MISSING: $h"; exit 1; }
   done; echo "ARCH OK"
@@ -246,7 +246,7 @@
 
 - [ ] **Step 5: Commit**
   ```bash
-  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   git add docs/architecture.md
   git commit -m "docs: add architecture overview (projects, dependencies, data model, Windows integration)
 
@@ -258,7 +258,7 @@
 ### Task 3: docs/weekly-report-format.md 작성 (스펙 §6 추출)
 
 **Files:**
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\docs\weekly-report-format.md`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\docs\weekly-report-format.md`
 - Test(검증 스크립트, WSL): 양식 A 빈 줄 규칙 + 분류 우선순위 + 양식 B 제목 형식 grep 점검
 
 **Interfaces:**
@@ -267,7 +267,7 @@
 
 - [ ] **Step 1: Write the failing test**
   ```bash
-  DOC="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled/docs/weekly-report-format.md"
+  DOC="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria/docs/weekly-report-format.md"
   for h in "# 주간보고 양식 규칙" "## 양식 A" "## 양식 B" "[업무 내용]" "[이슈]" "주간 보고 (MM/DD ~ MM/DD)" "자율형공장" "SLD" "미분류" "* 이슈사항:" "빈 줄 1개"; do
     grep -qF "$h" "$DOC" || { echo "MISSING: $h"; exit 1; }
   done; echo "REPORT-FMT OK"
@@ -369,7 +369,7 @@
 
 - [ ] **Step 5: Commit**
   ```bash
-  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   git add docs/weekly-report-format.md
   git commit -m "docs: extract weekly report format rules (forms A/B, classification priority)
 
@@ -381,7 +381,7 @@
 ### Task 4: docs/user-guide.md 작성 (한글)
 
 **Files:**
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\docs\user-guide.md`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\docs\user-guide.md`
 - Test(검증 스크립트, WSL): 필수 사용 시나리오 섹션 grep 점검
 
 **Interfaces:**
@@ -390,7 +390,7 @@
 
 - [ ] **Step 1: Write the failing test**
   ```bash
-  DOC="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled/docs/user-guide.md"
+  DOC="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria/docs/user-guide.md"
   for h in "# Memoria 사용자 가이드" "## 시작하기" "## 메모 작성" "## 체크리스트" "## 주간보고" "## 그룹 관리" "## 검색" "## 휴지통" "## 테마 변경" "## 데이터 위치와 백업" "Ctrl+Alt+N"; do
     grep -qF "$h" "$DOC" || { echo "MISSING: $h"; exit 1; }
   done; echo "USER-GUIDE OK"
@@ -461,7 +461,7 @@
 
 - [ ] **Step 5: Commit**
   ```bash
-  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   git add docs/user-guide.md
   git commit -m "docs: add Korean user guide
 
@@ -473,7 +473,7 @@
 ### Task 5: CHANGELOG.md 작성 (Keep a Changelog, v0.1.0)
 
 **Files:**
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\CHANGELOG.md`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\CHANGELOG.md`
 - Test(검증 스크립트, WSL): Keep a Changelog 포맷 + v0.1.0 항목 grep 점검
 
 **Interfaces:**
@@ -482,7 +482,7 @@
 
 - [ ] **Step 1: Write the failing test**
   ```bash
-  DOC="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled/CHANGELOG.md"
+  DOC="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria/CHANGELOG.md"
   for h in "# Changelog" "Keep a Changelog" "Semantic Versioning" "[Unreleased]" "## [0.1.0]" "### Added"; do
     grep -qF "$h" "$DOC" || { echo "MISSING: $h"; exit 1; }
   done; echo "CHANGELOG OK"
@@ -527,7 +527,7 @@
 
 - [ ] **Step 5: Commit**
   ```bash
-  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   git add CHANGELOG.md
   git commit -m "docs: add CHANGELOG (Keep a Changelog) with v0.1.0 entry
 
@@ -539,7 +539,7 @@
 ### Task 6: CI 워크플로 작성 (.github/workflows/ci.yml — build + test)
 
 **Files:**
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\.github\workflows\ci.yml`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\.github\workflows\ci.yml`
 - Test(검증 스크립트, WSL): YAML 문법 파싱 + 액션 핀 버전 grep 점검
 
 **Interfaces:**
@@ -550,7 +550,7 @@ CI/yml은 코드 TDD 대상이 아니므로, "test"는 (a) YAML 문법 파싱과
 
 - [ ] **Step 1: Write the failing test**
   ```bash
-  YML="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled/.github/workflows/ci.yml"
+  YML="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria/.github/workflows/ci.yml"
   python3 -c "import sys,yaml; yaml.safe_load(open(sys.argv[1])); print('YAML OK')" "$YML" || exit 1
   for h in "runs-on: windows-latest" "actions/checkout@v4" "actions/setup-dotnet@v4" "9.0.x" "dotnet build" "dotnet test"; do
     grep -qF "$h" "$YML" || { echo "MISSING: $h"; exit 1; }
@@ -598,7 +598,7 @@ CI/yml은 코드 TDD 대상이 아니므로, "test"는 (a) YAML 문법 파싱과
 
 - [ ] **Step 5: Commit**
   ```bash
-  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   git add .github/workflows/ci.yml
   git commit -m "ci: add build and test workflow on push/PR (windows-latest, .NET 9)
 
@@ -610,7 +610,7 @@ CI/yml은 코드 TDD 대상이 아니므로, "test"는 (a) YAML 문법 파싱과
 ### Task 7: Release 워크플로 작성 (.github/workflows/release.yml — 태그 v* → 단일 exe → Release 자산)
 
 **Files:**
-- Create: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\.github\workflows\release.yml`
+- Create: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\.github\workflows\release.yml`
 - Test(검증 스크립트, WSL): YAML 파싱 + publish 옵션/핀 액션 grep 점검
 - Manual: 로컬 Windows `dotnet.exe publish` 1회 실행으로 단일 exe 생성 확인
 
@@ -620,7 +620,7 @@ CI/yml은 코드 TDD 대상이 아니므로, "test"는 (a) YAML 문법 파싱과
 
 - [ ] **Step 1: Write the failing test**
   ```bash
-  YML="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled/.github/workflows/release.yml"
+  YML="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria/.github/workflows/release.yml"
   python3 -c "import sys,yaml; yaml.safe_load(open(sys.argv[1])); print('YAML OK')" "$YML" || exit 1
   for h in "tags:" "'v*'" "runs-on: windows-latest" "actions/checkout@v4" "actions/setup-dotnet@v4" "src/Memoria.App" "win-x64" "--self-contained" "PublishSingleFile=true" "IncludeNativeLibrariesForSelfExtract=true" "EnableCompressionInSingleFile=false" "PublishTrimmed=false" "softprops/action-gh-release@v2" "contents: write"; do
     grep -qF "$h" "$YML" || { echo "MISSING: $h"; exit 1; }
@@ -680,14 +680,14 @@ CI/yml은 코드 TDD 대상이 아니므로, "test"는 (a) YAML 문법 파싱과
 
   - [ ] **수동 검증 체크포인트(필수): 로컬 단일 exe 생성 확인** — Windows 툴체인으로 release.yml과 동일한 옵션을 1회 실행해 단일 exe가 만들어지는지 눈으로 확인한다. (전 마일스톤이 끝나 솔루션이 빌드 가능한 상태여야 함.)
     ```bash
-    dotnet.exe publish "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\src\Memoria.App" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=false -p:PublishTrimmed=false -o "C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\publish"
-    ls -la "/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled/publish/Memoria.exe"
+    dotnet.exe publish "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\src\Memoria.App" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=false -p:PublishTrimmed=false -o "C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\publish"
+    ls -la "/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria/publish/Memoria.exe"
     ```
     확인 항목: (1) 명령이 0 종료코드로 성공, (2) `publish/Memoria.exe` 단일 파일 존재, (3) 더블 클릭 시 트레이 상주 + `Ctrl+Alt+N` 동작. `publish/`는 `.gitignore`로 추적 제외됨(커밋 금지).
 
 - [ ] **Step 5: Commit**
   ```bash
-  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   git add .github/workflows/release.yml
   git commit -m "ci: add release workflow (tag v* -> single-file publish -> gh-release asset)
 
@@ -699,7 +699,7 @@ CI/yml은 코드 TDD 대상이 아니므로, "test"는 (a) YAML 문법 파싱과
 ### Task 8: 첫 릴리스 절차 (git tag v0.1.0, push, 검증)
 
 **Files:**
-- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Untitled\1_PROJECT_FILE\Untitled\CHANGELOG.md` (`OWNER/REPO` 슬러그 치환)
+- Modify: `C:\Users\adelie\Desktop\ToyProject\15_Memoria\1_PROJECT_FILE\Memoria\CHANGELOG.md` (`OWNER/REPO` 슬러그 치환)
 - Test/검증: 태그 생성·푸시 후 GitHub Actions Release 실행 + 자산 첨부 확인(수동)
 
 **Interfaces:**
@@ -710,7 +710,7 @@ CI/yml은 코드 TDD 대상이 아니므로, "test"는 (a) YAML 문법 파싱과
 
 - [ ] **Step 1: Write the failing test** (릴리스 전 사전 상태 점검 스크립트)
   ```bash
-  REPO="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  REPO="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   cd "$REPO"
   # 워킹 트리 클린 + 워크플로/체인지로그 존재 확인 + 아직 v0.1.0 태그 없음
   test -f .github/workflows/ci.yml && test -f .github/workflows/release.yml && test -f CHANGELOG.md || { echo "MISSING release prerequisites"; exit 1; }
@@ -724,7 +724,7 @@ CI/yml은 코드 TDD 대상이 아니므로, "test"는 (a) YAML 문법 파싱과
 - [ ] **Step 3: Write minimal implementation** (저장소 슬러그 확정 + 원격 연결 + 태그 생성/푸시)
   1) CHANGELOG의 비교/릴리스 링크에서 `OWNER/REPO`를 실제 슬러그로 치환한다(예: 사용자 GitHub 계정/저장소명). 저장소가 아직 없으면 `gh`로 생성한다.
   ```bash
-  REPO="/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  REPO="/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   cd "$REPO"
   # (원격 없으면) GitHub 저장소 생성 + origin 연결 + 첫 푸시. SLUG는 실제 값으로 대체.
   # gh repo create <OWNER>/Memoria --private --source=. --remote=origin --push
@@ -748,7 +748,7 @@ CI/yml은 코드 TDD 대상이 아니므로, "test"는 (a) YAML 문법 파싱과
 
 - [ ] **Step 4: Run test to verify it passes** (릴리스 결과 검증)
   ```bash
-  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   git tag | grep -qx "v0.1.0" && echo "TAG OK"
   # 원격 태그 확인
   git ls-remote --tags origin | grep -q "refs/tags/v0.1.0" && echo "REMOTE TAG OK"
@@ -762,7 +762,7 @@ CI/yml은 코드 TDD 대상이 아니므로, "test"는 (a) YAML 문법 파싱과
 - [ ] **Step 5: Commit** (절차 자체는 위에서 커밋·태그로 기록됨)
   추가 변경이 없으면 별도 커밋 불필요. release.yml 수정이 있었다면:
   ```bash
-  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Untitled/1_PROJECT_FILE/Untitled"
+  cd "/mnt/c/Users/adelie/Desktop/ToyProject/15_Memoria/1_PROJECT_FILE/Memoria"
   git add .github/workflows/release.yml
   git commit -m "ci: fix release workflow after first v0.1.0 run
 
