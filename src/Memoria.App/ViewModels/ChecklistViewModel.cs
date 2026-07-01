@@ -1,7 +1,9 @@
 // src/Memoria.App/ViewModels/ChecklistViewModel.cs
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Memoria.Core.Data;
@@ -26,6 +28,10 @@ public partial class ChecklistViewModel : ObservableObject
     public ObservableCollection<ChecklistItemViewModel> Items { get; } = new();
     public ObservableCollection<Client> AvailableClients { get; } = new();
 
+    // #4 같은 Items를 종류별로 분리한 두 뷰(할 일 / 이슈). 추가/삭제 시 자동 반영.
+    public ICollectionView TasksView { get; }
+    public ICollectionView IssuesView { get; }
+
     [ObservableProperty]
     private DateOnly _logDate;
 
@@ -41,6 +47,11 @@ public partial class ChecklistViewModel : ObservableObject
         _tagging = tagging;
         _notes = notes;
         _groups = groups;
+
+        TasksView = new ListCollectionView(Items)
+            { Filter = o => o is ChecklistItemViewModel { IsTask: true } };
+        IssuesView = new ListCollectionView(Items)
+            { Filter = o => o is ChecklistItemViewModel { IsTask: false } };
     }
 
     public void Load(Note note)

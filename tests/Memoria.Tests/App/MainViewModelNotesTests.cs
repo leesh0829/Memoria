@@ -72,4 +72,81 @@ public class MainViewModelNotesTests
         notes.Items[0].CreatedAt.Should().Be(time.GetUtcNow());
         vm.Notes.Should().ContainSingle();
     }
+
+    [Fact]
+    public void NewPlainNote_in_system_group_falls_back_to_unclassified()
+    {
+        // #5 일반 메모는 시스템 그룹(일일업무일지·주간보고)에 들어갈 수 없다.
+        var groups = new FakeGroupRepository();
+        var sysId = groups.Create(new Group { Name = "주간보고", IsSystem = true, SortOrder = 10 });
+        var notes = new FakeNoteRepository();
+        var vm = Build(groups, notes, new FakeTimeProvider());
+        vm.LoadGroups();
+        vm.SelectedNode = vm.SystemNodes.First(n => n.GroupId == sysId);
+
+        vm.NewPlainNoteCommand.Execute(null);
+
+        notes.Items.Should().ContainSingle();
+        notes.Items[0].GroupId.Should().BeNull(); // 시스템 그룹이 아니라 (미분류)
+    }
+
+    [Fact]
+    public void DeleteNote_softdeletes_removes_from_list_and_enables_undo()
+    {
+        var groups = new FakeGroupRepository();
+        var gid = groups.Create(new Group { Name = "업무", SortOrder = 1 });
+        var notes = new FakeNoteRepository();
+        var id = notes.Create(new Note { GroupId = gid, Type = NoteType.Plain, Title = "삭제대상" });
+        var vm = Build(groups, notes, new FakeTimeProvider());
+        vm.LoadGroups();
+        vm.SelectedNode = vm.SidebarNodes.First(n => n.GroupId == gid);
+        var item = vm.Notes.Single();
+
+        vm.DeleteNoteCommand.Execute(item);
+
+        notes.Get(id)!.DeletedAt.Should().NotBeNull(); // 휴지통으로
+        vm.Notes.Should().BeEmpty();                    // 목록에서 즉시 제거
+        vm.IsUndoAvailable.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DeleteNote_of_open_note_clears_editor()
+    {
+        // #4 선택(열린) 메모를 삭제하면 우측 본문이 빈 화면이 되어야 한다.
+        var groups = new FakeGroupRepository();
+        var gid = groups.Create(new Group { Name = "업무", SortOrder = 1 });
+        var notes = new FakeNoteRepository();
+        notes.Create(new Note { GroupId = gid, Type = NoteType.Plain, Title = "열린메모" });
+        var vm = Build(groups, notes, new FakeTimeProvider());
+        vm.LoadGroups();
+        vm.SelectedNode = vm.SidebarNodes.First(n => n.GroupId == gid);
+        var item = vm.Notes.Single();
+        vm.SelectedNote = item;            // 에디터 호스팅
+        vm.IsEditorVisible.Should().BeTrue();
+
+        vm.DeleteNoteCommand.Execute(item);
+
+        vm.CurrentEditor.Should().BeNull();
+        vm.IsEditorVisible.Should().BeFalse();
+        vm.SelectedNote.Should().BeNull();
+    }
+
+    [Fact]
+    public void UndoDelete_restores_note_to_list()
+    {
+        var groups = new FakeGroupRepository();
+        var gid = groups.Create(new Group { Name = "업무", SortOrder = 1 });
+        var notes = new FakeNoteRepository();
+        var id = notes.Create(new Note { GroupId = gid, Type = NoteType.Plain, Title = "복원대상" });
+        var vm = Build(groups, notes, new FakeTimeProvider());
+        vm.LoadGroups();
+        vm.SelectedNode = vm.SidebarNodes.First(n => n.GroupId == gid);
+        vm.DeleteNoteCommand.Execute(vm.Notes.Single());
+
+        vm.UndoDeleteCommand.Execute(null);
+
+        notes.Get(id)!.DeletedAt.Should().BeNull();         // 복원됨
+        vm.IsUndoAvailable.Should().BeFalse();
+        vm.Notes.Should().ContainSingle(n => n.Id == id);   // 목록에 다시 보임
+    }
 }

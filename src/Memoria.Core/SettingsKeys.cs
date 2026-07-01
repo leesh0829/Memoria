@@ -4,7 +4,6 @@ public static class SettingsKeys
 {
     public const string ThemeMode = "theme.mode";
     public const string ThemePreset = "theme.preset";
-    public const string ThemeAccent = "theme.accent";
     public const string ReporterName = "report.reporterName";
     public const string FormatATaskHeader = "report.formatA.taskHeader";
     public const string FormatAIssueHeader = "report.formatA.issueHeader";

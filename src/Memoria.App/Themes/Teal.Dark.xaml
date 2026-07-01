@@ -1,0 +1,21 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="Brush.WindowBackground"           Color="#1C2020" />
+    <SolidColorBrush x:Key="Brush.Surface"                    Color="#262C2C" />
+    <SolidColorBrush x:Key="Brush.SidebarBackground"          Color="#262C2C" />
+    <SolidColorBrush x:Key="Brush.ToolbarBackground"          Color="#262C2C" />
+    <SolidColorBrush x:Key="Brush.EditorBackground"           Color="#1C2020" />
+    <SolidColorBrush x:Key="Brush.Foreground"                 Color="#EDEDED" />
+    <SolidColorBrush x:Key="Brush.SecondaryForeground"        Color="#9DB0B0" />
+    <SolidColorBrush x:Key="Brush.Border"                     Color="#475353" />
+    <SolidColorBrush x:Key="Brush.ListItemHover"              Color="#2E3838" />
+    <SolidColorBrush x:Key="Brush.ListItemSelected"           Color="#1F4545" />
+    <SolidColorBrush x:Key="Brush.ListItemSelectedForeground" Color="#8FE8E8" />
+    <SolidColorBrush x:Key="Brush.Accent"                     Color="#2FC8C8" />
+    <SolidColorBrush x:Key="Brush.AccentForeground"           Color="#0A2222" />
+    <SolidColorBrush x:Key="Brush.StrikethroughForeground"    Color="#6B7676" />
+    <SolidColorBrush x:Key="Brush.UnclassifiedHighlight"      Color="#574E25" />
+    <SolidColorBrush x:Key="Brush.WarningBackground"          Color="#473813" />
+    <SolidColorBrush x:Key="Brush.WarningBorder"              Color="#8A6D1A" />
+    <SolidColorBrush x:Key="Brush.WarningForeground"          Color="#F0D284" />
+</ResourceDictionary>

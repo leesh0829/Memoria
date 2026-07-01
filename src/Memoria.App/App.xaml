@@ -16,6 +16,8 @@
             <conv:DateOnlyToDateTimeConverter x:Key="DateOnlyToDateTimeConverter" />
             <!-- M9: 검색 결과 패널 Visibility 변환기 (int>0 → Visible) -->
             <conv:CountToVisibilityConverter x:Key="CountToVisibility" />
+            <!-- 테마 스와치: "#RRGGBB" → Brush -->
+            <conv:StringToBrushConverter x:Key="StringToBrush" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

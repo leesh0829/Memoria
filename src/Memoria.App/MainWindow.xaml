@@ -15,10 +15,12 @@
         <!-- 상단 툴바 (M9: [+ 체크리스트]/[📋 주간보고]/검색 추가) -->
         <DockPanel Grid.Row="0" Background="{DynamicResource Brush.ToolbarBackground}" LastChildFill="True">
             <Button Content="+ 새 메모"    Command="{Binding NewPlainNoteCommand}"      Margin="8,6,4,6" Padding="10,4" />
+            <Button Content="+ 그룹"       Click="OnNewGroupClick"                     Margin="0,6,4,6" Padding="10,4" />
             <Button Content="+ 체크리스트" Command="{Binding NewChecklistCommand}"      Margin="0,6,4,6" Padding="10,4" />
             <Button Content="📋 주간보고"  Command="{Binding OpenWeeklyReportCommand}"  Margin="0,6,4,6" Padding="10,4" />
             <!-- M5: 휴지통 진입점 -->
-            <Button Content="휴지통"       Click="OnShowTrashClick"                    Margin="0,6,12,6" Padding="10,4" />
+            <Button Content="휴지통"       Click="OnShowTrashClick"                    Margin="0,6,4,6" Padding="10,4" />
+            <Button Content="⚙ 설정"      Command="{Binding OpenSettingsCommand}"     Margin="0,6,12,6" Padding="10,4" />
             <Button DockPanel.Dock="Right" Content="🔍" Command="{Binding SearchCommand}" Margin="4,6,8,6" Padding="8,4" />
             <TextBox DockPanel.Dock="Right" Width="220" Margin="0,6,0,6" VerticalContentAlignment="Center"
                      Background="{DynamicResource Brush.Surface}"
@@ -39,46 +41,69 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- 사이드바: 그룹 트리 (M5: 컨텍스트 메뉴, 드래그 순서변경, 메모 드롭) -->
-            <ListBox x:Name="GroupListBox" Grid.Column="0"
-                     Background="{DynamicResource Brush.SidebarBackground}"
-                     Foreground="{DynamicResource Brush.Foreground}"
-                     BorderBrush="{DynamicResource Brush.Border}"
-                     ItemsSource="{Binding SidebarNodes}"
-                     SelectedItem="{Binding SelectedNode, Mode=TwoWay}"
-                     AllowDrop="True"
-                     Drop="GroupList_Drop"
-                     PreviewMouseMove="GroupList_PreviewMouseMove">
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                    </Style>
-                </ListBox.ItemContainerStyle>
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <Border Padding="4,3"
-                                AllowDrop="True"
-                                Drop="GroupNode_DropNote"
-                                ContextMenuOpening="SidebarItem_ContextMenuOpening">
-                            <TextBlock Text="{Binding Name}"
-                                       Foreground="{DynamicResource Brush.Foreground}"/>
-                            <Border.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="새 그룹" Click="OnAddGroupMenuItemClick"/>
-                                    <Separator/>
-                                    <MenuItem Header="이름변경" Tag="Rename" Click="OnRenameGroupMenuItemClick"/>
-                                    <MenuItem Header="색상 변경" Click="OnSetColorMenuItemClick"/>
-                                    <Separator/>
-                                    <MenuItem Header="삭제" Tag="Delete" Click="OnDeleteGroupMenuItemClick"/>
-                                </ContextMenu>
-                            </Border.ContextMenu>
-                        </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <!-- 사이드바(#1 우측 세로 구분선): 위=사용자 그룹(드래그·드롭), 아래=시스템 그룹(고정, #5) -->
+            <Border Grid.Column="0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,1,0"
+                    Background="{DynamicResource Brush.SidebarBackground}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-            <!-- 메모 목록 + 검색 결과 패널 (M5: 삭제 버튼/드래그; M9: 검색 결과 패널) -->
-            <Grid Grid.Column="1">
+                    <!-- 사용자 그룹 + (미분류): 순서변경 드래그 + 메모 드롭 대상 -->
+                    <ListBox x:Name="GroupListBox" Grid.Row="0"
+                             Background="Transparent"
+                             ItemsSource="{Binding SidebarNodes}"
+                             SelectionChanged="GroupListBox_SelectionChanged"
+                             AllowDrop="True"
+                             Drop="GroupList_Drop"
+                             PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
+                             PreviewMouseMove="GroupList_PreviewMouseMove">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="0" Background="Transparent"
+                                        AllowDrop="True"
+                                        Drop="GroupNode_DropNote"
+                                        ContextMenuOpening="SidebarItem_ContextMenuOpening">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource ListItemText}"/>
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="새 그룹" Click="OnAddGroupMenuItemClick"/>
+                                            <Separator/>
+                                            <MenuItem Header="이름변경" Tag="Rename" Click="OnRenameGroupMenuItemClick"/>
+                                            <MenuItem Header="색상 변경" Click="OnSetColorMenuItemClick"/>
+                                            <Separator/>
+                                            <MenuItem Header="삭제" Tag="Delete" Click="OnDeleteGroupMenuItemClick"/>
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- 시스템 그룹과의 가로 구분선 -->
+                    <Border Grid.Row="1" Height="1" Margin="8,4" Background="{DynamicResource Brush.Border}" />
+
+                    <!-- 시스템 그룹(고정): 일일업무일지·주간보고. 드래그/순서변경/메모드롭 불가 (#5) -->
+                    <ListBox x:Name="SystemListBox" Grid.Row="2"
+                             Background="Transparent"
+                             ItemsSource="{Binding SystemNodes}"
+                             SelectionChanged="SystemListBox_SelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="0" Background="Transparent">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource ListItemText}"/>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- 메모 목록 + 검색 결과 패널 (#1 우측 세로 구분선) -->
+            <Border Grid.Column="1" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,1,0">
+            <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
@@ -86,16 +111,10 @@
 
                 <ListBox x:Name="NoteListBox" Grid.Row="0"
                          Background="{DynamicResource Brush.Surface}"
-                         Foreground="{DynamicResource Brush.Foreground}"
-                         BorderBrush="{DynamicResource Brush.Border}"
                          ItemsSource="{Binding Notes}"
                          SelectedItem="{Binding SelectedNote, Mode=TwoWay}"
+                         PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
                          PreviewMouseMove="NoteList_PreviewMouseMove">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid>
@@ -104,13 +123,11 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="{Binding DisplayTitle}"
-                                           Foreground="{DynamicResource Brush.Foreground}"
+                                           Style="{StaticResource ListItemText}"
                                            VerticalAlignment="Center"/>
-                                <!-- M5: 메모 삭제 → 휴지통으로 이동 + Undo 토스트 -->
+                                <!-- 메모 삭제 → 휴지통 (#2: 코드비하인드 Click으로 확실히 호출 → VM 명령 실행) -->
                                 <Button Grid.Column="1" Content="🗑" Padding="4,2"
-                                        Command="{Binding TrashVm.DeleteNoteCommand,
-                                                  RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding Id}"/>
+                                        Click="OnDeleteNoteClick"/>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -129,38 +146,54 @@
                             <DataTemplate>
                                 <StackPanel Margin="2">
                                     <TextBlock Text="{Binding TitlePreview}" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource Brush.Foreground}" />
+                                               Style="{StaticResource ListItemText}" />
                                     <TextBlock Text="{Binding Snippet}" TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource Brush.SecondaryForeground}" />
+                                               Style="{StaticResource ListItemSubText}" />
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </Border>
             </Grid>
+            </Border>
 
             <!-- 에디터 영역: NoteType별 DataTemplate (M9). Border로 빈 상태 배경 보장 -->
             <Border Grid.Column="2" Background="{DynamicResource Brush.EditorBackground}">
             <ContentControl Margin="12" Content="{Binding CurrentEditor}">
                 <ContentControl.Resources>
-                    <!-- plain: CurrentEditor == MainViewModel 자신 -->
+                    <!-- plain: CurrentEditor == MainViewModel 자신. 박스/포커스 테두리 없이 '가로 줄'로만 구분(#7) -->
                     <DataTemplate DataType="{x:Type vm:MainViewModel}">
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />  <!-- 제목 -->
+                                <RowDefinition Height="Auto" />  <!-- 생성/수정일 + 저장상태 -->
+                                <RowDefinition Height="*" />     <!-- 본문 -->
                             </Grid.RowDefinitions>
-                            <TextBox Grid.Row="0" Text="{Binding EditorTitle, UpdateSourceTrigger=PropertyChanged}"
-                                     FontSize="18" BorderThickness="0"
-                                     Background="{DynamicResource Brush.EditorBackground}"
-                                     Foreground="{DynamicResource Brush.Foreground}" />
-                            <TextBlock Grid.Row="1" Text="{Binding HeaderText}" Margin="0,4,0,8"
-                                       Foreground="{DynamicResource Brush.SecondaryForeground}" />
+
+                            <!-- 제목: 밑줄 한 줄로 구분 -->
+                            <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
+                                <TextBox Text="{Binding EditorTitle, UpdateSourceTrigger=PropertyChanged}"
+                                         FontSize="20" Padding="0,2,0,6" BorderThickness="0"
+                                         Background="Transparent"
+                                         Foreground="{DynamicResource Brush.Foreground}" />
+                            </Border>
+
+                            <!-- 생성/수정일(좌) + 저장 상태(우): 밑줄 한 줄로 본문과 구분 (#3) -->
+                            <Border Grid.Row="1" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1"
+                                    Padding="0,4,0,6">
+                                <Grid>
+                                    <TextBlock Text="{Binding HeaderText}" HorizontalAlignment="Left"
+                                               Foreground="{DynamicResource Brush.SecondaryForeground}" />
+                                    <TextBlock Text="{Binding SaveStatus}" HorizontalAlignment="Right"
+                                               Foreground="{DynamicResource Brush.SecondaryForeground}" />
+                                </Grid>
+                            </Border>
+
+                            <!-- 본문 -->
                             <TextBox Grid.Row="2" Text="{Binding EditorBody, UpdateSourceTrigger=PropertyChanged}"
                                      AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap"
-                                     VerticalScrollBarVisibility="Auto"
-                                     Background="{DynamicResource Brush.EditorBackground}"
+                                     VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" Padding="0"
+                                     BorderThickness="0" Background="Transparent"
                                      Foreground="{DynamicResource Brush.Foreground}" />
                         </Grid>
                     </DataTemplate>
@@ -176,23 +209,18 @@
             </ContentControl>
             </Border>
 
-            <!-- M5: Undo 토스트 (하단 오버레이, IsUndoAvailable로 Visibility 토글) -->
+            <!-- Undo 토스트 (#4: MainViewModel 소유) -->
             <Border Grid.Column="0" Grid.ColumnSpan="3"
                     VerticalAlignment="Bottom" HorizontalAlignment="Center"
                     Margin="0,0,0,20" Padding="12,8"
                     Background="{DynamicResource Brush.Surface}"
                     BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
-                    Visibility="{Binding TrashVm.IsUndoAvailable,
-                                         RelativeSource={RelativeSource AncestorType=Window},
-                                         Converter={StaticResource BoolToVis}}">
+                    Visibility="{Binding IsUndoAvailable, Converter={StaticResource BoolToVis}}">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{Binding TrashVm.UndoMessage,
-                                              RelativeSource={RelativeSource AncestorType=Window}}"
+                    <TextBlock Text="{Binding UndoMessage}"
                                Foreground="{DynamicResource Brush.Foreground}"
                                VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <Button Content="실행취소"
-                            Command="{Binding TrashVm.UndoCommand,
-                                     RelativeSource={RelativeSource AncestorType=Window}}"/>
+                    <Button Content="실행취소" Command="{Binding UndoDeleteCommand}"/>
                 </StackPanel>
             </Border>
         </Grid>

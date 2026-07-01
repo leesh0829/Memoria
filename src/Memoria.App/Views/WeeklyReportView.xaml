@@ -9,24 +9,24 @@
         <conv:DateOnlyConverter x:Key="DateOnlyConverter"/>
     </UserControl.Resources>
     <DockPanel Margin="12">
-        <!-- 상단: 주차 선택 + 양식 토글 + 액션 -->
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="주차:" VerticalAlignment="Center" Margin="0,0,6,0"
+        <!-- 상단: 주차 선택 + 양식 토글 + 액션 (좁은 폭에서 잘리지 않도록 WrapPanel로 줄바꿈, #6) -->
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <TextBlock Text="주차:" VerticalAlignment="Center" Margin="0,0,6,4"
                        Foreground="{DynamicResource Brush.Foreground}"/>
             <DatePicker SelectedDate="{Binding SelectedDate, Converter={StaticResource DateOnlyConverter}}"
-                        Width="140"/>
-            <TextBlock Text="{Binding WeekRangeLabel}" VerticalAlignment="Center" Margin="10,0"
+                        Width="140" Margin="0,0,6,4"/>
+            <TextBlock Text="{Binding WeekRangeLabel}" VerticalAlignment="Center" Margin="0,0,10,4"
                        Foreground="{DynamicResource Brush.Foreground}"/>
-            <RadioButton Content="양식 A" Margin="10,0,4,0" VerticalAlignment="Center"
+            <RadioButton Content="양식 A" Margin="0,0,8,4" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.Foreground}"
                          IsChecked="{Binding SelectedFormat, Converter={x:Static conv:EnumMatchConverter.Instance}, ConverterParameter={x:Static models:ReportFormatKind.A}}"/>
-            <RadioButton Content="양식 B" Margin="4,0" VerticalAlignment="Center"
+            <RadioButton Content="양식 B" Margin="0,0,12,4" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.Foreground}"
                          IsChecked="{Binding SelectedFormat, Converter={x:Static conv:EnumMatchConverter.Instance}, ConverterParameter={x:Static models:ReportFormatKind.B}}"/>
-            <Button Content="생성" Command="{Binding GenerateCommand}" Margin="16,0,4,0" Padding="10,2"/>
-            <Button Content="다시 생성" Command="{Binding RegenerateCommand}" Margin="4,0" Padding="10,2"/>
-            <Button Content="복사" Command="{Binding CopyCommand}" Margin="4,0" Padding="10,2"/>
-        </StackPanel>
+            <Button Content="생성" Command="{Binding GenerateCommand}" Margin="0,0,4,4" Padding="10,2"/>
+            <Button Content="다시 생성" Command="{Binding RegenerateCommand}" Margin="0,0,4,4" Padding="10,2"/>
+            <Button Content="복사" Command="{Binding CopyCommand}" Margin="0,0,4,4" Padding="10,2"/>
+        </WrapPanel>
 
         <!-- 미분류 경고 배너 -->
         <Border DockPanel.Dock="Top"

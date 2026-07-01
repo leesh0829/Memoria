@@ -8,13 +8,10 @@ namespace Memoria.App.Views;
 
 public partial class SettingsWindow : Window
 {
-    private readonly SettingsViewModel _settingsVm;
-
     public SettingsWindow(SettingsViewModel settingsVm, ClientsSettingsViewModel clientsVm)
     {
         InitializeComponent();
 
-        _settingsVm = settingsVm;
         DataContext = settingsVm;
         ClientsTab.DataContext = clientsVm;
 
@@ -25,11 +22,5 @@ public partial class SettingsWindow : Window
 
         // 창을 닫을 때 비-테마 설정을 일괄 저장한다.
         Closed += (_, _) => settingsVm.SaveCommand.Execute(null);
-    }
-
-    private void AccentSwatch_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { Tag: string hex })
-            _settingsVm.Accent = hex; // 즉시 적용(ThemeService)
     }
 }

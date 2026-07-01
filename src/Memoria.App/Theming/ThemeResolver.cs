@@ -6,7 +6,9 @@ namespace Memoria.App.Theming;
 
 public static class ThemeResolver
 {
-    public static readonly string[] Presets = { "default", "dark", "sepia", "solarized" };
+    // 색 계열 프리셋. 각 계열은 Light/Dark 팔레트를 가진다(모드로 선택). default=중립 회색.
+    public static readonly string[] Presets =
+        { "default", "blue", "teal", "green", "yellow", "orange", "red", "pink", "purple" };
 
     public static ThemeMode ResolveEffectiveMode(ThemeMode mode, bool systemIsLight) => mode switch
     {

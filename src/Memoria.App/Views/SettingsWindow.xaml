@@ -6,32 +6,38 @@
         Background="{DynamicResource Brush.WindowBackground}"
         Foreground="{DynamicResource Brush.Foreground}">
     <TabControl Background="{DynamicResource Brush.Surface}" Margin="8">
-        <!-- 테마 탭 -->
+        <!-- 테마 탭: 모드(라이트/다크/시스템) + 색 계열 스와치 -->
         <TabItem Header="테마">
             <StackPanel Margin="12">
-                <TextBlock Text="모드" Margin="0,0,0,4" />
+                <TextBlock Text="모드 (하양=라이트, 검정=다크)" Margin="0,0,0,4" />
                 <!-- 항목은 code-behind에서 ThemeMode 열거형 값으로 채운다 -->
                 <ComboBox x:Name="ModeComboBox"
                           SelectedValue="{Binding Mode}" SelectedValuePath="Tag"
                           Width="200" HorizontalAlignment="Left" />
-                <TextBlock Text="프리셋" Margin="0,12,0,4" />
-                <ComboBox ItemsSource="{Binding AvailablePresets}" SelectedItem="{Binding Preset}"
-                          Width="200" HorizontalAlignment="Left" />
-                <TextBlock Text="강조색 (#RRGGBB)" Margin="0,12,0,4" />
-                <StackPanel Orientation="Horizontal">
-                    <Border Width="28" Height="28"
-                            Background="{DynamicResource Brush.Accent}"
-                            BorderBrush="{DynamicResource Brush.Border}"
-                            BorderThickness="1" />
-                    <TextBox Text="{Binding Accent, UpdateSourceTrigger=PropertyChanged}"
-                             Width="120" Margin="8,0,0,0" />
-                </StackPanel>
-                <WrapPanel Margin="0,8,0,0">
-                    <Button Content="#0078D4" Tag="#0078D4" Click="AccentSwatch_Click" Width="80" Margin="0,0,4,4" />
-                    <Button Content="#D83B01" Tag="#D83B01" Click="AccentSwatch_Click" Width="80" Margin="0,0,4,4" />
-                    <Button Content="#107C10" Tag="#107C10" Click="AccentSwatch_Click" Width="80" Margin="0,0,4,4" />
-                    <Button Content="#5C2D91" Tag="#5C2D91" Click="AccentSwatch_Click" Width="80" Margin="0,0,4,4" />
-                </WrapPanel>
+
+                <TextBlock Text="색 계열" Margin="0,16,0,6" />
+                <ListBox ItemsSource="{Binding ThemeOptions}"
+                         SelectedValuePath="Key" SelectedValue="{Binding Preset}"
+                         BorderThickness="0" Background="Transparent"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="2,2,12,8">
+                                <Border Width="22" Height="22" CornerRadius="4" Margin="0,0,6,0"
+                                        Background="{Binding Swatch, Converter={StaticResource StringToBrush}}"
+                                        BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" />
+                                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <TextBlock TextWrapping="Wrap" Margin="0,14,0,0"
+                           Foreground="{DynamicResource Brush.SecondaryForeground}"
+                           Text="강조색(accent)은 선택 항목·포커스·버튼 같은 포인트 요소에 쓰이는 강조 포인트 색입니다. 위에서 색 계열을 고르면 라이트/다크에 맞춰 자동으로 설정되므로 따로 지정할 필요가 없습니다." />
             </StackPanel>
         </TabItem>
 

@@ -187,7 +187,6 @@ INSERT INTO groups(name, is_system, sort_order, created_at) VALUES
 INSERT INTO settings(key, value) VALUES
   ('theme.mode', 'system'),
   ('theme.preset', 'default'),
-  ('theme.accent', '#0078D4'),
   ('report.reporterName', '이승현'),
   ('report.formatA.taskHeader', '[업무 내용]'),
   ('report.formatA.issueHeader', '[이슈]'),

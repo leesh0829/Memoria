@@ -1,4 +1,5 @@
 // src/Memoria.App/ViewModels/SettingsViewModel.cs
+using System.Collections.Generic;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,9 +20,22 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public string[] AvailablePresets { get; } = ThemeResolver.Presets;
 
+    // 색 계열 스와치(키 / 한글 라벨 / 대표색). 클릭하면 Preset이 바뀌고 즉시 적용된다.
+    public IReadOnlyList<ThemeOption> ThemeOptions { get; } = new[]
+    {
+        new ThemeOption("default", "기본(회색)", "#0078D4"),
+        new ThemeOption("blue",    "파랑",       "#1A73E8"),
+        new ThemeOption("teal",    "청록",       "#0C8080"),
+        new ThemeOption("green",   "초록",       "#15803D"),
+        new ThemeOption("yellow",  "노랑",       "#B8860B"),
+        new ThemeOption("orange",  "주황",       "#E8590C"),
+        new ThemeOption("red",     "빨강",       "#D32F2F"),
+        new ThemeOption("pink",    "분홍",       "#C2185B"),
+        new ThemeOption("purple",  "보라",       "#6A3DB8"),
+    };
+
     [ObservableProperty] private ThemeMode _mode;
     [ObservableProperty] private string _preset = "default";
-    [ObservableProperty] private string _accent = AccentColor.Default;
 
     [ObservableProperty] private string _reporterName = "이승현";
     [ObservableProperty] private string _taskHeaderA = "[업무 내용]";
@@ -39,7 +53,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _trashRetentionDays = 30;
 
     [ObservableProperty] private bool _isHotkeyValid = true;
-    [ObservableProperty] private bool _isAccentValid = true;
 
     public bool Autostart
     {
@@ -47,7 +60,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         set => AutostartEnabled = value;
     }
 
-    public bool CanSave => IsHotkeyValid && IsAccentValid;
+    public bool CanSave => IsHotkeyValid;
 
     public SettingsViewModel(ISettingsRepository settings, IThemeService theme, IAutostartService autostart)
     {
@@ -63,7 +76,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         Mode = _theme.Mode;
         Preset = _theme.Preset;
-        Accent = _theme.Accent;
 
         ReporterName = _settings.GetOrDefault(SettingsKeys.ReporterName, "이승현");
         TaskHeaderA = _settings.GetOrDefault(SettingsKeys.FormatATaskHeader, "[업무 내용]");
@@ -89,14 +101,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     // XAML은 래퍼 프로퍼티 Autostart에 바인딩하므로, backing 변경 시 INPC를 포워딩한다.
     partial void OnAutostartEnabledChanged(bool value) => OnPropertyChanged(nameof(Autostart));
 
-    partial void OnAccentChanged(string value)
-    {
-        IsAccentValid = AccentColor.IsValid(value);
-        OnPropertyChanged(nameof(CanSave));
-        if (IsAccentValid)
-            ApplyTheme();
-    }
-
     partial void OnHotkeyNewNoteChanged(string value)
     {
         IsHotkeyValid = HotkeyParser.TryParse(value, out _);
@@ -105,9 +109,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private void ApplyTheme()
     {
-        if (_loading || !IsAccentValid)
+        if (_loading)
             return;
-        _theme.Apply(Mode, Preset, Accent);
+        _theme.Apply(Mode, Preset);
     }
 
     [RelayCommand]
@@ -137,3 +141,6 @@ public sealed partial class SettingsViewModel : ObservableObject
             _autostart.Disable();
     }
 }
+
+/// 설정 창의 색 계열 스와치 한 개(키/한글 라벨/대표색).
+public sealed record ThemeOption(string Key, string Label, string Swatch);

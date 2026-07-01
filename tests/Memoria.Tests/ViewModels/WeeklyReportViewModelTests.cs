@@ -141,8 +141,9 @@ public class WeeklyReportViewModelTests
     }
 
     [Fact]
-    public void Generate_reuses_existing_report_body_without_rebuilding()
+    public void Generate_refreshes_existing_report_from_current_checklist()
     {
+        // #4 기존 보고서가 있어도 항상 현재 체크리스트에서 새로 렌더해 기존 노트를 갱신한다(다시 생성 불필요).
         var (vm, svc, notes, _, _, _, _, _) =
             CreateSut(new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero));
         notes.Notes.Add(new Note
@@ -151,14 +152,15 @@ public class WeeklyReportViewModelTests
             Type = NoteType.WeeklyReport,
             ReportFormat = ReportFormatKind.A,
             ReportWeekStart = new DateOnly(2026, 6, 22),
-            Body = "사용자가 손으로 편집한 보고서",
+            Body = "오래된 본문",
         });
+        svc.RenderResult = "최신 본문";
 
         vm.GenerateCommand.Execute(null);
 
-        vm.ReportText.Should().Be("사용자가 손으로 편집한 보고서");
-        notes.Created.Should().BeEmpty();
-        notes.Updated.Should().BeEmpty();
+        vm.ReportText.Should().Be("최신 본문");
+        notes.Created.Should().BeEmpty();        // 새로 만들지 않고
+        notes.Updated.Should().ContainSingle();  // 기존 노트를 갱신
     }
 
     [Fact]
@@ -255,9 +257,10 @@ public class WeeklyReportViewModelTests
     }
 
     [Fact]
-    public void Changing_format_loads_existing_report_for_that_format()
+    public void Changing_format_refreshes_from_current_checklist()
     {
-        var (vm, _, notes, _, _, _, _, _) =
+        // #4 양식 전환 시에도 기존 본문 재사용이 아니라 현재 체크리스트에서 새로 렌더한다.
+        var (vm, svc, notes, _, _, _, _, _) =
             CreateSut(new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero));
         notes.Notes.Add(new Note
         {
@@ -267,22 +270,25 @@ public class WeeklyReportViewModelTests
             ReportWeekStart = new DateOnly(2026, 6, 22),
             Body = "B 양식 기존 본문",
         });
+        svc.RenderResult = "B 최신 본문";
 
         vm.SelectedFormat = ReportFormatKind.B;
 
-        vm.ReportText.Should().Be("B 양식 기존 본문");
+        vm.ReportText.Should().Be("B 최신 본문");
     }
 
     [Fact]
-    public void Changing_format_clears_text_when_no_existing_report()
+    public void Changing_format_renders_fresh_when_no_existing_report()
     {
+        // #5 회귀: 저장된 보고서가 없는 양식으로 전환하면 빈 화면이 아니라 새로 렌더해야 한다.
         var (vm, svc, _, _, _, _, _, _) = CreateSut();
         svc.RenderResult = "A 본문";
         vm.GenerateCommand.Execute(null);
         vm.ReportText.Should().Be("A 본문");
 
+        svc.RenderResult = "B 새 본문";
         vm.SelectedFormat = ReportFormatKind.B;
 
-        vm.ReportText.Should().BeEmpty();
+        vm.ReportText.Should().Be("B 새 본문");
     }
 }

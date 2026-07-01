@@ -1,4 +1,5 @@
 // tests/Memoria.Tests/ViewModels/SettingsViewModelTests.cs
+using System.Linq;
 using FluentAssertions;
 using Memoria.App.Theming;
 using Memoria.App.ViewModels;
@@ -40,7 +41,6 @@ public class SettingsViewModelTests
 
         vm.Mode.Should().Be(ThemeMode.System);
         vm.Preset.Should().Be("default");
-        vm.Accent.Should().Be("#0078D4");
         vm.ReporterName.Should().Be("이승현");
         vm.TaskHeaderA.Should().Be("[업무 내용]");
         vm.IssueHeaderA.Should().Be("[이슈]");
@@ -84,27 +84,14 @@ public class SettingsViewModelTests
     }
 
     [Fact]
-    public void Changing_valid_accent_applies_immediately()
+    public void Changing_preset_applies_theme_immediately()
     {
         var (vm, settings, _, applier) = Create();
 
-        vm.Accent = "#FF0000";
+        vm.Preset = "green";
 
-        applier.LastAccent.Should().Be("#FF0000");
-        settings.Get(SettingsKeys.ThemeAccent).Should().Be("#FF0000");
-    }
-
-    [Fact]
-    public void Invalid_accent_is_not_applied_and_blocks_save()
-    {
-        var (vm, settings, _, applier) = Create();
-        applier.LastAccent = null;
-
-        vm.Accent = "nope";
-
-        vm.IsAccentValid.Should().BeFalse();
-        vm.CanSave.Should().BeFalse();
-        applier.LastAccent.Should().BeNull(); // 무효색 미적용
+        applier.LastPalette!.OriginalString.Should().Be("Themes/Green.Light.xaml");
+        settings.Get(SettingsKeys.ThemePreset).Should().Be("green");
     }
 
     [Fact]
@@ -177,6 +164,14 @@ public class SettingsViewModelTests
     public void AvailablePresets_matches_resolver()
     {
         var (vm, _, _, _) = Create();
-        vm.AvailablePresets.Should().BeEquivalentTo(new[] { "default", "dark", "sepia", "solarized" });
+        vm.AvailablePresets.Should().BeEquivalentTo(
+            new[] { "default", "blue", "teal", "green", "yellow", "orange", "red", "pink", "purple" });
+    }
+
+    [Fact]
+    public void ThemeOptions_cover_all_presets()
+    {
+        var (vm, _, _, _) = Create();
+        vm.ThemeOptions.Select(o => o.Key).Should().BeEquivalentTo(vm.AvailablePresets);
     }
 }

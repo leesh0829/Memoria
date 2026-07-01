@@ -67,12 +67,15 @@ public partial class ChecklistView : UserControl
 
     private void OnClientSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (sender is ComboBox { DataContext: ChecklistItemViewModel item }
-            && DataContext is ChecklistViewModel vm
-            && vm.CommitClientCommand.CanExecute(item))
-        {
+        if (sender is not ComboBox { DataContext: ChecklistItemViewModel item } cb) return;
+
+        // 로드 시 바인딩 실현이나 자동태깅(FlushSaves의 ClientId 재대입)으로도 SelectionChanged가 발생한다.
+        // 그것까지 '수동 교정(IsManual=true)'으로 처리하면 자동 재분류가 영구 동결된다.
+        // 사용자가 직접 드롭다운에서 고른 경우(열려 있거나 키보드 포커스가 있을 때)만 커밋한다.
+        if (!cb.IsDropDownOpen && !cb.IsKeyboardFocusWithin) return;
+
+        if (DataContext is ChecklistViewModel vm && vm.CommitClientCommand.CanExecute(item))
             vm.CommitClientCommand.Execute(item);
-        }
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)

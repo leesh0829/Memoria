@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Memoria.App.Services;
@@ -22,10 +23,12 @@ public partial class MainViewModel : ObservableObject
     private readonly Func<ChecklistViewModel> _checklistEditorFactory;
     private readonly Func<WeeklyReportViewModel> _weeklyReportEditorFactory;
 
-    private Note? _current;
+    private Note? _current;                 // plain 에디터의 현재 노트(헤더/본문 로직용)
+    private int? _currentEditorNoteId;      // #6 우측에 호스팅 중인 노트 id(plain/checklist/weekly 공통)
     private bool _suppressDirty;
 
-    public ObservableCollection<SidebarNodeViewModel> SidebarNodes { get; } = new();
+    public ObservableCollection<SidebarNodeViewModel> SidebarNodes { get; } = new();   // 사용자 그룹 + (미분류)
+    public ObservableCollection<SidebarNodeViewModel> SystemNodes { get; } = new();    // #5 시스템 그룹(하단 고정)
     public ObservableCollection<NoteListItemViewModel> Notes { get; } = new();
     public ObservableCollection<SearchHit> SearchResults { get; } = new();
 
@@ -49,6 +52,17 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string headerText = "";
     [ObservableProperty] private bool isEditorVisible;
 
+    // #3 자동저장 상태 표시("저장 중…" → "저장됨 HH:mm:ss"). 저장 없이 자동 영속됨을 사용자에게 보장.
+    [ObservableProperty] private string saveStatus = "";
+
+    // #4 삭제(휴지통)/실행취소 — MainViewModel이 직접 소유(열린 노트 삭제 시 에디터까지 정리).
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UndoDeleteCommand))]
+    private bool isUndoAvailable;
+
+    [ObservableProperty] private string undoMessage = "";
+    private int _lastDeletedNoteId;
+
     public MainViewModel(
         IGroupRepository groupRepo,
         INoteRepository noteRepo,
@@ -71,19 +85,34 @@ public partial class MainViewModel : ObservableObject
 
     public void LoadGroups()
     {
+        // 재구성하면 노드가 새 인스턴스로 바뀌므로, 같은 그룹을 다시 선택해 하이라이트를 유지한다.
+        var prevGroupId = SelectedNode?.GroupId;
+        var prevKind = SelectedNode?.Kind;
+
         SidebarNodes.Clear();
+        SystemNodes.Clear();
         var groups = _groupRepo.GetAll();
 
+        // 위 목록: 사용자 그룹 + (미분류)
         foreach (var g in groups.Where(g => !g.IsSystem))
             SidebarNodes.Add(new SidebarNodeViewModel(g.Name, g.Id, SidebarNodeKind.Group));
-
         SidebarNodes.Add(new SidebarNodeViewModel("(미분류)", null, SidebarNodeKind.Unclassified));
 
+        // 아래 고정 목록: 시스템 그룹(일일업무일지·주간보고) — #5 분리
         foreach (var g in groups.Where(g => g.IsSystem))
-            SidebarNodes.Add(new SidebarNodeViewModel(g.Name, g.Id, SidebarNodeKind.System));
+            SystemNodes.Add(new SidebarNodeViewModel(g.Name, g.Id, SidebarNodeKind.System));
+
+        if (prevKind is SidebarNodeKind k)
+            // 새 인스턴스로 재할당 → PropertyChanged → 코드비하인드 SyncSidebarSelection이 하이라이트 복원.
+            SelectedNode = SidebarNodes.Concat(SystemNodes)
+                .FirstOrDefault(n => n.Kind == k && n.GroupId == prevGroupId);
     }
 
-    partial void OnSelectedNodeChanged(SidebarNodeViewModel? value) => LoadNotes();
+    partial void OnSelectedNodeChanged(SidebarNodeViewModel? value)
+    {
+        IsUndoAvailable = false;   // 그룹 이동 등 다른 동작 시 휴지통 Undo 토스트 자동 해제
+        LoadNotes();
+    }
 
     partial void OnSelectedNoteChanged(NoteListItemViewModel? value)
     {
@@ -91,6 +120,7 @@ public partial class MainViewModel : ObservableObject
         {
             CurrentEditor = null;
             IsEditorVisible = false;
+            _currentEditorNoteId = null;
             return;
         }
 
@@ -104,6 +134,7 @@ public partial class MainViewModel : ObservableObject
     // NoteType → 에디터 VM 매핑(계약 §11: plain/checklist/weekly_report → 각 View 호스팅).
     private object? BuildEditorFor(Note note)
     {
+        _currentEditorNoteId = note.Id;
         switch (note.Type)
         {
             case NoteType.Plain:
@@ -140,23 +171,26 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void NewPlainNote()
     {
+        IsUndoAvailable = false;
         var now = _time.GetUtcNow();
         var note = new Note
         {
             Type = NoteType.Plain,
-            GroupId = SelectedNode?.GroupId,
+            // #5 일반 메모는 시스템 그룹(일일업무일지·주간보고)에 들어갈 수 없다 → 사용자 그룹일 때만 배치, 아니면 (미분류).
+            GroupId = SelectedNode is { Kind: SidebarNodeKind.Group } ? SelectedNode.GroupId : null,
             Title = null,
             Body = "",
             CreatedAt = now,
             UpdatedAt = now,
         };
-        _noteRepo.Create(note);
-        LoadNotes();
+        var id = _noteRepo.Create(note);
+        NavigateToNote(id, note.GroupId);   // #3 새 메모를 즉시 선택 → 우측 편집창 표시
     }
 
     [RelayCommand]
     private void NewChecklist()
     {
+        IsUndoAvailable = false;
         var group = _groupRepo.GetAll()
             .FirstOrDefault(g => g.IsSystem && g.Name == ChecklistViewModel.DailyLogGroupName);
 
@@ -177,6 +211,7 @@ public partial class MainViewModel : ObservableObject
     public void NavigateToNote(int noteId, int? groupId)
     {
         var node = SidebarNodes.FirstOrDefault(n => n.GroupId == groupId)
+                   ?? SystemNodes.FirstOrDefault(n => n.GroupId == groupId)   // 체크리스트/주간보고는 시스템 그룹 소속
                    ?? SidebarNodes.FirstOrDefault(n => n.Kind == SidebarNodeKind.Unclassified);
         if (node is not null) SelectedNode = node;
 
@@ -184,13 +219,72 @@ public partial class MainViewModel : ObservableObject
         SelectedNote = Notes.FirstOrDefault(n => n.Id == noteId);
     }
 
+    // #4 메모 삭제 → 휴지통. 열려 있는(선택 중) 노트면 자동저장 정리 + 우측 에디터를 빈 화면으로.
+    [RelayCommand]
+    private void DeleteNote(NoteListItemViewModel? item)
+    {
+        if (item is null) return;
+
+        // 우측에 열려 있는 노트(선택 경로 또는 툴바 주간보고 경로 포함)를 삭제하면 에디터를 비운다(#4·#6).
+        if (_currentEditorNoteId == item.Id || _current?.Id == item.Id || SelectedNote?.Id == item.Id)
+        {
+            // 체크리스트는 지연된 Unloaded flush가 SoftDelete 뒤에 발화하면 deleted_at을 덮어써 부활시킨다.
+            // 삭제 전에 미리 flush하여 dirty를 비우면 그 지연 flush가 no-op이 되어 부활을 막는다(좀비 방지).
+            (CurrentEditor as ChecklistViewModel)?.FlushSaves();
+            _autosave.FlushAll();          // plain 에디터 보류 저장 확정(데이터 보존)
+            _autosave.Unregister(item.Id); // 이후 좀비 저장 방지
+            _current = null;
+            _currentEditorNoteId = null;
+            SelectedNote = null;           // OnSelectedNoteChanged(null) → 에디터 비움
+            CurrentEditor = null;
+            IsEditorVisible = false;
+            SaveStatus = "";
+        }
+
+        _noteRepo.SoftDelete(item.Id);     // deleted_at 설정(휴지통 이동)
+        _lastDeletedNoteId = item.Id;
+        Notes.Remove(item);                // 즉시 목록에서 제거(선택/연속 무관 확실)
+
+        IsUndoAvailable = true;
+        UndoMessage = "메모를 휴지통으로 옮겼습니다.";
+    }
+
+    private bool CanUndoDelete() => IsUndoAvailable;
+
+    [RelayCommand(CanExecute = nameof(CanUndoDelete))]
+    private void UndoDelete()
+    {
+        if (!IsUndoAvailable) return;
+        _noteRepo.Restore(_lastDeletedNoteId);
+        IsUndoAvailable = false;
+        UndoMessage = "";
+
+        // 복원된 메모가 보이도록 해당 그룹으로 이동(삭제와 실행취소 사이 그룹을 바꿔도 결과가 보인다).
+        var restored = _noteRepo.Get(_lastDeletedNoteId);
+        if (restored is not null) NavigateToNote(restored.Id, restored.GroupId);
+        else LoadNotes();
+    }
+
     [RelayCommand]
     private void OpenWeeklyReport()
     {
+        IsUndoAvailable = false;
         var weekly = _weeklyReportEditorFactory();   // 기본 = 오늘이 포함된 주(M4 생성자)
         weekly.GenerateCommand.Execute(null);        // 멱등 로드/생성(필요 시 새 주간보고 노트 생성)
+
+        // 1) 사이드바(주간보고 시스템 그룹)·목록을 먼저 동기화한다.
+        //    (SelectedNode 변경 → LoadNotes → SelectedNote=null → CurrentEditor=null 이 될 수 있으므로 에디터는 그 뒤에 설정)
+        if (weekly.CurrentNoteId is int id)
+        {
+            var note = _noteRepo.Get(id);
+            var node = SystemNodes.FirstOrDefault(n => n.GroupId == note?.GroupId);
+            if (node is not null) SelectedNode = node;
+        }
+
+        // 2) 주간보고 에디터를 호스팅(최종 상태).
         CurrentNoteType = NoteType.WeeklyReport;
         CurrentEditor = weekly;
+        _currentEditorNoteId = weekly.CurrentNoteId;
     }
 
     [RelayCommand]
@@ -228,6 +322,7 @@ public partial class MainViewModel : ObservableObject
         EditorBody = note.Body ?? "";
         _suppressDirty = false;
 
+        SaveStatus = "";   // 노트 전환 시 저장 표시 초기화
         HeaderText = EditorHeaderFormatter.Format(note.CreatedAt.ToLocalTime(), note.UpdatedAt.ToLocalTime());
         IsEditorVisible = true;
         _autosave.Register(noteId, snapshot => SaveCurrent(noteId, snapshot));
@@ -239,11 +334,45 @@ public partial class MainViewModel : ObservableObject
     private void OnContentChanged()
     {
         if (_suppressDirty || _current is null) return;
+
+        // #2 목록의 제목을 즉시 갱신(탭 전환 없이 바로 반영).
+        UpdateListItemTitle(_current.Id, ResolveLiveTitle());
+        // #3 저장 대기 표시.
+        SaveStatus = "저장 중…";
+
         // 변경 시점에 (title, body) 스냅샷을 캡처해 복구 저널과 자동저장에 동일하게 전달한다.
         // 자동저장 콜백이 뒤늦게(다른 노트로 전환된 뒤) 발화해도 라이브 에디터 상태를
         // 다시 읽지 않으므로 노트 간 내용 오염 레이스가 발생하지 않는다.
         _recovery.Append(new RecoverySnapshot(_current.Id, EditorTitle, EditorBody, _time.GetUtcNow()));
         _autosave.NotifyChanged(_current.Id, new AutosaveSnapshot(EditorTitle, EditorBody));
+    }
+
+    // 편집 중 라이브 제목(§5.1과 동일 규칙: title 우선, 없으면 본문 첫 비어있지 않은 줄).
+    private string ResolveLiveTitle()
+    {
+        if (!string.IsNullOrWhiteSpace(EditorTitle)) return EditorTitle.Trim();
+        if (!string.IsNullOrEmpty(EditorBody))
+            foreach (var line in EditorBody.Split('\n'))
+            {
+                var trimmed = line.Trim();
+                if (trimmed.Length > 0) return trimmed;
+            }
+        return "(제목 없음)";
+    }
+
+    private void UpdateListItemTitle(int noteId, string title)
+    {
+        var item = Notes.FirstOrDefault(n => n.Id == noteId);
+        if (item is not null) item.DisplayTitle = title;
+    }
+
+    // UI 스레드 보장 헬퍼(자동저장 콜백은 백그라운드 스레드에서 호출됨).
+    // Application.Current가 없으면(단위 테스트) 인라인 실행한다.
+    private static void PostToUi(Action action)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess()) action();
+        else dispatcher.Invoke(action);
     }
 
     // 자동저장 콜백(백그라운드 스레드). 변경 시점 스냅샷만 사용하고 라이브 에디터 상태나
@@ -258,6 +387,10 @@ public partial class MainViewModel : ObservableObject
         note.UpdatedAt = _time.GetUtcNow();         // §7.7 콘텐츠 변경 시에만 갱신
         _noteRepo.Update(note);
         _recovery.Clear(noteId);
+
+        // #3 저장 완료 표시(콜백은 백그라운드 스레드 → UI 스레드로 마샬링).
+        var stamp = _time.GetLocalNow().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+        PostToUi(() => SaveStatus = $"저장됨 {stamp}");
     }
 
     // 시작 시 감지된 미저장 스냅샷을 DB에 반영(§8.1).

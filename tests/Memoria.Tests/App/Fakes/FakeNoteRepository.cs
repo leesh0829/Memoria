@@ -20,8 +20,17 @@ internal sealed class FakeNoteRepository : INoteRepository
         UpdatedIds.Add(note.Id);
     }
 
-    public void SoftDelete(int id) { }
-    public void Restore(int id) { }
+    public void SoftDelete(int id)
+    {
+        var n = Items.FirstOrDefault(x => x.Id == id);
+        if (n != null) n.DeletedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Restore(int id)
+    {
+        var n = Items.FirstOrDefault(x => x.Id == id);
+        if (n != null) n.DeletedAt = null;
+    }
     public void Purge(int id) { }
     public void PurgeExpiredTrash(int retentionDays) { }
     public Note? Get(int id) => Items.FirstOrDefault(n => n.Id == id);

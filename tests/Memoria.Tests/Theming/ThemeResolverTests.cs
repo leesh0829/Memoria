@@ -24,12 +24,13 @@ public class ThemeResolverTests
 
     [Theory]
     [InlineData("default", "default")]
-    [InlineData("DARK", "dark")]
-    [InlineData(" Sepia ", "sepia")]
-    [InlineData("solarized", "solarized")]
+    [InlineData("BLUE", "blue")]
+    [InlineData(" Green ", "green")]
+    [InlineData("purple", "purple")]
     [InlineData(null, "default")]
     [InlineData("", "default")]
-    [InlineData("neon", "default")] // 알 수 없는 프리셋 → default 폴백
+    [InlineData("neon", "default")]    // 알 수 없는 프리셋 → default 폴백
+    [InlineData("sepia", "default")]   // 더 이상 지원하지 않는 프리셋 → default 폴백
     public void NormalizePreset_lowercases_trims_and_falls_back(string? input, string expected)
     {
         ThemeResolver.NormalizePreset(input).Should().Be(expected);
@@ -38,8 +39,9 @@ public class ThemeResolverTests
     [Theory]
     [InlineData(ThemeMode.Light, "default", true, "Themes/Default.Light.xaml")]
     [InlineData(ThemeMode.Dark, "default", true, "Themes/Default.Dark.xaml")]
-    [InlineData(ThemeMode.System, "sepia", false, "Themes/Sepia.Dark.xaml")]
-    [InlineData(ThemeMode.System, "solarized", true, "Themes/Solarized.Light.xaml")]
+    [InlineData(ThemeMode.System, "blue", false, "Themes/Blue.Dark.xaml")]
+    [InlineData(ThemeMode.System, "green", true, "Themes/Green.Light.xaml")]
+    [InlineData(ThemeMode.Light, "purple", true, "Themes/Purple.Light.xaml")]
     [InlineData(ThemeMode.Dark, "neon", true, "Themes/Default.Dark.xaml")] // 미지의 프리셋 폴백
     public void ResolvePaletteUri_combines_effective_mode_and_preset(
         ThemeMode mode, string preset, bool systemIsLight, string expected)
@@ -50,9 +52,9 @@ public class ThemeResolverTests
     }
 
     [Fact]
-    public void Presets_list_is_the_four_supported_palettes()
+    public void Presets_list_is_the_supported_color_families()
     {
         ThemeResolver.Presets.Should().BeEquivalentTo(
-            new[] { "default", "dark", "sepia", "solarized" });
+            new[] { "default", "blue", "teal", "green", "yellow", "orange", "red", "pink", "purple" });
     }
 }

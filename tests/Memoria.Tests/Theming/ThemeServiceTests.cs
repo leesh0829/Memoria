@@ -21,7 +21,7 @@ public class ThemeServiceTests
     }
 
     [Fact]
-    public void Initialize_uses_defaults_and_applies_palette_and_accent()
+    public void Initialize_uses_defaults_and_applies_palette()
     {
         var (svc, applier, _, _) = Create(systemLight: true);
 
@@ -29,9 +29,7 @@ public class ThemeServiceTests
 
         svc.Mode.Should().Be(ThemeMode.System);
         svc.Preset.Should().Be("default");
-        svc.Accent.Should().Be("#0078D4");
         applier.LastPalette!.OriginalString.Should().Be("Themes/Default.Light.xaml");
-        applier.LastAccent.Should().Be("#0078D4");
     }
 
     [Fact]
@@ -39,14 +37,13 @@ public class ThemeServiceTests
     {
         var (svc, applier, _, settings) = Create(systemLight: true);
         settings.Set(SettingsKeys.ThemeMode, "dark");
-        settings.Set(SettingsKeys.ThemePreset, "sepia");
-        settings.Set(SettingsKeys.ThemeAccent, "ff8800");
+        settings.Set(SettingsKeys.ThemePreset, "blue");
 
         svc.Initialize();
 
         svc.Mode.Should().Be(ThemeMode.Dark);
-        applier.LastPalette!.OriginalString.Should().Be("Themes/Sepia.Dark.xaml");
-        applier.LastAccent.Should().Be("#FF8800");
+        svc.Preset.Should().Be("blue");
+        applier.LastPalette!.OriginalString.Should().Be("Themes/Blue.Dark.xaml");
     }
 
     [Fact]
@@ -54,11 +51,10 @@ public class ThemeServiceTests
     {
         var (svc, _, _, settings) = Create();
 
-        svc.Apply(ThemeMode.Light, "Solarized", "00aaff");
+        svc.Apply(ThemeMode.Light, "Green");
 
         settings.Get(SettingsKeys.ThemeMode).Should().Be("light");
-        settings.Get(SettingsKeys.ThemePreset).Should().Be("solarized");
-        settings.Get(SettingsKeys.ThemeAccent).Should().Be("#00AAFF");
+        settings.Get(SettingsKeys.ThemePreset).Should().Be("green");
     }
 
     [Fact]
@@ -66,7 +62,7 @@ public class ThemeServiceTests
     {
         var (svc, applier, _, _) = Create(systemLight: true);
 
-        svc.Apply(ThemeMode.Dark, "default", "#0078D4");
+        svc.Apply(ThemeMode.Dark, "default");
 
         applier.LastPalette!.OriginalString.Should().Be("Themes/Default.Dark.xaml");
     }
@@ -75,7 +71,7 @@ public class ThemeServiceTests
     public void System_change_reapplies_only_when_mode_is_system()
     {
         var (svc, applier, sys, _) = Create(systemLight: true);
-        svc.Apply(ThemeMode.System, "default", "#0078D4");
+        svc.Apply(ThemeMode.System, "default");
         applier.LastPalette!.OriginalString.Should().Be("Themes/Default.Light.xaml");
 
         sys.Light = false;
@@ -88,7 +84,7 @@ public class ThemeServiceTests
     public void System_change_is_ignored_for_fixed_mode()
     {
         var (svc, applier, sys, _) = Create(systemLight: true);
-        svc.Apply(ThemeMode.Light, "default", "#0078D4");
+        svc.Apply(ThemeMode.Light, "default");
         var countAfterApply = applier.PaletteApplyCount;
 
         sys.Light = false;
@@ -105,7 +101,7 @@ public class ThemeServiceTests
         var raised = false;
         svc.ThemeChanged += (_, _) => raised = true;
 
-        svc.Apply(ThemeMode.Dark, "default", "#0078D4");
+        svc.Apply(ThemeMode.Dark, "default");
 
         raised.Should().BeTrue();
     }

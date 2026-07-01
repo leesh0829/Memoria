@@ -27,6 +27,12 @@ public partial class MainWindow : Window
     /// M6: ExitApplication에서 true로 설정하면 closeToTray 여부와 무관하게 실제 종료 허용.
     public bool AllowClose { get; set; }
 
+    // #5 사이드바가 두 ListBox(사용자/시스템)로 나뉘어, 단일 SelectedNode를 양쪽과 동기화한다.
+    private bool _syncingSelection;
+
+    // #1 드래그 임계값 판정용 좌클릭 시작점.
+    private System.Windows.Point _dragStartPoint;
+
     public MainWindow(ISettingsRepository settings)
     {
         _settings = settings;
@@ -35,12 +41,57 @@ public partial class MainWindow : Window
         TrashVm = AppServices.Resolve<TrashViewModel>();
         GroupVm.Load();
 
-        // M5: 삭제/복원 후 메모 목록 자동 갱신 (IsUndoAvailable 변경 감지).
-        TrashVm.PropertyChanged += (_, e) =>
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    // -----------------------------------------------------------------
+    // #5 사이드바 선택 동기화 (사용자 목록 ↔ 시스템 목록, 단일 SelectedNode)
+    // -----------------------------------------------------------------
+
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is MainViewModel oldVm) oldVm.PropertyChanged -= OnViewModelPropertyChanged;
+        if (e.NewValue is MainViewModel newVm) newVm.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.SelectedNode))
+            SyncSidebarSelection();
+    }
+
+    // 프로그램적 SelectedNode 변경(예: 체크리스트/주간보고 생성)을 올바른 ListBox에 반영.
+    private void SyncSidebarSelection()
+    {
+        _syncingSelection = true;
+        var n = ViewModel.SelectedNode;
+        GroupListBox.SelectedItem  = (n is not null && GroupListBox.Items.Contains(n))  ? n : null;
+        SystemListBox.SelectedItem = (n is not null && SystemListBox.Items.Contains(n)) ? n : null;
+        _syncingSelection = false;
+    }
+
+    private void GroupListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingSelection) return;
+        if (GroupListBox.SelectedItem is SidebarNodeViewModel node)
         {
-            if (e.PropertyName == nameof(TrashViewModel.IsUndoAvailable))
-                Dispatcher.Invoke(() => ViewModel.LoadNotes());
-        };
+            _syncingSelection = true;
+            SystemListBox.SelectedItem = null;   // 시각적 배타 선택
+            _syncingSelection = false;
+            ViewModel.SelectedNode = node;
+        }
+    }
+
+    private void SystemListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingSelection) return;
+        if (SystemListBox.SelectedItem is SidebarNodeViewModel node)
+        {
+            _syncingSelection = true;
+            GroupListBox.SelectedItem = null;
+            _syncingSelection = false;
+            ViewModel.SelectedNode = node;
+        }
     }
 
     // -----------------------------------------------------------------
@@ -109,6 +160,22 @@ public partial class MainWindow : Window
         ViewModel.LoadGroups();
     }
 
+    // #1 툴바 "+ 그룹" — 보이는 그룹 생성 버튼.
+    private void OnNewGroupClick(object sender, RoutedEventArgs e)
+    {
+        var name = AskInput("새 그룹 이름", "새 그룹");
+        if (string.IsNullOrWhiteSpace(name)) return;
+        GroupVm.AddGroup(name.Trim());
+        ViewModel.LoadGroups();
+    }
+
+    // #2 메모 삭제 → 휴지통. 코드비하인드에서 sender의 DataContext(노트)를 직접 읽어 VM 명령 실행.
+    private void OnDeleteNoteClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: NoteListItemViewModel note })
+            ViewModel.DeleteNoteCommand.Execute(note);
+    }
+
     private void OnRenameGroupMenuItemClick(object sender, RoutedEventArgs e)
     {
         if (GroupVm.SelectedGroup is null) return;
@@ -150,6 +217,8 @@ public partial class MainWindow : Window
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this
         };
+        trashWindow.SetResourceReference(BackgroundProperty, "Brush.WindowBackground");
+        trashWindow.SetResourceReference(ForegroundProperty, "Brush.Foreground");
         trashWindow.Content = new TrashView { DataContext = TrashVm };
         trashWindow.ShowDialog();
         ViewModel.LoadNotes(); // 복원/영구삭제 후 메모 목록 갱신
@@ -165,6 +234,7 @@ public partial class MainWindow : Window
     private void GroupList_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed) return;
+        if (!ExceededDragThreshold(e)) return;          // 클릭(선택) 보호: 임계값 이상 이동 시에만 드래그
         if (sender is not ListBox lb) return;
         if (lb.SelectedItem is not SidebarNodeViewModel node) return;
         if (node.Kind != SidebarNodeKind.Group) return; // (미분류)·시스템 그룹은 드래그 불가
@@ -199,17 +269,48 @@ public partial class MainWindow : Window
         if (!e.Data.GetDataPresent("noteId")) return;
         var noteId = (int)e.Data.GetData("noteId");
         if (((FrameworkElement)sender).DataContext is SidebarNodeViewModel node)
+        {
             GroupVm.MoveNoteToGroup(noteId, node.GroupId);
+            ViewModel.LoadNotes();   // #10 이동 즉시 반영(다른 그룹으로 옮기면 현재 목록에서 사라짐)
+        }
     }
 
     /// 메모 드래그 시작 (PreviewMouseMove에서 DoDragDrop 호출).
     private void NoteList_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed) return;
+        // #1 핵심: 🗑 등 버튼 위에서 시작한 제스처는 드래그가 아니라 '클릭'이므로 드래그를 시작하지 않는다.
+        //         (이게 없으면 버튼 클릭 시 미세 이동이 드래그로 잡혀 삭제 클릭이 소실된다.)
+        if (IsOverButton(e.OriginalSource)) return;
+        if (!ExceededDragThreshold(e)) return;   // 임계값 이상 움직였을 때만 드래그(클릭 보호)
         if (sender is not ListBox lb) return;
         if (lb.SelectedItem is not NoteListItemViewModel note) return;
 
         DragDrop.DoDragDrop(lb, new DataObject("noteId", note.Id), DragDropEffects.Move);
+    }
+
+    // 드래그 임계값 판정을 위해 좌클릭 시작점을 기록(두 리스트 공용).
+    private void List_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        => _dragStartPoint = e.GetPosition(null);
+
+    private bool ExceededDragThreshold(MouseEventArgs e)
+    {
+        var p = e.GetPosition(null);
+        return System.Math.Abs(p.X - _dragStartPoint.X) >= SystemParameters.MinimumHorizontalDragDistance
+            || System.Math.Abs(p.Y - _dragStartPoint.Y) >= SystemParameters.MinimumVerticalDragDistance;
+    }
+
+    private static bool IsOverButton(object? source)
+        => source is DependencyObject d && FindVisualAncestor<System.Windows.Controls.Primitives.ButtonBase>(d) is not null;
+
+    private static T? FindVisualAncestor<T>(DependencyObject? d) where T : DependencyObject
+    {
+        while (d is not null)
+        {
+            if (d is T t) return t;
+            d = System.Windows.Media.VisualTreeHelper.GetParent(d);
+        }
+        return null;
     }
 
     // -----------------------------------------------------------------
@@ -264,6 +365,9 @@ public partial class MainWindow : Window
             Owner = this,
             ShowInTaskbar = false
         };
+        // #2 다크 테마에서 흰 배경 + 흰 글씨가 되지 않도록 창 배경/글자색을 테마색으로(동적).
+        w.SetResourceReference(BackgroundProperty, "Brush.WindowBackground");
+        w.SetResourceReference(ForegroundProperty, "Brush.Foreground");
         var tb = new TextBox { Text = initial, Margin = new Thickness(8, 8, 8, 4) };
         var btnPanel = new StackPanel
         {

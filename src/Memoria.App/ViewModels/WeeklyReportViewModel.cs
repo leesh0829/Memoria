@@ -26,6 +26,9 @@ public partial class WeeklyReportViewModel : ObservableObject
 
     private int? _currentNoteId;
 
+    /// 현재 표시 중인 주간보고 노트 id(생성/로드 후). 사이드바·목록 동기화에 사용.
+    public int? CurrentNoteId => _currentNoteId;
+
     [ObservableProperty]
     private DateOnly _selectedDate;
 
@@ -118,19 +121,11 @@ public partial class WeeklyReportViewModel : ObservableObject
     [RelayCommand]
     private void Generate()
     {
+        // #4 항상 현재 체크리스트(일일 업무일지)에서 새로 렌더 → 체크리스트 수정이 열 때마다 즉시 반영된다.
+        //    (이전엔 저장된 옛 본문을 재사용해 '다시 생성'을 눌러야만 최신화됐다.)
         var monday = WeekStart;   // RecomputeWeek가 SelectedDate에 맞춰 이미 채움
         var friday = WeekEnd;
         var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
-        if (existing is not null && !string.IsNullOrEmpty(existing.Body))
-        {
-            // 멱등 재사용: 사용자가 편집한 기존 본문을 그대로 표시.
-            _currentNoteId = existing.Id;
-            ReportText = existing.Body;
-            var options = BuildOptions(monday, friday);
-            UnclassifiedTaskCount = _reportService.Build(SelectedDate, options).UnclassifiedTaskCount;
-            return;
-        }
-
         var text = RenderFresh(monday, friday);
         ReportText = text;
         Persist(monday, existing, text);
@@ -182,16 +177,9 @@ public partial class WeeklyReportViewModel : ObservableObject
         return group?.Id;
     }
 
-    partial void OnSelectedFormatChanged(ReportFormatKind value) => LoadExisting();
-
-    private void LoadExisting()
-    {
-        var monday = WeekStart;   // RecomputeWeek가 SelectedDate에 맞춰 이미 채움
-        var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
-        _currentNoteId = existing?.Id;
-        ReportText = existing?.Body ?? "";
-        UnclassifiedTaskCount = 0;
-    }
+    // #5 양식 전환 시: 해당 양식으로 저장된 보고서가 있으면 재사용, 없으면 즉시 새로 렌더한다.
+    //    (이전엔 LoadExisting이 없는 경우 ReportText를 비워 화면이 빈 채로 남는 버그가 있었다.)
+    partial void OnSelectedFormatChanged(ReportFormatKind value) => Generate();
 
     [RelayCommand]
     private void Copy() => _clipboard.SetText(ReportText ?? "");

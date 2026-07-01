@@ -1,7 +1,6 @@
 // src/Memoria.App/Theming/WpfThemeApplier.cs
 using System;
 using System.Windows;
-using System.Windows.Media;
 
 namespace Memoria.App.Theming;
 
@@ -19,13 +18,5 @@ public sealed class WpfThemeApplier : IThemeApplier
             dictionaries[PaletteSlotIndex] = palette; // 1개만 교체 → 깜빡임 최소화
         else
             dictionaries.Add(palette);
-    }
-
-    public void ApplyAccent(string accentHex)
-    {
-        var color = (Color)ColorConverter.ConvertFromString(AccentColor.Normalize(accentHex));
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();   // 불변 브러시 → 크로스 스레드 안전 + 렌더 최적화
-        Application.Current.Resources["Brush.Accent"] = brush;
     }
 }

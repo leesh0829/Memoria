@@ -24,7 +24,7 @@ public class MainViewModelSidebarTests
     }
 
     [Fact]
-    public void LoadGroups_orders_userGroups_then_unclassified_then_systemGroups()
+    public void LoadGroups_puts_userGroups_then_unclassified_in_sidebar_and_systemGroups_separately()
     {
         var groups = new FakeGroupRepository();
         groups.Create(new Group { Name = "업무", IsSystem = false, SortOrder = 1 });
@@ -35,10 +35,14 @@ public class MainViewModelSidebarTests
 
         vm.LoadGroups();
 
-        vm.SidebarNodes.Select(n => n.Name).Should()
-            .ContainInOrder("업무", "개인", "(미분류)", "일일업무일지", "주간보고");
+        // 위 목록: 사용자 그룹 + (미분류) — 시스템 그룹은 포함하지 않는다(#5).
+        vm.SidebarNodes.Select(n => n.Name).Should().ContainInOrder("업무", "개인", "(미분류)");
+        vm.SidebarNodes.Should().HaveCount(3);
         vm.SidebarNodes[2].Kind.Should().Be(SidebarNodeKind.Unclassified);
         vm.SidebarNodes[2].GroupId.Should().BeNull();
-        vm.SidebarNodes[3].Kind.Should().Be(SidebarNodeKind.System);
+
+        // 아래 고정 목록: 시스템 그룹만.
+        vm.SystemNodes.Select(n => n.Name).Should().ContainInOrder("일일업무일지", "주간보고");
+        vm.SystemNodes.Should().OnlyContain(n => n.Kind == SidebarNodeKind.System);
     }
 }

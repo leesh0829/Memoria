@@ -14,7 +14,6 @@ public sealed class ThemeService : IThemeService, IDisposable
 
     public ThemeMode Mode { get; private set; } = ThemeMode.System;
     public string Preset { get; private set; } = "default";
-    public string Accent { get; private set; } = AccentColor.Default;
 
     public event EventHandler? ThemeChanged;
 
@@ -30,28 +29,25 @@ public sealed class ThemeService : IThemeService, IDisposable
     {
         var mode = ParseMode(_settings.GetOrDefault(SettingsKeys.ThemeMode, "system"));
         var preset = ThemeResolver.NormalizePreset(_settings.GetOrDefault(SettingsKeys.ThemePreset, "default"));
-        var accent = AccentColor.Normalize(_settings.GetOrDefault(SettingsKeys.ThemeAccent, AccentColor.Default));
-        ApplyInternal(mode, preset, accent, persist: false);
+        ApplyInternal(mode, preset, persist: false);
     }
 
-    public void Apply(ThemeMode mode, string preset, string accent)
-        => ApplyInternal(mode, ThemeResolver.NormalizePreset(preset), AccentColor.Normalize(accent), persist: true);
+    // 강조색은 각 팔레트(색 계열 × 모드)가 직접 정의한다(Brush.Accent). 별도 사용자 오버라이드 없음.
+    public void Apply(ThemeMode mode, string preset)
+        => ApplyInternal(mode, ThemeResolver.NormalizePreset(preset), persist: true);
 
-    private void ApplyInternal(ThemeMode mode, string preset, string accent, bool persist)
+    private void ApplyInternal(ThemeMode mode, string preset, bool persist)
     {
         Mode = mode;
         Preset = preset;
-        Accent = accent;
 
         var uri = ThemeResolver.ResolvePaletteUri(mode, preset, _systemTheme.IsLight());
         _applier.ApplyPalette(uri);
-        _applier.ApplyAccent(accent);
 
         if (persist)
         {
             _settings.Set(SettingsKeys.ThemeMode, ModeToString(mode));
             _settings.Set(SettingsKeys.ThemePreset, preset);
-            _settings.Set(SettingsKeys.ThemeAccent, accent);
         }
 
         ThemeChanged?.Invoke(this, EventArgs.Empty);
@@ -60,7 +56,7 @@ public sealed class ThemeService : IThemeService, IDisposable
     private void OnSystemThemeChanged(object? sender, EventArgs e)
     {
         if (Mode == ThemeMode.System)
-            ApplyInternal(Mode, Preset, Accent, persist: false);
+            ApplyInternal(Mode, Preset, persist: false);
     }
 
     public static ThemeMode ParseMode(string? value) => value?.Trim().ToLowerInvariant() switch
