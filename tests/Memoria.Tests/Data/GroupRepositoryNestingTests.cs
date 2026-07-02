@@ -62,4 +62,26 @@ public class GroupRepositoryNestingTests
         siblings.Select(g => g.Id).Should().ContainInOrder(c1, c2, x);
         siblings.Select(g => g.SortOrder).Should().ContainInOrder(0, 1, 2); // 0..n 재번호
     }
+
+    [Fact]
+    public void Delete_PromotesChildrenToGrandparent_AndRoot()
+    {
+        using var db = new TestDb();
+        var sut = new GroupRepository(db.Factory);
+        var gp = sut.Create(new Group { Name = "GP" });
+        var p  = sut.Create(new Group { Name = "P",  ParentId = gp });
+        var c1 = sut.Create(new Group { Name = "C1", ParentId = p });
+        var c2 = sut.Create(new Group { Name = "C2", ParentId = p });
+
+        sut.Delete(p);                                   // P 삭제 → C1,C2가 GP로 승격
+
+        sut.Get(p).Should().BeNull();
+        sut.Get(c1)!.ParentId.Should().Be(gp);
+        sut.Get(c2)!.ParentId.Should().Be(gp);
+
+        var root = sut.Create(new Group { Name = "Root" });
+        var rc = sut.Create(new Group { Name = "RC", ParentId = root });
+        sut.Delete(root);                                // 루트 삭제 → 자식이 루트(parent_id=null)
+        sut.Get(rc)!.ParentId.Should().BeNull();
+    }
 }

@@ -39,9 +39,27 @@ public sealed class GroupRepository : IGroupRepository
 
     public void Delete(int id)
     {
+        var target = Get(id);
+        if (target is null) return;
+        var newParent = target.ParentId;   // 승격 목적지(조부모 또는 null=루트)
         lock (_factory.WriteSync)
         {
-            _factory.Write.Execute("DELETE FROM groups WHERE id = @id;", new { id });
+            var conn = _factory.Write;
+            using var tx = conn.BeginTransaction();
+            // 1) 자식 승격
+            conn.Execute("UPDATE groups SET parent_id = @newParent WHERE parent_id = @id;",
+                new { newParent, id }, tx);
+            // 2) 행 삭제(노트 group_id는 ON DELETE SET NULL)
+            conn.Execute("DELETE FROM groups WHERE id = @id;", new { id }, tx);
+            // 3) 목적지 형제 재번호(승격된 자식 + 기존 형제)
+            var siblings = conn.Query<int>(
+                "SELECT id FROM groups WHERE " +
+                (newParent is null ? "parent_id IS NULL" : "parent_id = @newParent") +
+                " ORDER BY sort_order, id;", new { newParent }, tx).ToList();
+            for (var i = 0; i < siblings.Count; i++)
+                conn.Execute("UPDATE groups SET sort_order = @i WHERE id = @sid;",
+                    new { i, sid = siblings[i] }, tx);
+            tx.Commit();
         }
     }
 
