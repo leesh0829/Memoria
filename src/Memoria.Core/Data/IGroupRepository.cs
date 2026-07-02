@@ -12,4 +12,7 @@ public interface IGroupRepository
 
     // nodeId가 ancestorId의 (직·간접) 후손이면 true. 사이클 안전(방문집합).
     bool IsDescendantOf(int nodeId, int ancestorId);
+
+    void SetParent(int groupId, int? parentId);
+    void ReorderSiblings(int? parentId, IReadOnlyList<int> orderedGroupIds);
 }

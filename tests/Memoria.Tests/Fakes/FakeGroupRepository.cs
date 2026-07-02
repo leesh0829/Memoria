@@ -43,4 +43,34 @@ public sealed class FakeGroupRepository : IGroupRepository
             cur = p;
         }
     }
+
+    public void SetParent(int groupId, int? parentId)
+    {
+        var self = Items.FirstOrDefault(g => g.Id == groupId);
+        if (self is null || self.IsSystem) return;
+        if (parentId is int pid)
+        {
+            if (pid == groupId) return;
+            var parent = Items.FirstOrDefault(g => g.Id == pid);
+            if (parent is null || parent.IsSystem) return;
+            if (IsDescendantOf(pid, groupId)) return;
+        }
+        self.ParentId = parentId;
+        Renumber(parentId);
+    }
+
+    public void ReorderSiblings(int? parentId, IReadOnlyList<int> orderedGroupIds)
+    {
+        for (var i = 0; i < orderedGroupIds.Count; i++)
+        {
+            var g = Items.First(x => x.Id == orderedGroupIds[i]);
+            g.ParentId = parentId; g.SortOrder = i;
+        }
+    }
+
+    private void Renumber(int? parentId)
+    {
+        var sibs = Items.Where(g => g.ParentId == parentId).OrderBy(g => g.SortOrder).ThenBy(g => g.Id).ToList();
+        for (var i = 0; i < sibs.Count; i++) sibs[i].SortOrder = i;
+    }
 }

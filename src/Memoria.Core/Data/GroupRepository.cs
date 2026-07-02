@@ -74,6 +74,51 @@ public sealed class GroupRepository : IGroupRepository
         return false;
     }
 
+    public void SetParent(int groupId, int? parentId)
+    {
+        var self = Get(groupId);
+        if (self is null || self.IsSystem) return;                       // 없는/시스템 그룹 이동 금지
+        if (parentId is int pid)
+        {
+            if (pid == groupId) return;                                  // 자기 자신
+            var parent = Get(pid);
+            if (parent is null || parent.IsSystem) return;               // 시스템 부모 금지
+            if (IsDescendantOf(pid, groupId)) return;                    // 후손을 부모로 → 사이클
+        }
+
+        lock (_factory.WriteSync)
+        {
+            var conn = _factory.Write;
+            using var tx = conn.BeginTransaction();
+            // 목적지 형제(자기 제외)를 sort_order 순으로 + 자기를 끝에 붙여 재번호.
+            var siblings = conn.Query<int>(
+                "SELECT id FROM groups WHERE " +
+                (parentId is null ? "parent_id IS NULL" : "parent_id = @parentId") +
+                " AND id <> @groupId ORDER BY sort_order, id;",
+                new { parentId, groupId }, tx).ToList();
+            siblings.Add(groupId);
+            conn.Execute("UPDATE groups SET parent_id = @parentId WHERE id = @groupId;",
+                new { parentId, groupId }, tx);
+            for (var i = 0; i < siblings.Count; i++)
+                conn.Execute("UPDATE groups SET sort_order = @i WHERE id = @id;",
+                    new { i, id = siblings[i] }, tx);
+            tx.Commit();
+        }
+    }
+
+    public void ReorderSiblings(int? parentId, IReadOnlyList<int> orderedGroupIds)
+    {
+        lock (_factory.WriteSync)
+        {
+            var conn = _factory.Write;
+            using var tx = conn.BeginTransaction();
+            for (var i = 0; i < orderedGroupIds.Count; i++)
+                conn.Execute("UPDATE groups SET sort_order = @i, parent_id = @parentId WHERE id = @id;",
+                    new { i, parentId, id = orderedGroupIds[i] }, tx);
+            tx.Commit();
+        }
+    }
+
     // 모든 그룹의 id -> parent_id 맵(한 번 조회).
     private Dictionary<int, int?> ParentMap()
     {
