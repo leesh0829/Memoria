@@ -227,4 +227,16 @@ public class GroupManagementViewModelTests
 
         notes.Get(noteId)!.GroupId.Should().BeNull();
     }
+
+    [Fact]
+    public void AddSubGroup_CreatesUnderParent()
+    {
+        var repo = new FakeGroupRepository();
+        var vm = new GroupManagementViewModel(repo, new FakeNoteRepository());
+        var parent = repo.Create(new Group { Name = "부모" });
+
+        vm.AddSubGroup(parent, "자식");
+
+        repo.GetAll().Should().Contain(g => g.Name == "자식" && g.ParentId == parent);
+    }
 }

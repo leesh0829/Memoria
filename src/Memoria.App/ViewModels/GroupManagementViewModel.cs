@@ -81,6 +81,19 @@ public partial class GroupManagementViewModel : ObservableObject
         Load();
     }
 
+    public void AddSubGroup(int parentId, string name)
+    {
+        var siblings = _groups.GetAll().Where(g => g.ParentId == parentId).ToList();
+        var nextOrder = siblings.Count == 0 ? 0 : siblings.Max(g => g.SortOrder) + 1;
+        var group = new Group
+        {
+            Name = name, ParentId = parentId, IsSystem = false,
+            SortOrder = nextOrder, Color = DefaultGroupColor, CreatedAt = DateTimeOffset.UtcNow,
+        };
+        group.Id = _groups.Create(group);
+        Load();
+    }
+
     public void MoveNoteToGroup(int noteId, int? targetGroupId)
     {
         var note = _notes.Get(noteId);
