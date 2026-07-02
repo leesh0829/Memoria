@@ -94,6 +94,8 @@ public partial class GroupManagementViewModel : ObservableObject
         Load();
     }
 
+    public bool RepoIsDescendantOf(int nodeId, int ancestorId) => _groups.IsDescendantOf(nodeId, ancestorId);
+
     public void MoveNoteToGroup(int noteId, int? targetGroupId)
     {
         var note = _notes.Get(noteId);
