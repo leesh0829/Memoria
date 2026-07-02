@@ -574,7 +574,22 @@
                         <ItemsPresenter x:Name="ItemsHost" Grid.Row="1" Grid.Column="1" />
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <!-- 펼침/접기: 접힘 상태 진입 시 Visibility=Collapsed,
+                             진출(펼침) 시 MaxHeight+Opacity 슬라이드(150ms). FillBehavior=Stop → 애니
+                             종료 후 속성이 기본값(∞/1)으로 자동 복원되어 잔여 MaxHeight 클리핑 없음. -->
                         <Trigger Property="IsExpanded" Value="False">
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard FillBehavior="Stop">
+                                        <DoubleAnimation Storyboard.TargetName="ItemsHost"
+                                                         Storyboard.TargetProperty="MaxHeight"
+                                                         From="0" To="2000" Duration="0:0:0.15"/>
+                                        <DoubleAnimation Storyboard.TargetName="ItemsHost"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         From="0" To="1" Duration="0:0:0.15"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                             <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed" />
                         </Trigger>
                         <Trigger Property="HasItems" Value="False">
