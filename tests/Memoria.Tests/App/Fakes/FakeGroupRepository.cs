@@ -11,7 +11,16 @@ internal sealed class FakeGroupRepository : IGroupRepository
 
     public int Create(Group group) { group.Id = Items.Count + 1; Items.Add(group); return group.Id; }
     public void Update(Group group) { }
-    public void Delete(int id) => Items.RemoveAll(g => g.Id == id);
+    public void Delete(int id)
+    {
+        var t = Items.FirstOrDefault(g => g.Id == id);
+        if (t is null) return;
+        var np = t.ParentId;
+        foreach (var c in Items.Where(g => g.ParentId == id).ToList()) c.ParentId = np;
+        Items.Remove(t);
+        Renumber(np);
+        // 노트 group_id=null 처리(있으면 노트 fake와 연동; 없으면 생략)
+    }
     public Group? Get(int id) => Items.FirstOrDefault(g => g.Id == id);
     public IReadOnlyList<Group> GetAll() => Items.OrderBy(g => g.SortOrder).ToList();
 
