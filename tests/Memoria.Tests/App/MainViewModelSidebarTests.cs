@@ -35,7 +35,7 @@ public class MainViewModelSidebarTests
 
         vm.LoadGroups();
 
-        // 위 목록: 사용자 그룹 + (미분류) — 시스템 그룹은 포함하지 않는다(#5).
+        // 위 목록: 사용자 그룹(루트) + (미분류) — 시스템 그룹은 포함하지 않는다(#5).
         vm.SidebarNodes.Select(n => n.Name).Should().ContainInOrder("업무", "개인", "(미분류)");
         vm.SidebarNodes.Should().HaveCount(3);
         vm.SidebarNodes[2].Kind.Should().Be(SidebarNodeKind.Unclassified);
@@ -44,5 +44,36 @@ public class MainViewModelSidebarTests
         // 아래 고정 목록: 시스템 그룹만.
         vm.SystemNodes.Select(n => n.Name).Should().ContainInOrder("일일업무일지", "주간보고");
         vm.SystemNodes.Should().OnlyContain(n => n.Kind == SidebarNodeKind.System);
+    }
+
+    [Fact]
+    public void LoadGroups_BuildsTree_RootsAndChildren_PlusUnclassified()
+    {
+        var groups = new FakeGroupRepository();
+        var p = groups.Create(new Group { Name = "부모", SortOrder = 0 });
+        groups.Create(new Group { Name = "자식", ParentId = p, SortOrder = 0 });
+        var vm = NewVm(groups, new FakeNoteRepository());
+
+        vm.LoadGroups();
+
+        var root = vm.SidebarNodes.First(n => n.Name == "부모");
+        root.Children.Should().ContainSingle(c => c.Name == "자식");
+        vm.SidebarNodes.Last().Kind.Should().Be(SidebarNodeKind.Unclassified);
+        vm.SidebarNodes.Should().NotContain(n => n.Kind == SidebarNodeKind.System); // 시스템은 SystemNodes로
+    }
+
+    [Fact]
+    public void LoadGroups_RestoresExpansion_ByGroupId()
+    {
+        var groups = new FakeGroupRepository();
+        var p = groups.Create(new Group { Name = "부모", SortOrder = 0 });
+        groups.Create(new Group { Name = "자식", ParentId = p, SortOrder = 0 });
+        var vm = NewVm(groups, new FakeNoteRepository());
+        vm.LoadGroups();
+        vm.SidebarNodes.First(n => n.GroupId == p).IsExpanded = true;
+
+        vm.LoadGroups(); // 재구성
+
+        vm.SidebarNodes.First(n => n.GroupId == p).IsExpanded.Should().BeTrue(); // 펼침 유지
     }
 }

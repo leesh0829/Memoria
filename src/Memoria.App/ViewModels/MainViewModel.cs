@@ -85,7 +85,8 @@ public partial class MainViewModel : ObservableObject
 
     public void LoadGroups()
     {
-        // 재구성하면 노드가 새 인스턴스로 바뀌므로, 같은 그룹을 다시 선택해 하이라이트를 유지한다.
+        // 스냅샷: 펼친 그룹 + 선택
+        var expanded = CollectExpanded(SidebarNodes);
         var prevGroupId = SelectedNode?.GroupId;
         var prevKind = SelectedNode?.Kind;
 
@@ -93,19 +94,70 @@ public partial class MainViewModel : ObservableObject
         SystemNodes.Clear();
         var groups = _groupRepo.GetAll();
 
-        // 위 목록: 사용자 그룹 + (미분류)
-        foreach (var g in groups.Where(g => !g.IsSystem))
-            SidebarNodes.Add(new SidebarNodeViewModel(g.Name, g.Id, SidebarNodeKind.Group));
+        // 사용자 그룹 트리 구성(parent_id → children), 형제 sort_order 순.
+        var userGroups = groups.Where(g => !g.IsSystem).OrderBy(g => g.SortOrder).ThenBy(g => g.Id).ToList();
+        var nodeById = new Dictionary<int, SidebarNodeViewModel>();
+        foreach (var g in userGroups)
+            nodeById[g.Id] = new SidebarNodeViewModel(g.Name, g.Id, SidebarNodeKind.Group);
+        foreach (var g in userGroups)
+        {
+            var node = nodeById[g.Id];
+            if (g.ParentId is int pid && nodeById.TryGetValue(pid, out var parent))
+                parent.Children.Add(node);
+            else
+                SidebarNodes.Add(node);   // 루트
+        }
+        // (미분류)를 트리 루트로 마지막에.
         SidebarNodes.Add(new SidebarNodeViewModel("(미분류)", null, SidebarNodeKind.Unclassified));
 
         // 아래 고정 목록: 시스템 그룹(일일업무일지·주간보고) — #5 분리
         foreach (var g in groups.Where(g => g.IsSystem))
             SystemNodes.Add(new SidebarNodeViewModel(g.Name, g.Id, SidebarNodeKind.System));
 
-        if (prevKind is SidebarNodeKind k)
-            // 새 인스턴스로 재할당 → PropertyChanged → 코드비하인드 SyncSidebarSelection이 하이라이트 복원.
-            SelectedNode = SidebarNodes.Concat(SystemNodes)
-                .FirstOrDefault(n => n.Kind == k && n.GroupId == prevGroupId);
+        // 복원: 펼침
+        ApplyExpanded(SidebarNodes, expanded);
+        // 복원: 선택
+        var target = FindNode(SidebarNodes, prevGroupId, prevKind);
+        if (target is null && prevKind == SidebarNodeKind.Group && prevGroupId is int gid)
+        {
+            // 삭제된 그룹 → 부모(있으면) 아니면 (미분류)
+            var parentId = groups.FirstOrDefault(x => x.Id == gid)?.ParentId; // 삭제됐으면 null
+            target = FindNode(SidebarNodes, parentId, SidebarNodeKind.Group)
+                     ?? SidebarNodes.FirstOrDefault(n => n.Kind == SidebarNodeKind.Unclassified);
+        }
+        SelectedNode = target;   // OnSelectedNodeChanged → LoadNotes + (code-behind) IsSelected 동기화
+    }
+
+    private static HashSet<int> CollectExpanded(IEnumerable<SidebarNodeViewModel> nodes)
+    {
+        var set = new HashSet<int>();
+        void Walk(SidebarNodeViewModel n)
+        {
+            if (n.IsExpanded && n.GroupId is int id) set.Add(id);
+            foreach (var c in n.Children) Walk(c);
+        }
+        foreach (var n in nodes) Walk(n);
+        return set;
+    }
+
+    private static void ApplyExpanded(IEnumerable<SidebarNodeViewModel> nodes, HashSet<int> expanded)
+    {
+        foreach (var n in nodes)
+        {
+            if (n.GroupId is int id && expanded.Contains(id)) n.IsExpanded = true;
+            ApplyExpanded(n.Children, expanded);
+        }
+    }
+
+    private static SidebarNodeViewModel? FindNode(IEnumerable<SidebarNodeViewModel> nodes, int? groupId, SidebarNodeKind? kind)
+    {
+        foreach (var n in nodes)
+        {
+            if (n.Kind == kind && n.GroupId == groupId) return n;
+            var hit = FindNode(n.Children, groupId, kind);
+            if (hit is not null) return hit;
+        }
+        return null;
     }
 
     partial void OnSelectedNodeChanged(SidebarNodeViewModel? value)
