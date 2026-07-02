@@ -105,23 +105,23 @@ public partial class GroupManagementViewModel : ObservableObject
         _notes.Update(note);
     }
 
-    public void MoveGroup(int fromIndex, int toIndex)
+    public void MoveGroup(int groupId, int? newParentId, int siblingIndex)
     {
-        if (fromIndex < 0 || fromIndex >= Groups.Count) return;
-        if (toIndex < 0 || toIndex >= Groups.Count) return;
-        if (fromIndex == toIndex) return;
-
-        var item = Groups[fromIndex];
-        Groups.RemoveAt(fromIndex);
-        Groups.Insert(toIndex, item);
-
-        for (var i = 0; i < Groups.Count; i++)
+        var self = _groups.Get(groupId);
+        if (self is null || self.IsSystem) return;
+        if (newParentId is int pid)
         {
-            if (Groups[i].SortOrder != i)
-            {
-                Groups[i].SortOrder = i;
-                _groups.Update(Groups[i]); // sort_order는 메타 조작
-            }
+            if (pid == groupId || _groups.IsDescendantOf(pid, groupId)) return;
+            var parent = _groups.Get(pid);
+            if (parent is null || parent.IsSystem) return;
         }
+        var siblings = _groups.GetAll()
+            .Where(g => g.ParentId == newParentId && g.Id != groupId)
+            .OrderBy(g => g.SortOrder).ThenBy(g => g.Id)
+            .Select(g => g.Id).ToList();
+        var index = Math.Clamp(siblingIndex, 0, siblings.Count);
+        siblings.Insert(index, groupId);
+        _groups.ReorderSiblings(newParentId, siblings);
+        Load();
     }
 }

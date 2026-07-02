@@ -159,35 +159,32 @@ public class GroupManagementViewModelTests
     }
 
     [Fact]
-    public void MoveGroup_reorders_and_reassigns_sort_order()
+    public void MoveGroup_ReparentsAndInsertsAtIndex()
     {
-        var (vm, groups, _) = CreateSut();
-        groups.Create(new Group { Name = "A", SortOrder = 0 });
-        groups.Create(new Group { Name = "B", SortOrder = 1 });
-        groups.Create(new Group { Name = "C", SortOrder = 2 });
-        vm.Load();
+        var repo = new FakeGroupRepository();
+        var vm = new GroupManagementViewModel(repo, new FakeNoteRepository());
+        var p = repo.Create(new Group { Name = "P" });
+        var c1 = repo.Create(new Group { Name = "C1", ParentId = p, SortOrder = 0 });
+        var c2 = repo.Create(new Group { Name = "C2", ParentId = p, SortOrder = 1 });
+        var x = repo.Create(new Group { Name = "X" });
 
-        vm.MoveGroup(0, 2); // A를 맨 뒤로
+        vm.MoveGroup(x, p, 1);   // X를 P의 자식, 인덱스 1(C1과 C2 사이)
 
-        vm.Groups.Select(g => g.Name).Should().Equal("B", "C", "A");
-        groups.Items.Single(g => g.Name == "B").SortOrder.Should().Be(0);
-        groups.Items.Single(g => g.Name == "C").SortOrder.Should().Be(1);
-        groups.Items.Single(g => g.Name == "A").SortOrder.Should().Be(2);
+        var sibs = repo.GetAll().Where(g => g.ParentId == p).OrderBy(g => g.SortOrder).Select(g => g.Id).ToList();
+        sibs.Should().ContainInOrder(c1, x, c2);
     }
 
     [Fact]
-    public void MoveGroup_ignores_out_of_range_or_noop()
+    public void MoveGroup_RejectsCycle()
     {
-        var (vm, groups, _) = CreateSut();
-        groups.Create(new Group { Name = "A", SortOrder = 0 });
-        groups.Create(new Group { Name = "B", SortOrder = 1 });
-        vm.Load();
+        var repo = new FakeGroupRepository();
+        var vm = new GroupManagementViewModel(repo, new FakeNoteRepository());
+        var a = repo.Create(new Group { Name = "A" });
+        var b = repo.Create(new Group { Name = "B", ParentId = a });
 
-        vm.MoveGroup(0, 0);   // no-op
-        vm.MoveGroup(-1, 1);  // 범위 밖
-        vm.MoveGroup(0, 5);   // 범위 밖
+        vm.MoveGroup(a, b, 0);   // A를 후손 B 아래로 → no-op
 
-        vm.Groups.Select(g => g.Name).Should().Equal("A", "B");
+        repo.GetAll().First(g => g.Id == a).ParentId.Should().BeNull();
     }
 
     [Fact]

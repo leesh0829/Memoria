@@ -259,7 +259,7 @@ public partial class MainWindow : Window
             : LastUserGroupIndex();
 
         if (toIndex < 0 || fromIndex == toIndex) return;
-        GroupVm.MoveGroup(fromIndex, toIndex);
+        // NOTE: flat MoveGroup removed in N2.2; tree drag-drop handler wired in N6.
         ViewModel.LoadGroups();
     }
 
