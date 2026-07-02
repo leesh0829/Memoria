@@ -212,13 +212,37 @@
             </ContentControl>
             </Border>
 
-            <!-- Undo 토스트 (#4: MainViewModel 소유) -->
+            <!-- Undo 토스트 (#4: MainViewModel 소유) N7.3: slide-up + fade-in on appear -->
             <Border Grid.Column="0" Grid.ColumnSpan="3"
                     VerticalAlignment="Bottom" HorizontalAlignment="Center"
                     Margin="0,0,0,20" Padding="12,8"
                     Background="{DynamicResource Brush.Surface}"
                     BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
                     Visibility="{Binding IsUndoAvailable, Converter={StaticResource BoolToVis}}">
+                <Border.RenderTransform>
+                    <TranslateTransform />
+                </Border.RenderTransform>
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <!-- N7.3: slide up + fade in when toast becomes visible -->
+                            <DataTrigger Binding="{Binding IsUndoAvailable}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard FillBehavior="Stop">
+                                            <DoubleAnimation
+                                                Storyboard.TargetProperty="Opacity"
+                                                From="0" To="1" Duration="0:0:0.15"/>
+                                            <DoubleAnimation
+                                                Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                From="20" To="0" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{Binding UndoMessage}"
                                Foreground="{DynamicResource Brush.Foreground}"

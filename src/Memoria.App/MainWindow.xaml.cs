@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Memoria.App.ViewModels;
 using Memoria.App.Views;
 using Memoria.App.Windows;
@@ -37,6 +38,10 @@ public partial class MainWindow : Window
     // N7.2 드래그 어도너 — 그룹 드래그 중에만 존재. try/catch로 실패 시 null 상태 유지.
     private DragAdorner?          _dragAdorner;
     private DropIndicatorAdorner? _dropIndicator;
+
+    // N7.3 스프링로드 펼침 — 접힌 노드 위 700ms 정지 시 자동 펼침.
+    private DispatcherTimer?         _springLoadTimer;
+    private SidebarNodeViewModel?    _springLoadTarget;
 
     public MainWindow(ISettingsRepository settings)
     {
@@ -301,6 +306,10 @@ public partial class MainWindow : Window
             _dragAdorner = null;
             _dropIndicator?.Remove();
             _dropIndicator = null;
+            // N7.3: Cancel any pending spring-load expand.
+            _springLoadTimer?.Stop();
+            _springLoadTimer  = null;
+            _springLoadTarget = null;
         }
     }
 
@@ -340,6 +349,45 @@ public partial class MainWindow : Window
             }
         }
         catch { /* degrade gracefully */ }
+
+        // N7.3: Spring-loaded expand — hover 700ms over a collapsed group node → expand.
+        try
+        {
+            var tvi = FindVisualAncestor<System.Windows.Controls.TreeViewItem>(
+                GroupTree.InputHitTest(e.GetPosition(GroupTree)) as DependencyObject);
+            var hoverNode = tvi?.DataContext as SidebarNodeViewModel;
+
+            // Only spring-load if: group node, has children, and currently collapsed.
+            if (hoverNode is { Kind: SidebarNodeKind.Group, IsExpanded: false } && hoverNode.Children.Count > 0)
+            {
+                if (!ReferenceEquals(hoverNode, _springLoadTarget))
+                {
+                    // Moved to a new collapsed node — restart timer.
+                    _springLoadTimer?.Stop();
+                    _springLoadTarget = hoverNode;
+                    _springLoadTimer  = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
+                    var captured = hoverNode;
+                    _springLoadTimer.Tick += (_, _) =>
+                    {
+                        _springLoadTimer?.Stop();
+                        if (ReferenceEquals(_springLoadTarget, captured) && !captured.IsExpanded)
+                            captured.IsExpanded = true;
+                    };
+                    _springLoadTimer.Start();
+                }
+                // else: same target, timer still running — do nothing.
+            }
+            else
+            {
+                // Not a valid spring-load target: cancel any pending expand.
+                if (!ReferenceEquals(hoverNode, _springLoadTarget))
+                {
+                    _springLoadTimer?.Stop();
+                    _springLoadTarget = null;
+                }
+            }
+        }
+        catch { /* degrade gracefully — spring-load is polish only */ }
 
         e.Handled = true;
     }
