@@ -64,8 +64,10 @@ public sealed class FakeGroupRepository : IGroupRepository
             if (parent is null || parent.IsSystem) return;
             if (IsDescendantOf(pid, groupId)) return;
         }
+        var oldParentId = self.ParentId;
         self.ParentId = parentId;
         Renumber(parentId);
+        if (oldParentId != parentId) Renumber(oldParentId);
     }
 
     public void ReorderSiblings(int? parentId, IReadOnlyList<int> orderedGroupIds)

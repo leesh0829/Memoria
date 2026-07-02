@@ -83,7 +83,7 @@ public partial class MainViewModel : ObservableObject
         _weeklyReportEditorFactory = weeklyReportEditorFactory;
     }
 
-    public void LoadGroups()
+    public void LoadGroups(int? removedGroupParentId = null)
     {
         // 스냅샷: 펼친 그룹 + 선택
         var expanded = CollectExpanded(SidebarNodes);
@@ -118,11 +118,11 @@ public partial class MainViewModel : ObservableObject
         ApplyExpanded(SidebarNodes, expanded);
         // 복원: 선택
         var target = FindNode(SidebarNodes, prevGroupId, prevKind);
-        if (target is null && prevKind == SidebarNodeKind.Group && prevGroupId is int gid)
+        if (target is null && prevKind == SidebarNodeKind.Group && prevGroupId is int)
         {
-            // 삭제된 그룹 → 부모(있으면) 아니면 (미분류)
-            var parentId = groups.FirstOrDefault(x => x.Id == gid)?.ParentId; // 삭제됐으면 null
-            target = FindNode(SidebarNodes, parentId, SidebarNodeKind.Group)
+            // 삭제된 그룹 → 호출자가 전달한 부모(있으면) 아니면 (미분류).
+            // groups 스냅샷은 삭제 후이므로 삭제된 그룹을 다시 조회하지 않는다.
+            target = FindNode(SidebarNodes, removedGroupParentId, SidebarNodeKind.Group)
                      ?? SidebarNodes.FirstOrDefault(n => n.Kind == SidebarNodeKind.Unclassified);
         }
         SelectedNode = target;   // OnSelectedNodeChanged → LoadNotes + (code-behind) IsSelected 동기화

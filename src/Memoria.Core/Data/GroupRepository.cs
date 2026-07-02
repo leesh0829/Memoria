@@ -104,6 +104,8 @@ public sealed class GroupRepository : IGroupRepository
             if (IsDescendantOf(pid, groupId)) return;                    // 후손을 부모로 → 사이클
         }
 
+        var oldParentId = self.ParentId;   // 이동 전 소스 부모를 캡처
+
         lock (_factory.WriteSync)
         {
             var conn = _factory.Write;
@@ -120,6 +122,18 @@ public sealed class GroupRepository : IGroupRepository
             for (var i = 0; i < siblings.Count; i++)
                 conn.Execute("UPDATE groups SET sort_order = @i WHERE id = @id;",
                     new { i, id = siblings[i] }, tx);
+            // 소스 부모가 다를 경우, 소스 형제의 sort_order 갭을 메운다.
+            if (oldParentId != parentId)
+            {
+                var sourceSiblings = conn.Query<int>(
+                    "SELECT id FROM groups WHERE " +
+                    (oldParentId is null ? "parent_id IS NULL" : "parent_id = @oldParentId") +
+                    " ORDER BY sort_order, id;",
+                    new { oldParentId }, tx).ToList();
+                for (var i = 0; i < sourceSiblings.Count; i++)
+                    conn.Execute("UPDATE groups SET sort_order = @i WHERE id = @id;",
+                        new { i, id = sourceSiblings[i] }, tx);
+            }
             tx.Commit();
         }
     }

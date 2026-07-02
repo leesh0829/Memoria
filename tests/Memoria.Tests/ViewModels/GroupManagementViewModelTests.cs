@@ -188,6 +188,18 @@ public class GroupManagementViewModelTests
     }
 
     [Fact]
+    public void MoveGroup_RejectsSelfParent()
+    {
+        var repo = new FakeGroupRepository();
+        var vm = new GroupManagementViewModel(repo, new FakeNoteRepository());
+        var a = repo.Create(new Group { Name = "A" });
+
+        vm.MoveGroup(a, a, 0);   // 자기 자신을 부모로 → no-op
+
+        repo.GetAll().First(g => g.Id == a).ParentId.Should().BeNull();
+    }
+
+    [Fact]
     public void MoveNoteToGroup_changes_group_without_touching_updated_at()
     {
         var (vm, _, notes) = CreateSut();

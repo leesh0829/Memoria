@@ -197,8 +197,9 @@ public partial class MainWindow : Window
     private void OnDeleteGroupMenuItemClick(object sender, RoutedEventArgs e)
     {
         if (GroupVm.SelectedGroup is null || !GroupVm.DeleteGroupCommand.CanExecute(null)) return;
+        var parentId = GroupVm.SelectedGroup?.ParentId;
         GroupVm.DeleteGroupCommand.Execute(null);
-        ViewModel.LoadGroups();
+        ViewModel.LoadGroups(parentId);
         ViewModel.LoadNotes();
     }
 

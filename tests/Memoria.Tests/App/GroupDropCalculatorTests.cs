@@ -10,6 +10,7 @@ public class GroupDropCalculatorTests
     [InlineData(2, 100, DropZone.Before)]
     [InlineData(50, 100, DropZone.Into)]
     [InlineData(90, 100, DropZone.After)]
+    [InlineData(0, 0, DropZone.Into)]
     public void ZoneForOffset_MapsThreeZones(double y, double h, DropZone expected)
         => GroupDropCalculator.ZoneForOffset(y, h).Should().Be(expected);
 

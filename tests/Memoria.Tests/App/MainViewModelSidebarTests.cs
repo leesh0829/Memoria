@@ -76,4 +76,27 @@ public class MainViewModelSidebarTests
 
         vm.SidebarNodes.First(n => n.GroupId == p).IsExpanded.Should().BeTrue(); // 펼침 유지
     }
+
+    [Fact]
+    public void LoadGroups_AfterDelete_SelectsParentGroup()
+    {
+        var groups = new FakeGroupRepository();
+        var pId = groups.Create(new Group { Name = "부모", SortOrder = 0 });
+        var cId = groups.Create(new Group { Name = "자식", ParentId = pId, SortOrder = 0 });
+        var vm = NewVm(groups, new FakeNoteRepository());
+        vm.LoadGroups();
+
+        // 자식 노드를 선택
+        var parentNode = vm.SidebarNodes.First(n => n.GroupId == pId);
+        parentNode.IsExpanded = true;
+        var cNode = parentNode.Children.First(n => n.GroupId == cId);
+        vm.SelectedNode = cNode;
+
+        // 자식 삭제 후 LoadGroups에 삭제된 그룹의 부모 id 전달
+        groups.Delete(cId);
+        vm.LoadGroups(pId);
+
+        // 부모 그룹이 선택돼야 함(미분류가 아님)
+        vm.SelectedNode!.GroupId.Should().Be(pId);
+    }
 }
