@@ -58,4 +58,29 @@ public sealed class GroupRepository : IGroupRepository
         return conn.Query<Group>(
             $"SELECT {SelectColumns} FROM groups ORDER BY sort_order, id;").ToList();
     }
+
+    public bool IsDescendantOf(int nodeId, int ancestorId)
+    {
+        // nodeId에서 부모 체인을 따라 올라가며 ancestorId를 만나면 후손.
+        var parents = ParentMap();
+        var visited = new HashSet<int>();
+        var current = nodeId;
+        while (parents.TryGetValue(current, out var parent) && parent is int p)
+        {
+            if (!visited.Add(current)) break;   // 사이클 방어
+            if (p == ancestorId) return true;
+            current = p;
+        }
+        return false;
+    }
+
+    // 모든 그룹의 id -> parent_id 맵(한 번 조회).
+    private Dictionary<int, int?> ParentMap()
+    {
+        using var conn = _factory.Open();
+        var rows = conn.Query<(int Id, int? ParentId)>("SELECT id AS Id, parent_id AS ParentId FROM groups;");
+        var map = new Dictionary<int, int?>();
+        foreach (var r in rows) map[r.Id] = r.ParentId;
+        return map;
+    }
 }
