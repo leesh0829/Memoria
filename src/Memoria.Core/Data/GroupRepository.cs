@@ -140,13 +140,28 @@ public sealed class GroupRepository : IGroupRepository
 
     public void ReorderSiblings(int? parentId, IReadOnlyList<int> orderedGroupIds)
     {
+        // Guard: system group cannot be a new parent.
+        if (parentId is int pid0)
+        {
+            var parentGroup = Get(pid0);
+            if (parentGroup is null || parentGroup.IsSystem) return;
+        }
+
         lock (_factory.WriteSync)
         {
             var conn = _factory.Write;
             using var tx = conn.BeginTransaction();
             for (var i = 0; i < orderedGroupIds.Count; i++)
-                conn.Execute("UPDATE groups SET sort_order = @i, parent_id = @parentId WHERE id = @id;",
-                    new { i, parentId, id = orderedGroupIds[i] }, tx);
+            {
+                var id = orderedGroupIds[i];
+                // Self-reference or cycle guard: only update sort_order, not parent_id.
+                if (parentId is int pp && (pp == id || IsDescendantOf(pp, id)))
+                    conn.Execute("UPDATE groups SET sort_order = @i WHERE id = @id;",
+                        new { i, id }, tx);
+                else
+                    conn.Execute("UPDATE groups SET sort_order = @i, parent_id = @parentId WHERE id = @id;",
+                        new { i, parentId, id }, tx);
+            }
             tx.Commit();
         }
     }

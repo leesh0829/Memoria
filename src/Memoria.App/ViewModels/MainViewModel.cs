@@ -262,7 +262,7 @@ public partial class MainViewModel : ObservableObject
     // 사이드바 노드 선택 → 목록 재로드 → 해당 노트 선택(에디터 호스팅 트리거).
     public void NavigateToNote(int noteId, int? groupId)
     {
-        var node = SidebarNodes.FirstOrDefault(n => n.GroupId == groupId)
+        var node = (groupId is int gid ? FindNode(SidebarNodes, gid, SidebarNodeKind.Group) : null)
                    ?? SystemNodes.FirstOrDefault(n => n.GroupId == groupId)   // 체크리스트/주간보고는 시스템 그룹 소속
                    ?? SidebarNodes.FirstOrDefault(n => n.Kind == SidebarNodeKind.Unclassified);
         if (node is not null) SelectedNode = node;

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using FluentAssertions;
 using Memoria.App.Services;
@@ -75,6 +76,26 @@ public class MainViewModelSidebarTests
         vm.LoadGroups(); // 재구성
 
         vm.SidebarNodes.First(n => n.GroupId == p).IsExpanded.Should().BeTrue(); // 펼침 유지
+    }
+
+    [Fact]
+    public void NavigateToNote_NestedChildGroup_SelectsChildNode_NotUnclassified()
+    {
+        var groups = new FakeGroupRepository();
+        var pId = groups.Create(new Group { Name = "부모", SortOrder = 0 });
+        var cId = groups.Create(new Group { Name = "자식", ParentId = pId, SortOrder = 0 });
+        var notes = new FakeNoteRepository();
+        var now = DateTimeOffset.UtcNow;
+        var noteId = notes.Create(new Note { GroupId = cId, Body = "", CreatedAt = now, UpdatedAt = now });
+        var vm = NewVm(groups, notes);
+        vm.LoadGroups();
+
+        vm.NavigateToNote(noteId, cId);
+
+        vm.SelectedNode!.GroupId.Should().Be(cId,
+            "NavigateToNote should find the nested child group, not fall back to (미분류)");
+        vm.SelectedNote.Should().NotBeNull();
+        vm.SelectedNote!.Id.Should().Be(noteId);
     }
 
     [Fact]

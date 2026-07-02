@@ -57,10 +57,22 @@ internal sealed class FakeGroupRepository : IGroupRepository
 
     public void ReorderSiblings(int? parentId, IReadOnlyList<int> orderedGroupIds)
     {
+        // Guard: system group cannot be a new parent.
+        if (parentId is int pid0)
+        {
+            var parentGroup = Items.FirstOrDefault(g => g.Id == pid0);
+            if (parentGroup is null || parentGroup.IsSystem) return;
+        }
+
         for (var i = 0; i < orderedGroupIds.Count; i++)
         {
-            var g = Items.First(x => x.Id == orderedGroupIds[i]);
-            g.ParentId = parentId; g.SortOrder = i;
+            var id = orderedGroupIds[i];
+            var g = Items.First(x => x.Id == id);
+            // Self-reference or cycle guard: only update sort_order, not parent_id.
+            if (parentId is int pp && (pp == id || IsDescendantOf(pp, id)))
+                g.SortOrder = i;
+            else
+            { g.ParentId = parentId; g.SortOrder = i; }
         }
     }
 

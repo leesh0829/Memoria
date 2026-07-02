@@ -183,6 +183,12 @@ public partial class MainWindow : Window
                         case "Delete":
                             item.IsEnabled = GroupVm.DeleteGroupCommand.CanExecute(null);
                             break;
+                        case "ToRoot":
+                            item.IsEnabled = GroupVm.SelectedGroup is { IsSystem: false, ParentId: not null };
+                            break;
+                        case "Sub":
+                            item.IsEnabled = GroupVm.SelectedGroup is { IsSystem: false };
+                            break;
                     }
                 }
             }
@@ -365,15 +371,16 @@ public partial class MainWindow : Window
                     // Moved to a new collapsed node — restart timer.
                     _springLoadTimer?.Stop();
                     _springLoadTarget = hoverNode;
-                    _springLoadTimer  = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
-                    var captured = hoverNode;
-                    _springLoadTimer.Tick += (_, _) =>
+                    var capturedNode = hoverNode;
+                    var capturedTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
+                    _springLoadTimer = capturedTimer;
+                    capturedTimer.Tick += (_, _) =>
                     {
-                        _springLoadTimer?.Stop();
-                        if (ReferenceEquals(_springLoadTarget, captured) && !captured.IsExpanded)
-                            captured.IsExpanded = true;
+                        capturedTimer.Stop();
+                        if (ReferenceEquals(_springLoadTarget, capturedNode) && !capturedNode.IsExpanded)
+                            capturedNode.IsExpanded = true;
                     };
-                    _springLoadTimer.Start();
+                    capturedTimer.Start();
                 }
                 // else: same target, timer still running — do nothing.
             }

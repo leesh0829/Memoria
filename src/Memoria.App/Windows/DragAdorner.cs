@@ -159,6 +159,7 @@ public sealed class DropIndicatorAdorner : Adorner
         try
         {
             if (_target is null) return;
+            if (System.Windows.PresentationSource.FromVisual(_target) is null) return;
 
             // TransformToAncestor can throw if _target was removed from the tree.
             var transform = _target.TransformToAncestor(AdornedElement);
