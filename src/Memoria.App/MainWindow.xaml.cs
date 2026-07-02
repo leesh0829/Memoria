@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Memoria.App.ViewModels;
 using Memoria.App.Views;
+using Memoria.App.Windows;
 using Memoria.Core;
 using Memoria.Core.Data;
 
@@ -32,6 +33,10 @@ public partial class MainWindow : Window
 
     // #1 드래그 임계값 판정용 좌클릭 시작점.
     private System.Windows.Point _dragStartPoint;
+
+    // N7.2 드래그 어도너 — 그룹 드래그 중에만 존재. try/catch로 실패 시 null 상태 유지.
+    private DragAdorner?          _dragAdorner;
+    private DropIndicatorAdorner? _dropIndicator;
 
     public MainWindow(ISettingsRepository settings)
     {
@@ -279,18 +284,72 @@ public partial class MainWindow : Window
         if (!ExceededDragThreshold(e)) return;
         if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is not { Kind: SidebarNodeKind.Group } node) return;
         if (node.GroupId is not int groupId) return;
-        DragDrop.DoDragDrop(GroupTree, new DataObject("groupId", groupId), DragDropEffects.Move);
+
+        // N7.2: Create drag ghost adorner before DoDragDrop (graceful on failure).
+        var sourceTvi = FindVisualAncestor<System.Windows.Controls.TreeViewItem>(e.OriginalSource as DependencyObject);
+        if (sourceTvi is not null)
+            _dragAdorner = DragAdorner.TryCreate(GroupTree, sourceTvi);
+
+        try
+        {
+            DragDrop.DoDragDrop(GroupTree, new DataObject("groupId", groupId), DragDropEffects.Move);
+        }
+        finally
+        {
+            // Cleanup adorners after drag ends (drop, cancel, or exception).
+            _dragAdorner?.Remove();
+            _dragAdorner = null;
+            _dropIndicator?.Remove();
+            _dropIndicator = null;
+        }
     }
 
     private void GroupTree_DragOver(object sender, DragEventArgs e)
     {
         if (!e.Data.GetDataPresent("groupId")) return;
-        e.Effects = ResolveGroupDrop(e, out _, out _) ? DragDropEffects.Move : DragDropEffects.None;
+
+        var valid = ResolveGroupDrop(e, out _, out _);
+        e.Effects = valid ? DragDropEffects.Move : DragDropEffects.None;
+
+        // N7.2: Update ghost adorner position.
+        try { _dragAdorner?.Update(e.GetPosition(GroupTree)); }
+        catch { /* degrade gracefully */ }
+
+        // N7.2: Update drop indicator adorner.
+        try
+        {
+            if (valid)
+            {
+                var tvi = FindVisualAncestor<System.Windows.Controls.TreeViewItem>(
+                    GroupTree.InputHitTest(e.GetPosition(GroupTree)) as DependencyObject);
+                if (tvi is not null)
+                {
+                    var pos  = e.GetPosition(tvi);
+                    var zone = GroupDropCalculator.ZoneForOffset(pos.Y, tvi.ActualHeight);
+                    _dropIndicator ??= DropIndicatorAdorner.TryCreate(GroupTree);
+                    _dropIndicator?.Update(tvi, zone);
+                }
+                else
+                {
+                    _dropIndicator?.Clear();
+                }
+            }
+            else
+            {
+                _dropIndicator?.Clear();
+            }
+        }
+        catch { /* degrade gracefully */ }
+
         e.Handled = true;
     }
 
     private void GroupTree_Drop(object sender, DragEventArgs e)
     {
+        // N7.2: Remove adorners before processing drop (cleanup even if drop fails).
+        _dragAdorner?.Remove();   _dragAdorner   = null;
+        _dropIndicator?.Remove(); _dropIndicator = null;
+
         if (!e.Data.GetDataPresent("groupId")) return;
         if (!ResolveGroupDrop(e, out var newParentId, out var index)) return;
         var groupId = (int)e.Data.GetData("groupId");
