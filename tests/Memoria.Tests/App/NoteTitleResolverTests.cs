@@ -27,4 +27,18 @@ public class NoteTitleResolverTests
         var note = new Note { Title = null, Body = "" };
         NoteTitleResolver.Resolve(note).Should().Be("(제목 없음)");
     }
+
+    [Fact]
+    public void Markdown_note_strips_leading_markers_from_body_title()
+    {
+        var note = new Note { Title = null, Body = "# 제목\n본문", BodyFormat = "markdown" };
+        NoteTitleResolver.Resolve(note).Should().Be("제목");
+    }
+
+    [Fact]
+    public void Plain_note_keeps_markdown_like_body_line_verbatim()
+    {
+        var note = new Note { Title = null, Body = "# 제목", BodyFormat = "plain" };
+        NoteTitleResolver.Resolve(note).Should().Be("# 제목");
+    }
 }

@@ -404,11 +404,15 @@ public partial class MainViewModel : ObservableObject
     {
         if (!string.IsNullOrWhiteSpace(EditorTitle)) return EditorTitle.Trim();
         if (!string.IsNullOrEmpty(EditorBody))
+        {
+            var isMarkdown = _current?.BodyFormat == "markdown";
             foreach (var line in EditorBody.Split('\n'))
             {
                 var trimmed = line.Trim();
-                if (trimmed.Length > 0) return trimmed;
+                if (trimmed.Length == 0) continue;
+                return isMarkdown ? Memoria.Core.Text.MarkdownText.StripMarkers(trimmed) : trimmed;
             }
+        }
         return "(제목 없음)";
     }
 
