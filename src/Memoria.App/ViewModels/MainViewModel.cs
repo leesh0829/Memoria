@@ -52,6 +52,55 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string headerText = "";
     [ObservableProperty] private bool isEditorVisible;
 
+    // RM6: 마크다운 에디터 상태
+    [ObservableProperty] private bool isPreviewMode = true;
+    [ObservableProperty] private string bodyFormat = "plain";
+
+    public bool IsMarkdown => BodyFormat == "markdown";
+    public bool ShowToolbar => IsMarkdown && !IsPreviewMode;
+    public bool ShowPreview => IsMarkdown && IsPreviewMode;
+    public bool ShowSource  => !ShowPreview;   // plain이거나 편집 모드
+
+    // RM7: 코드비하인드에서 현재 열린 노트 id를 읽어 첨부 저장에 사용.
+    public int? CurrentNoteId => _current?.Id;
+
+    partial void OnIsPreviewModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowToolbar));
+        OnPropertyChanged(nameof(ShowPreview));
+        OnPropertyChanged(nameof(ShowSource));
+    }
+
+    partial void OnBodyFormatChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsMarkdown));
+        OnPropertyChanged(nameof(ShowToolbar));
+        OnPropertyChanged(nameof(ShowPreview));
+        OnPropertyChanged(nameof(ShowSource));
+    }
+
+    [RelayCommand]
+    private void TogglePreview() => IsPreviewMode = !IsPreviewMode;
+
+    [RelayCommand]
+    private void ConvertToMarkdown()
+    {
+        if (_current is null || _current.BodyFormat == "markdown") return;
+
+        // 보류 중인 자동저장을 먼저 확정(라이브 편집 보존). _current는 '열 때' 값이라 그대로 쓰면 유실된다.
+        _autosave.FlushAll();
+        var note = _noteRepo.Get(_current.Id);
+        if (note is null) return;
+        note.BodyFormat = "markdown";
+        note.UpdatedAt = _time.GetUtcNow();
+        _noteRepo.Update(note);
+        _current = note;
+
+        IsPreviewMode = false;              // BodyFormat 설정보다 먼저 → 전환 순간 미리보기 렌더 방지
+        BodyFormat = "markdown";
+        UpdateListItemTitle(_current.Id, ResolveLiveTitle());
+    }
+
     // #3 자동저장 상태 표시("저장 중…" → "저장됨 HH:mm:ss"). 저장 없이 자동 영속됨을 사용자에게 보장.
     [ObservableProperty] private string saveStatus = "";
 
@@ -232,6 +281,7 @@ public partial class MainViewModel : ObservableObject
             GroupId = SelectedNode is { Kind: SidebarNodeKind.Group } ? SelectedNode.GroupId : null,
             Title = null,
             Body = "",
+            BodyFormat = "markdown",
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -374,6 +424,10 @@ public partial class MainViewModel : ObservableObject
         EditorBody = note.Body ?? "";
         _suppressDirty = false;
 
+        BodyFormat = note.BodyFormat;
+        // 새/빈 본문 → 편집 모드, 내용 있으면 미리보기(markdown 노트만 미리보기 의미 있음).
+        IsPreviewMode = note.BodyFormat == "markdown" && !string.IsNullOrEmpty(note.Body);
+
         SaveStatus = "";   // 노트 전환 시 저장 표시 초기화
         HeaderText = EditorHeaderFormatter.Format(note.CreatedAt.ToLocalTime(), note.UpdatedAt.ToLocalTime());
         IsEditorVisible = true;
@@ -404,11 +458,15 @@ public partial class MainViewModel : ObservableObject
     {
         if (!string.IsNullOrWhiteSpace(EditorTitle)) return EditorTitle.Trim();
         if (!string.IsNullOrEmpty(EditorBody))
+        {
+            var isMarkdown = _current?.BodyFormat == "markdown";
             foreach (var line in EditorBody.Split('\n'))
             {
                 var trimmed = line.Trim();
-                if (trimmed.Length > 0) return trimmed;
+                if (trimmed.Length == 0) continue;
+                return isMarkdown ? Memoria.Core.Text.MarkdownText.StripMarkers(trimmed) : trimmed;
             }
+        }
         return "(제목 없음)";
     }
 

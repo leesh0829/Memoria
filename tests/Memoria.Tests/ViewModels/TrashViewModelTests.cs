@@ -15,7 +15,7 @@ public class TrashViewModelTests
     {
         var notes = new FakeNoteRepository { Clock = new FixedTimeProvider(Now) };
         var settings = new FakeSettingsRepository();
-        var vm = new TrashViewModel(notes, settings, new FixedTimeProvider(Now));
+        var vm = new TrashViewModel(notes, settings, new NullAttachmentService(), new FixedTimeProvider(Now));
         return (vm, notes, settings);
     }
 

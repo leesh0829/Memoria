@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Memoria.Core;
+using Memoria.Core.Attachments;
 using Memoria.Core.Data;
 
 namespace Memoria.App.ViewModels;
@@ -11,11 +12,13 @@ public partial class TrashViewModel : ObservableObject
     private readonly INoteRepository _notes;
     private readonly ISettingsRepository _settings;
     private readonly TimeProvider _clock;
+    private readonly IAttachmentService _attachments;
 
-    public TrashViewModel(INoteRepository notes, ISettingsRepository settings, TimeProvider? clock = null)
+    public TrashViewModel(INoteRepository notes, ISettingsRepository settings, IAttachmentService attachments, TimeProvider? clock = null)
     {
         _notes = notes;
         _settings = settings;
+        _attachments = attachments;
         _clock = clock ?? TimeProvider.System;
     }
 
@@ -64,11 +67,13 @@ public partial class TrashViewModel : ObservableObject
     public void Purge(int noteId)
     {
         _notes.Purge(noteId); // checklist_items CASCADE
+        _attachments.DeleteForNote(noteId);
         Load();
     }
 
     public void PurgeExpiredOnStartup()
     {
+        // 스펙 §4.5: PurgeExpiredTrash로 자동 만료되는 노트의 첨부 파일 정리는 후속 범위(고아 정리 태스크)로 연기됨.
         _notes.PurgeExpiredTrash(RetentionDays);
     }
 

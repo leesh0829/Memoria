@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Memoria.App.ViewModels"
         xmlns:views="clr-namespace:Memoria.App.Views"
+        xmlns:beh="clr-namespace:Memoria.App.Behaviors"
         Title="Memoria" Height="640" Width="980"
         Background="{DynamicResource Brush.WindowBackground}"
         Foreground="{DynamicResource Brush.Foreground}">
@@ -200,8 +201,9 @@
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />  <!-- 제목 -->
-                                <RowDefinition Height="Auto" />  <!-- 생성/수정일 + 저장상태 -->
-                                <RowDefinition Height="*" />     <!-- 본문 -->
+                                <RowDefinition Height="Auto" />  <!-- 생성/수정일 + 저장상태 + 모드 버튼 -->
+                                <RowDefinition Height="Auto" />  <!-- 툴바(편집 모드) -->
+                                <RowDefinition Height="*" />     <!-- 본문(소스/미리보기) -->
                             </Grid.RowDefinitions>
 
                             <!-- 제목: 밑줄 한 줄로 구분 -->
@@ -212,23 +214,57 @@
                                          Foreground="{DynamicResource Brush.Foreground}" />
                             </Border>
 
-                            <!-- 생성/수정일(좌) + 저장 상태(우): 밑줄 한 줄로 본문과 구분 (#3) -->
+                            <!-- 생성/수정일(좌) + 저장상태 + 모드 버튼(우): 밑줄 한 줄로 본문과 구분 (#3 + RM6) -->
                             <Border Grid.Row="1" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1"
                                     Padding="0,4,0,6">
                                 <Grid>
                                     <TextBlock Text="{Binding HeaderText}" HorizontalAlignment="Left"
                                                Foreground="{DynamicResource Brush.SecondaryForeground}" />
-                                    <TextBlock Text="{Binding SaveStatus}" HorizontalAlignment="Right"
-                                               Foreground="{DynamicResource Brush.SecondaryForeground}" />
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <TextBlock Text="{Binding SaveStatus}" VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"
+                                                   Foreground="{DynamicResource Brush.SecondaryForeground}" />
+                                        <!-- markdown 노트: 미리보기/편집 토글 -->
+                                        <Button Content="{Binding IsPreviewMode, Converter={StaticResource PreviewToggleLabel}}"
+                                                Command="{Binding TogglePreviewCommand}" Padding="8,2"
+                                                Visibility="{Binding IsMarkdown, Converter={StaticResource BoolToVis}}" />
+                                        <!-- plain 노트: 마크다운으로 전환 -->
+                                        <Button Content="마크다운으로 전환" Command="{Binding ConvertToMarkdownCommand}"
+                                                Padding="8,2"
+                                                Visibility="{Binding IsMarkdown, Converter={StaticResource InverseBoolToVis}}" />
+                                    </StackPanel>
                                 </Grid>
                             </Border>
 
-                            <!-- 본문 -->
-                            <TextBox Grid.Row="2" Text="{Binding EditorBody, UpdateSourceTrigger=PropertyChanged}"
+                            <!-- 툴바: 편집 모드(markdown)일 때만 -->
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,0"
+                                        Visibility="{Binding ShowToolbar, Converter={StaticResource BoolToVis}}">
+                                <Button Content="B" FontWeight="Bold" Width="28" Tag="bold" Click="OnMdToolbarClick"/>
+                                <Button Content="I" FontStyle="Italic" Width="28" Tag="italic" Click="OnMdToolbarClick"/>
+                                <Button Content="H" Width="28" Tag="heading" Click="OnMdToolbarClick"/>
+                                <Button Content="•" Width="28" Tag="ul" Click="OnMdToolbarClick"/>
+                                <Button Content="1." Width="28" Tag="ol" Click="OnMdToolbarClick"/>
+                                <Button Content="🔗" Width="28" Tag="link" Click="OnMdToolbarClick"/>
+                                <Button Content="🖼" Width="28" Tag="image" Click="OnInsertImageClick"/>
+                            </StackPanel>
+
+                            <!-- 본문: 소스 편집 -->
+                            <TextBox Grid.Row="3" x:Name="BodyEditor"
+                                     Text="{Binding EditorBody, UpdateSourceTrigger=PropertyChanged}"
                                      AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap"
                                      VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" Padding="0"
                                      BorderThickness="0" Background="Transparent"
-                                     Foreground="{DynamicResource Brush.Foreground}" />
+                                     Foreground="{DynamicResource Brush.Foreground}"
+                                     PreviewKeyDown="BodyEditor_PreviewKeyDown"
+                                     Visibility="{Binding ShowSource, Converter={StaticResource BoolToVis}}" />
+
+                            <!-- 본문: 렌더 미리보기 -->
+                            <FlowDocumentScrollViewer Grid.Row="3" Margin="0,8,0,0"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Background="Transparent"
+                                     beh:MarkdownPreviewBehavior.Active="{Binding ShowPreview}"
+                                     beh:MarkdownPreviewBehavior.Markdown="{Binding EditorBody}"
+                                     Visibility="{Binding ShowPreview, Converter={StaticResource BoolToVis}}" />
                         </Grid>
                     </DataTemplate>
                     <!-- checklist -->

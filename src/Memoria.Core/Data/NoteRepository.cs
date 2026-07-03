@@ -8,6 +8,7 @@ public sealed class NoteRepository : INoteRepository
 {
     private const string SelectColumns =
         "id AS Id, group_id AS GroupId, type AS Type, title AS Title, body AS Body, " +
+        "body_format AS BodyFormat, " +
         "log_date AS LogDate, report_format AS ReportFormat, report_week_start AS ReportWeekStart, " +
         "pinned AS Pinned, sort_order AS SortOrder, deleted_at AS DeletedAt, " +
         "created_at AS CreatedAt, updated_at AS UpdatedAt";
@@ -45,9 +46,9 @@ public sealed class NoteRepository : INoteRepository
         {
             var conn = _factory.Write;
             conn.Execute(
-                "INSERT INTO notes(group_id, type, title, body, log_date, report_format, report_week_start, " +
+                "INSERT INTO notes(group_id, type, title, body, body_format, log_date, report_format, report_week_start, " +
                 "pinned, sort_order, deleted_at, created_at, updated_at) " +
-                "VALUES(@GroupId, @Type, @Title, @Body, @LogDate, @ReportFormat, @ReportWeekStart, " +
+                "VALUES(@GroupId, @Type, @Title, @Body, @BodyFormat, @LogDate, @ReportFormat, @ReportWeekStart, " +
                 "@Pinned, @SortOrder, @DeletedAt, @CreatedAt, @UpdatedAt);",
                 new
                 {
@@ -55,6 +56,7 @@ public sealed class NoteRepository : INoteRepository
                     Type = NoteTypeToString(note.Type),
                     note.Title,
                     note.Body,
+                    note.BodyFormat,
                     note.LogDate,
                     ReportFormat = ReportFormatToString(note.ReportFormat),
                     note.ReportWeekStart,
@@ -75,6 +77,7 @@ public sealed class NoteRepository : INoteRepository
         {
             _factory.Write.Execute(
                 "UPDATE notes SET group_id = @GroupId, type = @Type, title = @Title, body = @Body, " +
+                "body_format = @BodyFormat, " +
                 "log_date = @LogDate, report_format = @ReportFormat, report_week_start = @ReportWeekStart, " +
                 "pinned = @Pinned, sort_order = @SortOrder, deleted_at = @DeletedAt, " +
                 "created_at = @CreatedAt, updated_at = @UpdatedAt WHERE id = @Id;",
@@ -84,6 +87,7 @@ public sealed class NoteRepository : INoteRepository
                     Type = NoteTypeToString(note.Type),
                     note.Title,
                     note.Body,
+                    note.BodyFormat,
                     note.LogDate,
                     ReportFormat = ReportFormatToString(note.ReportFormat),
                     note.ReportWeekStart,

@@ -18,6 +18,9 @@
             <conv:CountToVisibilityConverter x:Key="CountToVisibility" />
             <!-- 테마 스와치: "#RRGGBB" → Brush -->
             <conv:StringToBrushConverter x:Key="StringToBrush" />
+            <!-- RM6: 마크다운 에디터 UI 컨버터 -->
+            <conv:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+            <conv:PreviewToggleLabelConverter x:Key="PreviewToggleLabel" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
