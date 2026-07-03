@@ -25,6 +25,8 @@ public static class MarkdownPreviewBehavior
         if (d is not FlowDocumentScrollViewer viewer) return;
         if (!GetActive(viewer)) { viewer.Document = null; return; }
         var renderer = AppServices.Resolve<IMarkdownRenderer>();
-        viewer.Document = renderer.Render(GetMarkdown(viewer));
+        // Active may fire before the Markdown binding propagates → GetMarkdown null.
+        // Render already guards null, but decouple the behavior from that contract.
+        viewer.Document = renderer.Render(GetMarkdown(viewer) ?? string.Empty);
     }
 }
