@@ -112,4 +112,22 @@ public class NoteRepositoryTests
         sut.FindWeeklyReport(new DateOnly(2026, 6, 22), ReportFormatKind.A)!.Id.Should().Be(id);
         sut.FindWeeklyReport(new DateOnly(2026, 6, 22), ReportFormatKind.B).Should().BeNull();
     }
+
+    [Fact]
+    public void Create_DefaultsBodyFormat_ToPlain()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var id = sut.Create(new Note { Type = NoteType.Plain, Title = "t" });
+        sut.Get(id)!.BodyFormat.Should().Be("plain");
+    }
+
+    [Fact]
+    public void Create_And_Get_RoundTrips_MarkdownFormat()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var id = sut.Create(new Note { Type = NoteType.Plain, Title = "t", BodyFormat = "markdown" });
+        sut.Get(id)!.BodyFormat.Should().Be("markdown");
+    }
 }

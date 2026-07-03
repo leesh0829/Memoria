@@ -23,6 +23,7 @@ public sealed class Note
     public NoteType Type { get; set; }
     public string? Title { get; set; }
     public string? Body { get; set; }
+    public string BodyFormat { get; set; } = "plain";
     public DateOnly? LogDate { get; set; }
     public ReportFormatKind? ReportFormat { get; set; }
     public DateOnly? ReportWeekStart { get; set; }
