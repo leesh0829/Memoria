@@ -86,10 +86,18 @@ public partial class MainViewModel : ObservableObject
     private void ConvertToMarkdown()
     {
         if (_current is null || _current.BodyFormat == "markdown") return;
-        _current.BodyFormat = "markdown";
-        _noteRepo.Update(_current);         // 즉시 저장(디바운스 밖)
+
+        // 보류 중인 자동저장을 먼저 확정(라이브 편집 보존). _current는 '열 때' 값이라 그대로 쓰면 유실된다.
+        _autosave.FlushAll();
+        var note = _noteRepo.Get(_current.Id);
+        if (note is null) return;
+        note.BodyFormat = "markdown";
+        note.UpdatedAt = _time.GetUtcNow();
+        _noteRepo.Update(note);
+        _current = note;
+
+        IsPreviewMode = false;              // BodyFormat 설정보다 먼저 → 전환 순간 미리보기 렌더 방지
         BodyFormat = "markdown";
-        IsPreviewMode = false;              // 전환 직후 편집 모드
         UpdateListItemTitle(_current.Id, ResolveLiveTitle());
     }
 

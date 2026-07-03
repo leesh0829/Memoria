@@ -36,6 +36,7 @@ public sealed class AttachmentService : IAttachmentService
     public void DeleteForNote(int noteId)
     {
         var dir = Path.Combine(Root, noteId.ToString());
-        if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); }
+        catch { /* best-effort cleanup: 파일 잠금 등으로 실패해도 purge를 막지 않는다 */ }
     }
 }
