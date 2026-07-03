@@ -52,6 +52,44 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string headerText = "";
     [ObservableProperty] private bool isEditorVisible;
 
+    // RM6: 마크다운 에디터 상태
+    [ObservableProperty] private bool isPreviewMode = true;
+    [ObservableProperty] private string bodyFormat = "plain";
+
+    public bool IsMarkdown => BodyFormat == "markdown";
+    public bool ShowToolbar => IsMarkdown && !IsPreviewMode;
+    public bool ShowPreview => IsMarkdown && IsPreviewMode;
+    public bool ShowSource  => !ShowPreview;   // plain이거나 편집 모드
+
+    partial void OnIsPreviewModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowToolbar));
+        OnPropertyChanged(nameof(ShowPreview));
+        OnPropertyChanged(nameof(ShowSource));
+    }
+
+    partial void OnBodyFormatChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsMarkdown));
+        OnPropertyChanged(nameof(ShowToolbar));
+        OnPropertyChanged(nameof(ShowPreview));
+        OnPropertyChanged(nameof(ShowSource));
+    }
+
+    [RelayCommand]
+    private void TogglePreview() => IsPreviewMode = !IsPreviewMode;
+
+    [RelayCommand]
+    private void ConvertToMarkdown()
+    {
+        if (_current is null || _current.BodyFormat == "markdown") return;
+        _current.BodyFormat = "markdown";
+        _noteRepo.Update(_current);         // 즉시 저장(디바운스 밖)
+        BodyFormat = "markdown";
+        IsPreviewMode = false;              // 전환 직후 편집 모드
+        UpdateListItemTitle(_current.Id, ResolveLiveTitle());
+    }
+
     // #3 자동저장 상태 표시("저장 중…" → "저장됨 HH:mm:ss"). 저장 없이 자동 영속됨을 사용자에게 보장.
     [ObservableProperty] private string saveStatus = "";
 
@@ -232,6 +270,7 @@ public partial class MainViewModel : ObservableObject
             GroupId = SelectedNode is { Kind: SidebarNodeKind.Group } ? SelectedNode.GroupId : null,
             Title = null,
             Body = "",
+            BodyFormat = "markdown",
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -373,6 +412,10 @@ public partial class MainViewModel : ObservableObject
         EditorTitle = note.Title ?? "";
         EditorBody = note.Body ?? "";
         _suppressDirty = false;
+
+        BodyFormat = note.BodyFormat;
+        // 새/빈 본문 → 편집 모드, 내용 있으면 미리보기(markdown 노트만 미리보기 의미 있음).
+        IsPreviewMode = note.BodyFormat == "markdown" && !string.IsNullOrEmpty(note.Body);
 
         SaveStatus = "";   // 노트 전환 시 저장 표시 초기화
         HeaderText = EditorHeaderFormatter.Format(note.CreatedAt.ToLocalTime(), note.UpdatedAt.ToLocalTime());

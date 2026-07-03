@@ -555,6 +555,57 @@ public partial class MainWindow : Window
     }
 
     // -----------------------------------------------------------------
+    // RM6: 마크다운 툴바 — 문법 삽입
+    // -----------------------------------------------------------------
+
+    private void OnMdToolbarClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { Tag: string tag }) return;
+        if (FindBodyEditor() is not System.Windows.Controls.TextBox tb) return;
+        WrapOrInsert(tb, tag);
+    }
+
+    private void OnInsertImageClick(object sender, RoutedEventArgs e) { /* RM7 */ }
+    private void BodyEditor_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e) { /* RM7 */ }
+
+    // 현재 Plain 에디터의 본문 TextBox를 찾는다(DataTemplate 내부라 이름 직접참조 불가할 수 있음).
+    private System.Windows.Controls.TextBox? FindBodyEditor()
+        => FindDescendant<System.Windows.Controls.TextBox>(this, "BodyEditor");
+
+    private static void WrapOrInsert(System.Windows.Controls.TextBox tb, string tag)
+    {
+        int start = tb.SelectionStart, len = tb.SelectionLength;
+        string sel = tb.SelectedText ?? "";
+        string repl; int caret;
+        switch (tag)
+        {
+            case "bold":    repl = $"**{sel}**";    caret = start + 2 + sel.Length; break;
+            case "italic":  repl = $"*{sel}*";      caret = start + 1 + sel.Length; break;
+            case "heading": repl = $"# {sel}";      caret = start + 2 + sel.Length; break;
+            case "ul":      repl = $"- {sel}";      caret = start + 2 + sel.Length; break;
+            case "ol":      repl = $"1. {sel}";     caret = start + 3 + sel.Length; break;
+            case "link":    repl = $"[{sel}](url)"; caret = start + repl.Length; break;
+            default: return;
+        }
+        tb.Text = tb.Text.Remove(start, len).Insert(start, repl);
+        tb.CaretIndex = caret;
+        tb.Focus();
+    }
+
+    private static T? FindDescendant<T>(System.Windows.DependencyObject root, string name)
+        where T : System.Windows.FrameworkElement
+    {
+        int n = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < n; i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is T fe && fe.Name == name) return fe;
+            if (FindDescendant<T>(child, name) is { } found) return found;
+        }
+        return null;
+    }
+
+    // -----------------------------------------------------------------
     // 간단한 텍스트 입력 다이얼로그 헬퍼
     // -----------------------------------------------------------------
 
