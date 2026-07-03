@@ -4,14 +4,14 @@ namespace Memoria.Core.Data;
 
 public sealed class DatabaseInitializer : IDatabaseInitializer
 {
-    private const long TargetVersion = 1;
+    private const long TargetVersion = 2;
     private readonly SqliteConnectionFactory _factory;
 
     public DatabaseInitializer(SqliteConnectionFactory factory) => _factory = factory;
 
     public void EnsureReady()
     {
-        // 마이그레이션/시드는 쓰기이므로 단일 직렬 라이터 락 + 영속 쓰기 연결로 수행(계약 §8).
+        // 마이그레이션은 쓰기이므로 단일 직렬 라이터 락 + 영속 쓰기 연결로 수행(계약 §8).
         lock (_factory.WriteSync)
         {
             var conn = _factory.Write;
@@ -21,15 +21,32 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
             var current = conn.ExecuteScalar<long>("PRAGMA user_version;");
             if (current >= TargetVersion) return;
 
-            using var tx = conn.BeginTransaction();
-            conn.Execute(SchemaV1, transaction: tx);
-            SeedV1(conn, tx);
-            conn.Execute(
-                "INSERT INTO _migrations(version, applied_at) VALUES(1, strftime('%Y-%m-%dT%H:%M:%fZ','now'));",
-                transaction: tx);
-            conn.Execute("PRAGMA user_version = 1;", transaction: tx);
-            tx.Commit();
+            if (current < 1) ApplyV1(conn);
+            if (current < 2) ApplyV2(conn);
         }
+    }
+
+    private static void ApplyV1(Microsoft.Data.Sqlite.SqliteConnection conn)
+    {
+        using var tx = conn.BeginTransaction();
+        conn.Execute(SchemaV1, transaction: tx);
+        SeedV1(conn, tx);
+        conn.Execute(
+            "INSERT INTO _migrations(version, applied_at) VALUES(1, strftime('%Y-%m-%dT%H:%M:%fZ','now'));",
+            transaction: tx);
+        conn.Execute("PRAGMA user_version = 1;", transaction: tx);
+        tx.Commit();
+    }
+
+    private static void ApplyV2(Microsoft.Data.Sqlite.SqliteConnection conn)
+    {
+        using var tx = conn.BeginTransaction();
+        conn.Execute("ALTER TABLE notes ADD COLUMN body_format TEXT NOT NULL DEFAULT 'plain';", transaction: tx);
+        conn.Execute(
+            "INSERT INTO _migrations(version, applied_at) VALUES(2, strftime('%Y-%m-%dT%H:%M:%fZ','now'));",
+            transaction: tx);
+        conn.Execute("PRAGMA user_version = 2;", transaction: tx);
+        tx.Commit();
     }
 
     public bool CheckIntegrity()
