@@ -61,6 +61,9 @@ public partial class MainViewModel : ObservableObject
     public bool ShowPreview => IsMarkdown && IsPreviewMode;
     public bool ShowSource  => !ShowPreview;   // plain이거나 편집 모드
 
+    // RM7: 코드비하인드에서 현재 열린 노트 id를 읽어 첨부 저장에 사용.
+    public int? CurrentNoteId => _current?.Id;
+
     partial void OnIsPreviewModeChanged(bool value)
     {
         OnPropertyChanged(nameof(ShowToolbar));

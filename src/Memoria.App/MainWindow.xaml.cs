@@ -565,8 +565,63 @@ public partial class MainWindow : Window
         WrapOrInsert(tb, tag);
     }
 
-    private void OnInsertImageClick(object sender, RoutedEventArgs e) { /* RM7 */ }
-    private void BodyEditor_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e) { /* RM7 */ }
+    private void OnInsertImageClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.CurrentNoteId is not int noteId) return;
+        if (FindBodyEditor() is not TextBox tb) return;
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "이미지|*.png;*.jpg;*.jpeg;*.gif;*.bmp|모든 파일|*.*",
+        };
+        if (dlg.ShowDialog() != true) return;
+        try
+        {
+            var att = AppServices.Resolve<Memoria.Core.Attachments.IAttachmentService>();
+            var rel = att.SaveFile(noteId, dlg.FileName);
+            InsertAtCaret(tb, $"![]({rel})");
+        }
+        catch { /* 실패 시 무변경 */ }
+    }
+
+    private void BodyEditor_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        // Ctrl+V 이고 클립보드에 이미지가 있으면 가로채 첨부로 저장 후 마크다운 참조 삽입.
+        bool ctrlV = e.Key == Key.V
+                     && (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        if (!ctrlV) return;
+        if (sender is not TextBox tb) return;
+        if (ViewModel.CurrentNoteId is not int noteId) return;
+        if (!Clipboard.ContainsImage()) return;   // 텍스트면 기본 동작 유지
+
+        try
+        {
+            var src = Clipboard.GetImage();
+            if (src is null) return;
+            var bytes = EncodePng(src);
+            var att = AppServices.Resolve<Memoria.Core.Attachments.IAttachmentService>();
+            var rel = att.SaveImage(noteId, bytes, "png");
+            InsertAtCaret(tb, $"![]({rel})");
+            e.Handled = true;   // 기본 이미지 붙여넣기 억제
+        }
+        catch { /* 저장 실패 시 본문 무변경 */ }
+    }
+
+    private static byte[] EncodePng(System.Windows.Media.Imaging.BitmapSource src)
+    {
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(src));
+        using var ms = new System.IO.MemoryStream();
+        encoder.Save(ms);
+        return ms.ToArray();
+    }
+
+    private static void InsertAtCaret(TextBox tb, string text)
+    {
+        int at = tb.SelectionStart, len = tb.SelectionLength;
+        tb.Text = tb.Text.Remove(at, len).Insert(at, text);
+        tb.CaretIndex = at + text.Length;
+        tb.Focus();
+    }
 
     // 현재 Plain 에디터의 본문 TextBox를 찾는다(DataTemplate 내부라 이름 직접참조 불가할 수 있음).
     private System.Windows.Controls.TextBox? FindBodyEditor()
