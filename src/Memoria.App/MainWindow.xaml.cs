@@ -3,8 +3,10 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Memoria.App.ViewModels;
 using Memoria.App.Views;
+using Memoria.App.Windows;
 using Memoria.Core;
 using Memoria.Core.Data;
 
@@ -33,6 +35,17 @@ public partial class MainWindow : Window
     // #1 드래그 임계값 판정용 좌클릭 시작점.
     private System.Windows.Point _dragStartPoint;
 
+    // N7.2 드래그 어도너 — 그룹 드래그 중에만 존재. try/catch로 실패 시 null 상태 유지.
+    private DragAdorner?          _dragAdorner;
+    private DropIndicatorAdorner? _dropIndicator;
+
+    // N7.3 스프링로드 펼침 — 접힌 노드 위 700ms 정지 시 자동 펼침.
+    private DispatcherTimer?         _springLoadTimer;
+    private SidebarNodeViewModel?    _springLoadTarget;
+
+    // 메모(noteId) 드래그 중 하이라이트된 드롭 대상 노드. 한 번에 하나만 강조.
+    private SidebarNodeViewModel?    _noteDropTarget;
+
     public MainWindow(ISettingsRepository settings)
     {
         _settings = settings;
@@ -45,7 +58,7 @@ public partial class MainWindow : Window
     }
 
     // -----------------------------------------------------------------
-    // #5 사이드바 선택 동기화 (사용자 목록 ↔ 시스템 목록, 단일 SelectedNode)
+    // #5 사이드바 선택 동기화 (TreeView ↔ 시스템 목록, 단일 SelectedNode)
     // -----------------------------------------------------------------
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -60,23 +73,53 @@ public partial class MainWindow : Window
             SyncSidebarSelection();
     }
 
-    // 프로그램적 SelectedNode 변경(예: 체크리스트/주간보고 생성)을 올바른 ListBox에 반영.
+    // 프로그램적 SelectedNode 변경(예: 체크리스트/주간보고 생성)을 TreeView·SystemListBox에 반영.
     private void SyncSidebarSelection()
     {
         _syncingSelection = true;
         var n = ViewModel.SelectedNode;
-        GroupListBox.SelectedItem  = (n is not null && GroupListBox.Items.Contains(n))  ? n : null;
-        SystemListBox.SelectedItem = (n is not null && SystemListBox.Items.Contains(n)) ? n : null;
+        // 시스템 목록
+        SystemListBox.SelectedItem = (n is { Kind: SidebarNodeKind.System }) ? n : null;
+        // 트리: 전체 해제 후 대상 노드 IsSelected=true + 조상 펼침.
+        ClearTreeNodeSelection(ViewModel.SidebarNodes);
+        if (n is not null && n.Kind != SidebarNodeKind.System)
+            SelectTreeNode(n);
         _syncingSelection = false;
     }
 
-    private void GroupListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private static void ClearTreeNodeSelection(System.Collections.Generic.IEnumerable<SidebarNodeViewModel> nodes)
+    {
+        foreach (var n in nodes) { n.IsSelected = false; ClearTreeNodeSelection(n.Children); }
+    }
+
+    private void SelectTreeNode(SidebarNodeViewModel target)
+    {
+        void Walk(System.Collections.Generic.IEnumerable<SidebarNodeViewModel> nodes,
+                  System.Collections.Generic.List<SidebarNodeViewModel> path)
+        {
+            foreach (var n in nodes)
+            {
+                path.Add(n);
+                if (ReferenceEquals(n, target))
+                {
+                    for (int i = 0; i < path.Count - 1; i++) path[i].IsExpanded = true;
+                    target.IsSelected = true;
+                    return;
+                }
+                Walk(n.Children, path);
+                path.RemoveAt(path.Count - 1);
+            }
+        }
+        Walk(ViewModel.SidebarNodes, new System.Collections.Generic.List<SidebarNodeViewModel>());
+    }
+
+    private void GroupTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
         if (_syncingSelection) return;
-        if (GroupListBox.SelectedItem is SidebarNodeViewModel node)
+        if (e.NewValue is SidebarNodeViewModel node)
         {
             _syncingSelection = true;
-            SystemListBox.SelectedItem = null;   // 시각적 배타 선택
+            SystemListBox.SelectedItem = null;
             _syncingSelection = false;
             ViewModel.SelectedNode = node;
         }
@@ -87,9 +130,6 @@ public partial class MainWindow : Window
         if (_syncingSelection) return;
         if (SystemListBox.SelectedItem is SidebarNodeViewModel node)
         {
-            _syncingSelection = true;
-            GroupListBox.SelectedItem = null;
-            _syncingSelection = false;
             ViewModel.SelectedNode = node;
         }
     }
@@ -146,6 +186,12 @@ public partial class MainWindow : Window
                         case "Delete":
                             item.IsEnabled = GroupVm.DeleteGroupCommand.CanExecute(null);
                             break;
+                        case "ToRoot":
+                            item.IsEnabled = GroupVm.SelectedGroup is { IsSystem: false, ParentId: not null };
+                            break;
+                        case "Sub":
+                            item.IsEnabled = GroupVm.SelectedGroup is { IsSystem: false };
+                            break;
                     }
                 }
             }
@@ -157,6 +203,22 @@ public partial class MainWindow : Window
         var name = AskInput("새 그룹 이름", "새 그룹");
         if (name is null) return;
         GroupVm.AddGroup(name);
+        ViewModel.LoadGroups();
+    }
+
+    private void OnAddSubGroupMenuItemClick(object sender, RoutedEventArgs e)
+    {
+        if (GroupVm.SelectedGroup is not { } g || g.IsSystem) return;
+        var name = AskInput("새 하위 그룹 이름", "새 그룹");
+        if (string.IsNullOrWhiteSpace(name)) return;
+        GroupVm.AddSubGroup(g.Id, name.Trim());
+        ViewModel.LoadGroups();
+    }
+
+    private void OnMoveToRootMenuItemClick(object sender, RoutedEventArgs e)
+    {
+        if (GroupVm.SelectedGroup is not { } g || g.IsSystem || g.ParentId is null) return;
+        GroupVm.MoveGroup(g.Id, null, int.MaxValue);
         ViewModel.LoadGroups();
     }
 
@@ -197,8 +259,9 @@ public partial class MainWindow : Window
     private void OnDeleteGroupMenuItemClick(object sender, RoutedEventArgs e)
     {
         if (GroupVm.SelectedGroup is null || !GroupVm.DeleteGroupCommand.CanExecute(null)) return;
+        var parentId = GroupVm.SelectedGroup?.ParentId;
         GroupVm.DeleteGroupCommand.Execute(null);
-        ViewModel.LoadGroups();
+        ViewModel.LoadGroups(parentId);
         ViewModel.LoadNotes();
     }
 
@@ -225,47 +288,171 @@ public partial class MainWindow : Window
     }
 
     // -----------------------------------------------------------------
-    // 드래그 — 그룹 순서변경 (GroupList_Drop) + 메모→그룹 이동 (GroupNode_DropNote)
+    // 드래그 — 그룹 3존 재부모 (GroupTree_*) + 메모→그룹 이동 (GroupNode_DropNote)
     // -----------------------------------------------------------------
 
-    /// 그룹 순서변경 드래그 시작 (PreviewMouseMove에서 DoDragDrop 호출).
-    /// 드래그 데이터로 SidebarNodes 인덱스가 아닌 실제 Group.Id를 저장한다
-    /// (SidebarNodes는 비시스템→(미분류)→시스템 순서라 GroupVm.Groups 인덱스와 불일치).
-    private void GroupList_PreviewMouseMove(object sender, MouseEventArgs e)
+    private void GroupTree_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed) return;
-        if (!ExceededDragThreshold(e)) return;          // 클릭(선택) 보호: 임계값 이상 이동 시에만 드래그
-        if (sender is not ListBox lb) return;
-        if (lb.SelectedItem is not SidebarNodeViewModel node) return;
-        if (node.Kind != SidebarNodeKind.Group) return; // (미분류)·시스템 그룹은 드래그 불가
+        if (IsOverButton(e.OriginalSource)) return;
+        if (!ExceededDragThreshold(e)) return;
+        if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is not { Kind: SidebarNodeKind.Group } node) return;
         if (node.GroupId is not int groupId) return;
 
-        DragDrop.DoDragDrop(lb, new DataObject("groupId", groupId), DragDropEffects.Move);
+        // N7.2: Create drag ghost adorner before DoDragDrop (graceful on failure).
+        var sourceTvi = FindVisualAncestor<System.Windows.Controls.TreeViewItem>(e.OriginalSource as DependencyObject);
+        if (sourceTvi is not null)
+            _dragAdorner = DragAdorner.TryCreate(GroupTree, sourceTvi);
+
+        try
+        {
+            DragDrop.DoDragDrop(GroupTree, new DataObject("groupId", groupId), DragDropEffects.Move);
+        }
+        finally
+        {
+            // Cleanup adorners after drag ends (drop, cancel, or exception).
+            _dragAdorner?.Remove();
+            _dragAdorner = null;
+            _dropIndicator?.Remove();
+            _dropIndicator = null;
+            // N7.3: Cancel any pending spring-load expand.
+            _springLoadTimer?.Stop();
+            _springLoadTimer  = null;
+            _springLoadTarget = null;
+        }
     }
 
-    /// 그룹 순서변경: 드롭 시 Group.Id로 GroupVm.Groups 실제 인덱스를 역산해 위임.
-    private void GroupList_Drop(object sender, DragEventArgs e)
+    private void GroupTree_DragOver(object sender, DragEventArgs e)
     {
+        // 메모(noteId) 드래그: 그룹 재부모 피드백(고스트/인디케이터)이 아니라
+        // '메모가 들어갈 그룹' 강조만 갱신한다.
+        if (e.Data.GetDataPresent("noteId"))
+        {
+            UpdateNoteDropTarget(e);
+            e.Handled = true;
+            return;
+        }
+
         if (!e.Data.GetDataPresent("groupId")) return;
-        if (sender is not ListBox list) return;
 
-        var fromIndex = IndexInGroups((int)e.Data.GetData("groupId"));
-        if (fromIndex < 0) return;
+        var valid = ResolveGroupDrop(e, out _, out _);
+        e.Effects = valid ? DragDropEffects.Move : DragDropEffects.None;
 
-        // 드롭 위치의 사이드바 노드 → 그룹 노드면 그 Id로, (미분류)/시스템 위면 사용자 그룹의 맨 끝으로.
-        var targetNode = ResolveDropTargetNode(list, e);
-        var toIndex = targetNode is { Kind: SidebarNodeKind.Group, GroupId: int targetGroupId }
-            ? IndexInGroups(targetGroupId)
-            : LastUserGroupIndex();
+        // N7.2: Update ghost adorner position.
+        try { _dragAdorner?.Update(e.GetPosition(GroupTree)); }
+        catch { /* degrade gracefully */ }
 
-        if (toIndex < 0 || fromIndex == toIndex) return;
-        GroupVm.MoveGroup(fromIndex, toIndex);
+        // N7.2: Update drop indicator adorner.
+        try
+        {
+            if (valid)
+            {
+                var tvi = FindVisualAncestor<System.Windows.Controls.TreeViewItem>(
+                    GroupTree.InputHitTest(e.GetPosition(GroupTree)) as DependencyObject);
+                if (tvi is not null)
+                {
+                    var pos  = e.GetPosition(tvi);
+                    var zone = GroupDropCalculator.ZoneForOffset(pos.Y, tvi.ActualHeight);
+                    _dropIndicator ??= DropIndicatorAdorner.TryCreate(GroupTree);
+                    _dropIndicator?.Update(tvi, zone);
+                }
+                else
+                {
+                    _dropIndicator?.Clear();
+                }
+            }
+            else
+            {
+                _dropIndicator?.Clear();
+            }
+        }
+        catch { /* degrade gracefully */ }
+
+        // N7.3: Spring-loaded expand — hover 700ms over a collapsed group node → expand.
+        try
+        {
+            var tvi = FindVisualAncestor<System.Windows.Controls.TreeViewItem>(
+                GroupTree.InputHitTest(e.GetPosition(GroupTree)) as DependencyObject);
+            var hoverNode = tvi?.DataContext as SidebarNodeViewModel;
+
+            // Only spring-load if: group node, has children, and currently collapsed.
+            if (hoverNode is { Kind: SidebarNodeKind.Group, IsExpanded: false } && hoverNode.Children.Count > 0)
+            {
+                if (!ReferenceEquals(hoverNode, _springLoadTarget))
+                {
+                    // Moved to a new collapsed node — restart timer.
+                    _springLoadTimer?.Stop();
+                    _springLoadTarget = hoverNode;
+                    var capturedNode = hoverNode;
+                    var capturedTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
+                    _springLoadTimer = capturedTimer;
+                    capturedTimer.Tick += (_, _) =>
+                    {
+                        capturedTimer.Stop();
+                        if (ReferenceEquals(_springLoadTarget, capturedNode) && !capturedNode.IsExpanded)
+                            capturedNode.IsExpanded = true;
+                    };
+                    capturedTimer.Start();
+                }
+                // else: same target, timer still running — do nothing.
+            }
+            else
+            {
+                // Not a valid spring-load target: cancel any pending expand.
+                if (!ReferenceEquals(hoverNode, _springLoadTarget))
+                {
+                    _springLoadTimer?.Stop();
+                    _springLoadTarget = null;
+                }
+            }
+        }
+        catch { /* degrade gracefully — spring-load is polish only */ }
+
+        e.Handled = true;
+    }
+
+    private void GroupTree_Drop(object sender, DragEventArgs e)
+    {
+        // N7.2: Remove adorners before processing drop (cleanup even if drop fails).
+        _dragAdorner?.Remove();   _dragAdorner   = null;
+        _dropIndicator?.Remove(); _dropIndicator = null;
+
+        if (!e.Data.GetDataPresent("groupId")) return;
+        if (!ResolveGroupDrop(e, out var newParentId, out var index)) return;
+        var groupId = (int)e.Data.GetData("groupId");
+        GroupVm.MoveGroup(groupId, newParentId, index);
         ViewModel.LoadGroups();
+    }
+
+    // 포인터 아래 TreeViewItem → 3존 → (parentId, index). 무효면 false.
+    private bool ResolveGroupDrop(DragEventArgs e, out int? newParentId, out int index)
+    {
+        newParentId = null; index = 0;
+        var groupId = (int)e.Data.GetData("groupId");
+        var tvi = FindVisualAncestor<System.Windows.Controls.TreeViewItem>(
+            GroupTree.InputHitTest(e.GetPosition(GroupTree)) as DependencyObject);
+        if (tvi?.DataContext is not SidebarNodeViewModel target) return false;
+        if (target.Kind != SidebarNodeKind.Group || target.GroupId is not int targetId) return false;
+        if (targetId == groupId) return false;
+        if (GroupVm.RepoIsDescendantOf(targetId, groupId)) return false;
+
+        var pos = e.GetPosition(tvi);
+        var zone = GroupDropCalculator.ZoneForOffset(pos.Y, tvi.ActualHeight);
+        var targetGroup = GroupVm.Groups.FirstOrDefault(g => g.Id == targetId);
+        var targetParentId = targetGroup?.ParentId;
+        var siblings = GroupVm.Groups
+            .Where(g => g.ParentId == targetParentId)
+            .OrderBy(g => g.SortOrder).ThenBy(g => g.Id)
+            .Select(g => g.Id).ToList();
+        var targetIndex = siblings.IndexOf(targetId);
+        (newParentId, index) = GroupDropCalculator.Resolve(zone, targetId, targetParentId, targetIndex);
+        return true;
     }
 
     /// 메모를 그룹으로 드롭: noteId/targetGroupId 추출 후 위임.
     private void GroupNode_DropNote(object sender, DragEventArgs e)
     {
+        ClearNoteDropTarget();   // 드롭 순간 강조 해제.
         if (!e.Data.GetDataPresent("noteId")) return;
         var noteId = (int)e.Data.GetData("noteId");
         if (((FrameworkElement)sender).DataContext is SidebarNodeViewModel node)
@@ -273,6 +460,38 @@ public partial class MainWindow : Window
             GroupVm.MoveNoteToGroup(noteId, node.GroupId);
             ViewModel.LoadNotes();   // #10 이동 즉시 반영(다른 그룹으로 옮기면 현재 목록에서 사라짐)
         }
+    }
+
+    // 트리 밖으로 벗어나면 강조 해제(자식 요소로의 이동은 무시).
+    private void GroupTree_DragLeave(object sender, DragEventArgs e)
+    {
+        var pos = e.GetPosition(GroupTree);
+        if (pos.X < 0 || pos.Y < 0 || pos.X > GroupTree.ActualWidth || pos.Y > GroupTree.ActualHeight)
+            ClearNoteDropTarget();
+    }
+
+    // 포인터 아래의 그룹/(미분류) 노드를 드롭 대상으로 강조. 한 번에 하나만.
+    private void UpdateNoteDropTarget(DragEventArgs e)
+    {
+        var tvi = FindVisualAncestor<System.Windows.Controls.TreeViewItem>(
+            GroupTree.InputHitTest(e.GetPosition(GroupTree)) as DependencyObject);
+        var node = tvi?.DataContext as SidebarNodeViewModel;
+
+        // 메모는 사용자 그룹과 (미분류)에만 드롭 가능(시스템 그룹 제외).
+        var valid = node is { Kind: SidebarNodeKind.Group or SidebarNodeKind.Unclassified };
+        e.Effects = valid ? DragDropEffects.Move : DragDropEffects.None;
+
+        var target = valid ? node : null;
+        if (ReferenceEquals(target, _noteDropTarget)) return;   // 변화 없음.
+        if (_noteDropTarget is not null) _noteDropTarget.IsDropTarget = false;
+        _noteDropTarget = target;
+        if (_noteDropTarget is not null) _noteDropTarget.IsDropTarget = true;
+    }
+
+    private void ClearNoteDropTarget()
+    {
+        if (_noteDropTarget is not null) _noteDropTarget.IsDropTarget = false;
+        _noteDropTarget = null;
     }
 
     /// 메모 드래그 시작 (PreviewMouseMove에서 DoDragDrop 호출).
@@ -286,7 +505,14 @@ public partial class MainWindow : Window
         if (sender is not ListBox lb) return;
         if (lb.SelectedItem is not NoteListItemViewModel note) return;
 
-        DragDrop.DoDragDrop(lb, new DataObject("noteId", note.Id), DragDropEffects.Move);
+        try
+        {
+            DragDrop.DoDragDrop(lb, new DataObject("noteId", note.Id), DragDropEffects.Move);
+        }
+        finally
+        {
+            ClearNoteDropTarget();   // 드롭/취소/예외 무관하게 강조 해제.
+        }
     }
 
     // 드래그 임계값 판정을 위해 좌클릭 시작점을 기록(두 리스트 공용).
@@ -314,38 +540,18 @@ public partial class MainWindow : Window
     }
 
     // -----------------------------------------------------------------
-    // 인덱스 계산 헬퍼 (GroupVm.Groups 기준)
+    // 비주얼 트리 / DataContext 헬퍼
     // -----------------------------------------------------------------
 
-    /// 마우스 위치 아래의 사이드바 노드를 반환(컨테이너 중간점 기준, 없으면 마지막 노드).
-    private static SidebarNodeViewModel? ResolveDropTargetNode(ListBox list, DragEventArgs e)
+    private static T? FindDataContext<T>(object? source) where T : class
     {
-        var pos = e.GetPosition(list);
-        for (var i = 0; i < list.Items.Count; i++)
+        var d = source as DependencyObject;
+        while (d is not null)
         {
-            if (list.ItemContainerGenerator.ContainerFromIndex(i) is not ListBoxItem container) continue;
-            var pt = container.TransformToAncestor(list).Transform(new Point(0, 0));
-            if (pos.Y < pt.Y + container.ActualHeight / 2)
-                return list.Items[i] as SidebarNodeViewModel;
+            if (d is FrameworkElement fe && fe.DataContext is T t) return t;
+            d = System.Windows.Media.VisualTreeHelper.GetParent(d);
         }
-        return list.Items.Count > 0 ? list.Items[^1] as SidebarNodeViewModel : null;
-    }
-
-    /// Group.Id로 GroupVm.Groups 내 실제 인덱스를 역산(없으면 -1).
-    private int IndexInGroups(int groupId)
-    {
-        for (var i = 0; i < GroupVm.Groups.Count; i++)
-            if (GroupVm.Groups[i].Id == groupId) return i;
-        return -1;
-    }
-
-    /// GroupVm.Groups 내 마지막 사용자(비시스템) 그룹 인덱스(없으면 -1).
-    private int LastUserGroupIndex()
-    {
-        var index = -1;
-        for (var i = 0; i < GroupVm.Groups.Count; i++)
-            if (!GroupVm.Groups[i].IsSystem) index = i;
-        return index;
+        return null;
     }
 
     // -----------------------------------------------------------------

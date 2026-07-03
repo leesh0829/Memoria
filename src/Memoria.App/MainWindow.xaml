@@ -51,36 +51,70 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <!-- 사용자 그룹 + (미분류): 순서변경 드래그 + 메모 드롭 대상 -->
-                    <ListBox x:Name="GroupListBox" Grid.Row="0"
-                             Background="Transparent"
-                             ItemsSource="{Binding SidebarNodes}"
-                             SelectionChanged="GroupListBox_SelectionChanged"
-                             AllowDrop="True"
-                             Drop="GroupList_Drop"
-                             PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
-                             PreviewMouseMove="GroupList_PreviewMouseMove">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
+                    <!-- 사용자 그룹 + (미분류): 트리 구조 + 메모 드롭 대상 -->
+                    <TreeView x:Name="GroupTree" Grid.Row="0"
+                              Background="Transparent" BorderThickness="0"
+                              ItemsSource="{Binding SidebarNodes}"
+                              SelectedItemChanged="GroupTree_SelectedItemChanged"
+                              AllowDrop="True"
+                              DragOver="GroupTree_DragOver"
+                              DragLeave="GroupTree_DragLeave"
+                              Drop="GroupTree_Drop"
+                              PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="GroupTree_PreviewMouseMove">
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                 <Border Padding="0" Background="Transparent"
-                                        AllowDrop="True"
-                                        Drop="GroupNode_DropNote"
-                                        ContextMenuOpening="SidebarItem_ContextMenuOpening">
-                                    <TextBlock Text="{Binding Name}" Style="{StaticResource ListItemText}"/>
+                                        AllowDrop="True" Drop="GroupNode_DropNote"
+                                        ContextMenuOpening="SidebarItem_ContextMenuOpening"
+                                        HorizontalAlignment="Stretch">
+                                    <Grid>
+                                        <!-- 메모를 이 그룹으로 드래그 중일 때 강조(페이드 인/아웃) -->
+                                        <Border CornerRadius="3" IsHitTestVisible="False"
+                                                Background="{DynamicResource Brush.Accent}" Opacity="0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsDropTarget}" Value="True">
+                                                            <DataTrigger.EnterActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                         To="0.35" Duration="0:0:0.15"/>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.EnterActions>
+                                                            <DataTrigger.ExitActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                         To="0" Duration="0:0:0.15"/>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.ExitActions>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource ListItemTextTree}" />
+                                    </Grid>
                                     <Border.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="새 그룹" Click="OnAddGroupMenuItemClick"/>
+                                            <MenuItem Header="새 하위 그룹" Tag="Sub" Click="OnAddSubGroupMenuItemClick"/>
                                             <Separator/>
                                             <MenuItem Header="이름변경" Tag="Rename" Click="OnRenameGroupMenuItemClick"/>
                                             <MenuItem Header="색상 변경" Click="OnSetColorMenuItemClick"/>
+                                            <MenuItem Header="최상위로 이동" Tag="ToRoot" Click="OnMoveToRootMenuItemClick"/>
                                             <Separator/>
                                             <MenuItem Header="삭제" Tag="Delete" Click="OnDeleteGroupMenuItemClick"/>
                                         </ContextMenu>
                                     </Border.ContextMenu>
                                 </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
 
                     <!-- 시스템 그룹과의 가로 구분선 -->
                     <Border Grid.Row="1" Height="1" Margin="8,4" Background="{DynamicResource Brush.Border}" />
@@ -209,13 +243,37 @@
             </ContentControl>
             </Border>
 
-            <!-- Undo 토스트 (#4: MainViewModel 소유) -->
+            <!-- Undo 토스트 (#4: MainViewModel 소유) N7.3: slide-up + fade-in on appear -->
             <Border Grid.Column="0" Grid.ColumnSpan="3"
                     VerticalAlignment="Bottom" HorizontalAlignment="Center"
                     Margin="0,0,0,20" Padding="12,8"
                     Background="{DynamicResource Brush.Surface}"
                     BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
                     Visibility="{Binding IsUndoAvailable, Converter={StaticResource BoolToVis}}">
+                <Border.RenderTransform>
+                    <TranslateTransform />
+                </Border.RenderTransform>
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <!-- N7.3: slide up + fade in when toast becomes visible -->
+                            <DataTrigger Binding="{Binding IsUndoAvailable}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard FillBehavior="Stop">
+                                            <DoubleAnimation
+                                                Storyboard.TargetProperty="Opacity"
+                                                From="0" To="1" Duration="0:0:0.15"/>
+                                            <DoubleAnimation
+                                                Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                From="20" To="0" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{Binding UndoMessage}"
                                Foreground="{DynamicResource Brush.Foreground}"
