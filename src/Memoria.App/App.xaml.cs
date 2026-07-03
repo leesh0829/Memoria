@@ -71,6 +71,8 @@ public partial class App : Application
         sc.AddMemoriaCore(AppPaths.DatabaseFile);   // M1 Core: 초기화/리포지토리/서비스 + 단일 직렬 라이터(busy_timeout=5000)
         sc.AddSingleton<TimeProvider>(TimeProvider.System);
         sc.AddSingleton<IRecoveryJournal>(_ => new RecoveryJournal(AppPaths.RecoveryDirectory));
+        sc.AddSingleton<Memoria.Core.Attachments.IAttachmentService>(
+            _ => new Memoria.Core.Attachments.AttachmentService(AppPaths.DataDirectory));
         sc.AddSingleton<IAutosaveService>(sp =>
         {
             var settings = sp.GetRequiredService<ISettingsRepository>();

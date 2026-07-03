@@ -15,9 +15,12 @@ public static class AppPaths
 
     public static string RecoveryDirectory => Path.Combine(DataDirectory, "recovery");
 
+    public static string AttachmentsDirectory => Path.Combine(DataDirectory, "attachments");
+
     public static void EnsureDirectories()
     {
         Directory.CreateDirectory(DataDirectory);
         Directory.CreateDirectory(RecoveryDirectory);
+        Directory.CreateDirectory(AttachmentsDirectory);
     }
 }
