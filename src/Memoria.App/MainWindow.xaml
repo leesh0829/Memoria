@@ -58,6 +58,7 @@
                               SelectedItemChanged="GroupTree_SelectedItemChanged"
                               AllowDrop="True"
                               DragOver="GroupTree_DragOver"
+                              DragLeave="GroupTree_DragLeave"
                               Drop="GroupTree_Drop"
                               PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
                               PreviewMouseMove="GroupTree_PreviewMouseMove">
@@ -67,7 +68,37 @@
                                         AllowDrop="True" Drop="GroupNode_DropNote"
                                         ContextMenuOpening="SidebarItem_ContextMenuOpening"
                                         HorizontalAlignment="Stretch">
-                                    <TextBlock Text="{Binding Name}" Style="{StaticResource ListItemTextTree}" />
+                                    <Grid>
+                                        <!-- 메모를 이 그룹으로 드래그 중일 때 강조(페이드 인/아웃) -->
+                                        <Border CornerRadius="3" IsHitTestVisible="False"
+                                                Background="{DynamicResource Brush.Accent}" Opacity="0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsDropTarget}" Value="True">
+                                                            <DataTrigger.EnterActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                         To="0.35" Duration="0:0:0.15"/>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.EnterActions>
+                                                            <DataTrigger.ExitActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                         To="0" Duration="0:0:0.15"/>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.ExitActions>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource ListItemTextTree}" />
+                                    </Grid>
                                     <Border.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="새 그룹" Click="OnAddGroupMenuItemClick"/>

@@ -43,6 +43,9 @@ public partial class MainWindow : Window
     private DispatcherTimer?         _springLoadTimer;
     private SidebarNodeViewModel?    _springLoadTarget;
 
+    // 메모(noteId) 드래그 중 하이라이트된 드롭 대상 노드. 한 번에 하나만 강조.
+    private SidebarNodeViewModel?    _noteDropTarget;
+
     public MainWindow(ISettingsRepository settings)
     {
         _settings = settings;
@@ -321,6 +324,15 @@ public partial class MainWindow : Window
 
     private void GroupTree_DragOver(object sender, DragEventArgs e)
     {
+        // 메모(noteId) 드래그: 그룹 재부모 피드백(고스트/인디케이터)이 아니라
+        // '메모가 들어갈 그룹' 강조만 갱신한다.
+        if (e.Data.GetDataPresent("noteId"))
+        {
+            UpdateNoteDropTarget(e);
+            e.Handled = true;
+            return;
+        }
+
         if (!e.Data.GetDataPresent("groupId")) return;
 
         var valid = ResolveGroupDrop(e, out _, out _);
@@ -440,6 +452,7 @@ public partial class MainWindow : Window
     /// 메모를 그룹으로 드롭: noteId/targetGroupId 추출 후 위임.
     private void GroupNode_DropNote(object sender, DragEventArgs e)
     {
+        ClearNoteDropTarget();   // 드롭 순간 강조 해제.
         if (!e.Data.GetDataPresent("noteId")) return;
         var noteId = (int)e.Data.GetData("noteId");
         if (((FrameworkElement)sender).DataContext is SidebarNodeViewModel node)
@@ -447,6 +460,38 @@ public partial class MainWindow : Window
             GroupVm.MoveNoteToGroup(noteId, node.GroupId);
             ViewModel.LoadNotes();   // #10 이동 즉시 반영(다른 그룹으로 옮기면 현재 목록에서 사라짐)
         }
+    }
+
+    // 트리 밖으로 벗어나면 강조 해제(자식 요소로의 이동은 무시).
+    private void GroupTree_DragLeave(object sender, DragEventArgs e)
+    {
+        var pos = e.GetPosition(GroupTree);
+        if (pos.X < 0 || pos.Y < 0 || pos.X > GroupTree.ActualWidth || pos.Y > GroupTree.ActualHeight)
+            ClearNoteDropTarget();
+    }
+
+    // 포인터 아래의 그룹/(미분류) 노드를 드롭 대상으로 강조. 한 번에 하나만.
+    private void UpdateNoteDropTarget(DragEventArgs e)
+    {
+        var tvi = FindVisualAncestor<System.Windows.Controls.TreeViewItem>(
+            GroupTree.InputHitTest(e.GetPosition(GroupTree)) as DependencyObject);
+        var node = tvi?.DataContext as SidebarNodeViewModel;
+
+        // 메모는 사용자 그룹과 (미분류)에만 드롭 가능(시스템 그룹 제외).
+        var valid = node is { Kind: SidebarNodeKind.Group or SidebarNodeKind.Unclassified };
+        e.Effects = valid ? DragDropEffects.Move : DragDropEffects.None;
+
+        var target = valid ? node : null;
+        if (ReferenceEquals(target, _noteDropTarget)) return;   // 변화 없음.
+        if (_noteDropTarget is not null) _noteDropTarget.IsDropTarget = false;
+        _noteDropTarget = target;
+        if (_noteDropTarget is not null) _noteDropTarget.IsDropTarget = true;
+    }
+
+    private void ClearNoteDropTarget()
+    {
+        if (_noteDropTarget is not null) _noteDropTarget.IsDropTarget = false;
+        _noteDropTarget = null;
     }
 
     /// 메모 드래그 시작 (PreviewMouseMove에서 DoDragDrop 호출).
@@ -460,7 +505,14 @@ public partial class MainWindow : Window
         if (sender is not ListBox lb) return;
         if (lb.SelectedItem is not NoteListItemViewModel note) return;
 
-        DragDrop.DoDragDrop(lb, new DataObject("noteId", note.Id), DragDropEffects.Move);
+        try
+        {
+            DragDrop.DoDragDrop(lb, new DataObject("noteId", note.Id), DragDropEffects.Move);
+        }
+        finally
+        {
+            ClearNoteDropTarget();   // 드롭/취소/예외 무관하게 강조 해제.
+        }
     }
 
     // 드래그 임계값 판정을 위해 좌클릭 시작점을 기록(두 리스트 공용).
