@@ -23,7 +23,7 @@ public class DatabaseInitializerTests
             File.Exists(path).Should().BeTrue();
 
             using var conn = factory.Open();
-            conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(1);
+            conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(2);   // v2: body_format 마이그레이션 후
             conn.ExecuteScalar<string>("PRAGMA journal_mode;").Should().Be("wal");
 
             conn.ExecuteScalar<long>("SELECT COUNT(*) FROM clients;").Should().Be(6);
