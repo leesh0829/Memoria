@@ -73,6 +73,9 @@ public partial class App : Application
         sc.AddSingleton<IRecoveryJournal>(_ => new RecoveryJournal(AppPaths.RecoveryDirectory));
         sc.AddSingleton<Memoria.Core.Attachments.IAttachmentService>(
             _ => new Memoria.Core.Attachments.AttachmentService(AppPaths.DataDirectory));
+        sc.AddSingleton<Memoria.App.Services.IMarkdownRenderer>(
+            sp => new Memoria.App.Services.MarkdownRenderer(
+                sp.GetRequiredService<Memoria.Core.Attachments.IAttachmentService>()));
         sc.AddSingleton<IAutosaveService>(sp =>
         {
             var settings = sp.GetRequiredService<ISettingsRepository>();
