@@ -17,4 +17,7 @@ public static class SettingsKeys
     public const string BackupRetentionCount = "backup.retentionCount";
     public const string TrashRetentionDays = "trash.retentionDays";
     public const string AutosaveDebounceMs = "autosave.debounceMs";
+    public const string GoogleServiceAccountJsonPath = "google.serviceAccountJsonPath";
+    public const string GoogleSheetId = "google.sheetId";
+    public const string GoogleSheetTabName = "google.sheetTabName";
 }
