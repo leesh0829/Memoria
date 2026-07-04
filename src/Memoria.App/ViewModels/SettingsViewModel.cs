@@ -45,6 +45,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _reportIndent = "\t";
     [ObservableProperty] private bool _includeDoneOnly;
 
+    [ObservableProperty] private string _serviceAccountJsonPath = "";
+    [ObservableProperty] private string _sheetId = "";
+    [ObservableProperty] private string _sheetTabName = "일자 작업내역";
+
     [ObservableProperty] private string _hotkeyNewNote = "Ctrl+Alt+N";
     [ObservableProperty] private bool _autostartEnabled = true;   // backing: Autostart
     [ObservableProperty] private bool _closeToTray = true;
@@ -84,6 +88,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         IssueHeaderB = _settings.GetOrDefault(SettingsKeys.FormatBIssueHeader, "* 이슈사항:");
         ReportIndent = _settings.GetOrDefault(SettingsKeys.ReportIndent, "\t");
         IncludeDoneOnly = bool.Parse(_settings.GetOrDefault(SettingsKeys.IncludeDoneOnly, "false"));
+
+        ServiceAccountJsonPath = _settings.GetOrDefault(SettingsKeys.GoogleServiceAccountJsonPath, "");
+        SheetId = _settings.GetOrDefault(SettingsKeys.GoogleSheetId, "");
+        SheetTabName = _settings.GetOrDefault(SettingsKeys.GoogleSheetTabName, "일자 작업내역");
 
         HotkeyNewNote = _settings.GetOrDefault(SettingsKeys.HotkeyNewNote, "Ctrl+Alt+N");
         AutostartEnabled = bool.Parse(_settings.GetOrDefault(SettingsKeys.Autostart, "true"));
@@ -127,6 +135,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.Set(SettingsKeys.FormatBIssueHeader, IssueHeaderB);
         _settings.Set(SettingsKeys.ReportIndent, ReportIndent);
         _settings.Set(SettingsKeys.IncludeDoneOnly, IncludeDoneOnly ? "true" : "false");
+
+        _settings.Set(SettingsKeys.GoogleServiceAccountJsonPath, ServiceAccountJsonPath ?? "");
+        _settings.Set(SettingsKeys.GoogleSheetId, SheetId ?? "");
+        _settings.Set(SettingsKeys.GoogleSheetTabName, string.IsNullOrWhiteSpace(SheetTabName) ? "일자 작업내역" : SheetTabName);
 
         _settings.Set(SettingsKeys.HotkeyNewNote, HotkeyNewNote);
         _settings.Set(SettingsKeys.Autostart, AutostartEnabled ? "true" : "false");

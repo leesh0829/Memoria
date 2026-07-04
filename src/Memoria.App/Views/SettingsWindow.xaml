@@ -122,5 +122,23 @@
                 <TextBox Text="{Binding TrashRetentionDays}" Width="80" HorizontalAlignment="Left" />
             </StackPanel>
         </TabItem>
+
+        <!-- 구글 연동 탭 -->
+        <TabItem Header="구글 연동">
+            <StackPanel Margin="12">
+                <TextBlock Text="서비스 계정 JSON 키 경로" />
+                <StackPanel Orientation="Horizontal">
+                    <TextBox Text="{Binding ServiceAccountJsonPath}" Width="360" />
+                    <Button Content="찾아보기…" Margin="6,0,0,0" Click="OnBrowseJsonClick" />
+                </StackPanel>
+                <TextBlock Text="스프레드시트 ID (시트 URL의 /d/{ID}/ 부분)" Margin="0,8,0,0" />
+                <TextBox Text="{Binding SheetId}" />
+                <TextBlock Text="탭(시트) 이름" Margin="0,8,0,0" />
+                <TextBox Text="{Binding SheetTabName}" Width="220" HorizontalAlignment="Left" />
+                <TextBlock Text="※ 구글 클라우드에서 서비스 계정 JSON 키를 만들고, 이 시트를 서비스 계정 이메일과 '뷰어'로 공유하세요."
+                           TextWrapping="Wrap" Margin="0,8,0,0"
+                           Foreground="{DynamicResource Brush.SecondaryForeground}" />
+            </StackPanel>
+        </TabItem>
     </TabControl>
 </Window>
