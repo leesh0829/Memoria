@@ -106,3 +106,23 @@ internal sealed class FakeConfirmationDialogService : IConfirmationDialogService
     public string? LastMessage { get; private set; }
     public bool Confirm(string message) { CallCount++; LastMessage = message; return Result; }
 }
+
+internal sealed class FakeSpreadsheetReader : Memoria.Core.Sheets.ISpreadsheetReader
+{
+    public IReadOnlyList<IReadOnlyList<string>> Grid { get; set; } =
+        new List<IReadOnlyList<string>>();
+    public string? LastSheetId { get; private set; }
+    public string? LastTabName { get; private set; }
+    public int CallCount { get; private set; }
+    public System.Exception? Throw { get; set; }
+
+    public System.Threading.Tasks.Task<IReadOnlyList<IReadOnlyList<string>>> ReadRowsAsync(
+        string sheetId, string tabName, System.Threading.CancellationToken ct = default)
+    {
+        CallCount++;
+        LastSheetId = sheetId;
+        LastTabName = tabName;
+        if (Throw is not null) throw Throw;
+        return System.Threading.Tasks.Task.FromResult(Grid);
+    }
+}

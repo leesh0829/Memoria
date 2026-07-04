@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Memoria.Core.Classification;
 using Memoria.Core.Data;
 using Memoria.Core.Models;
 using Memoria.Core.Reporting;
 using Memoria.Core.Services;
+using Memoria.Core.Sheets;
 
 namespace Memoria.Tests.App.Fakes;
 
@@ -84,6 +87,13 @@ internal sealed class FakeSearchService : ISearchService
     public IReadOnlyList<SearchHit> Search(string query) { LastQuery = query; return Result; }
 }
 
+internal sealed class FakeSheetReader : ISpreadsheetReader
+{
+    public Task<IReadOnlyList<IReadOnlyList<string>>> ReadRowsAsync(
+        string sheetId, string tabName, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<IReadOnlyList<string>>>(new List<IReadOnlyList<string>>());
+}
+
 // M9 MainViewModel 의 신규 required 파라미터(ISearchService + 하위 에디터 VM 팩토리)를
 // 기본 페이크로 채워주는 공용 헬퍼. M9 이전 테스트 헬퍼의 후방 호환성을 위해 사용한다.
 internal static class M9EditorFakes
@@ -97,5 +107,6 @@ internal static class M9EditorFakes
         INoteRepository notes, IGroupRepository groups, TimeProvider time) =>
         () => new Memoria.App.ViewModels.WeeklyReportViewModel(
             new FakeWeeklyReportService(), new FakeWeekCalc(), notes, new FakeClientRepo(),
-            groups, new FakeSettings(), new FakeClipboard(), new FakeConfirm(), time);
+            groups, new FakeSettings(), new FakeClipboard(), new FakeConfirm(), time,
+            new FakeSheetReader());
 }

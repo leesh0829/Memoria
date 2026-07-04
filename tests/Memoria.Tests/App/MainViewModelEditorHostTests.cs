@@ -29,7 +29,7 @@ public class MainViewModelEditorHostTests
         Func<WeeklyReportViewModel> weeklyFactory = () =>
             new WeeklyReportViewModel(new FakeWeeklyReportService(), new FakeWeekCalc(), notes,
                 new FakeClientRepo(), groups, new FakeSettings(), new FakeClipboard(),
-                new FakeConfirm(), time);
+                new FakeConfirm(), time, new FakeSheetReader());
 
         var vm = new MainViewModel(groups, notes, autosave, recovery, time,
             search, checklistFactory, weeklyFactory);
