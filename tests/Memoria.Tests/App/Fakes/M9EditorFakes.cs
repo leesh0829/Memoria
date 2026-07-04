@@ -50,6 +50,13 @@ internal sealed class FakeWeeklyReportService : IWeeklyReportService
         new(new WeeklyReportData(new List<ReportTask>(), new List<ReportIssue>()), 0,
             options.WeekStart, options.WeekEnd);
     public string Render(ReportFormatKind format, WeeklyReportData data, ReportRenderOptions options) => "";
+    public WeeklyReportBuildResult BuildFromTexts(
+        IReadOnlyList<string> taskTexts, IReadOnlyList<string> issueTexts,
+        DateOnly monday, DateOnly friday, ReportRenderOptions options) =>
+        new(new WeeklyReportData(
+                taskTexts.Select(t => new ReportTask(t, null, true)).ToList(),
+                issueTexts.Select(t => new ReportIssue(t)).ToList()),
+            0, monday, friday);
 }
 
 internal sealed class FakeClipboard : Memoria.App.Services.IClipboardService

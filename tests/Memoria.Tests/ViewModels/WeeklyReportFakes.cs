@@ -52,6 +52,25 @@ internal sealed class FakeWeeklyReportService : IWeeklyReportService
         LastRenderFormat = format;
         return RenderResult;
     }
+
+    public IReadOnlyList<string>? LastTaskTexts { get; private set; }
+    public IReadOnlyList<string>? LastIssueTexts { get; private set; }
+    public int BuildFromTextsCallCount { get; private set; }
+
+    public WeeklyReportBuildResult BuildFromTexts(
+        IReadOnlyList<string> taskTexts, IReadOnlyList<string> issueTexts,
+        DateOnly monday, DateOnly friday, ReportRenderOptions options)
+    {
+        BuildFromTextsCallCount++;
+        LastTaskTexts = taskTexts;
+        LastIssueTexts = issueTexts;
+        LastOptions = options;
+        return new WeeklyReportBuildResult(
+            new WeeklyReportData(
+                taskTexts.Select(t => new ReportTask(t, null, true)).ToList(),
+                issueTexts.Select(t => new ReportIssue(t)).ToList()),
+            0, monday, friday);
+    }
 }
 
 internal sealed class FakeClientRepository : IClientRepository
