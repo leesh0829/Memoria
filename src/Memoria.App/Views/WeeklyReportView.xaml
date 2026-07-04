@@ -26,6 +26,8 @@
             <Button Content="생성" Command="{Binding GenerateCommand}" Margin="0,0,4,4" Padding="10,2"/>
             <Button Content="다시 생성" Command="{Binding RegenerateCommand}" Margin="0,0,4,4" Padding="10,2"/>
             <Button Content="복사" Command="{Binding CopyCommand}" Margin="0,0,4,4" Padding="10,2"/>
+            <Button Content="구글 시트에서 생성" Command="{Binding GenerateFromSheetCommand}"
+                    Margin="0,0,4,4" Padding="10,2"/>
         </WrapPanel>
 
         <!-- 미분류 경고 배너 -->
