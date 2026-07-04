@@ -295,6 +295,36 @@ public class WeeklyReportViewModelTests
     }
 
     [Fact]
+    public async Task GenerateFromSheet_EmptyWeek_ShowsMessageAndDoesNotPersist()
+    {
+        // Row date is OUTSIDE the selected week (2026-06-24 week = 6/22~6/26).
+        // Row date 2026-06-15 (Monday of prior week) → parser yields zero tasks/issues.
+        var reader = new FakeSpreadsheetReader
+        {
+            Grid = new List<IReadOnlyList<string>>
+            {
+                new List<string> { "일자", "작업내역", "특이사항" },
+                new List<string> { "2026.06.15 (월)", "1. 지난주 업무", "" },
+            },
+        };
+        var (vm, svc, notes, _, _, settings, _, dlg) = CreateSut(
+            now: new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero),
+            reader: reader);
+        settings.Set(SettingsKeys.GoogleSheetId, "SHEET123");
+        settings.Set(SettingsKeys.GoogleSheetTabName, "일자 작업내역");
+        vm.SelectedDate = new DateOnly(2026, 6, 24);   // week = 6/22~6/26
+
+        await vm.GenerateFromSheetCommand.ExecuteAsync(null);
+
+        dlg.CallCount.Should().Be(1);
+        dlg.LastMessage.Should().Contain("시트 행이 없습니다");
+        svc.BuildFromTextsCallCount.Should().Be(0);  // BuildFromTexts not called
+        notes.Created.Should().BeEmpty();            // nothing persisted
+        notes.Updated.Should().BeEmpty();
+        vm.ReportText.Should().BeEmpty();            // ReportText unchanged (still "")
+    }
+
+    [Fact]
     public async Task GenerateFromSheet_ReadsGrid_ParsesWeek_BuildsAndSetsReportText()
     {
         var reader = new FakeSpreadsheetReader

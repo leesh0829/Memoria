@@ -34,7 +34,7 @@ public sealed class GoogleSheetReader : ISpreadsheetReader
             ApplicationName = "Memoria",
         });
 
-        var request = service.Spreadsheets.Values.Get(sheetId, $"{tabName}!A:C");
+        var request = service.Spreadsheets.Values.Get(sheetId, SheetA1.Range(tabName, "A:C"));
         var response = await request.ExecuteAsync(ct).ConfigureAwait(false);
 
         var grid = new List<IReadOnlyList<string>>();

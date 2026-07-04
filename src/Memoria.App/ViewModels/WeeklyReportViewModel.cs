@@ -202,6 +202,11 @@ public partial class WeeklyReportViewModel : ObservableObject
         {
             var grid = await _sheetReader.ReadRowsAsync(sheetId, tabName);
             var parsed = SheetWorkParser.Parse(grid, monday, friday);
+            if (parsed.Tasks.Count == 0 && parsed.Issues.Count == 0)
+            {
+                _dialogs.Confirm("이번 주에 해당하는 시트 행이 없습니다. 주(날짜)와 탭 이름을 확인하세요.");
+                return;
+            }
             var options = BuildOptions(monday, friday);
             var build = _reportService.BuildFromTexts(parsed.Tasks, parsed.Issues, monday, friday, options);
             UnclassifiedTaskCount = build.UnclassifiedTaskCount;
