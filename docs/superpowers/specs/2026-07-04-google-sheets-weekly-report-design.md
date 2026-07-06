@@ -46,7 +46,7 @@
 - **App 구현 `GoogleSheetReader`**(Google.Apis 사용):
   - `GoogleCredential.FromFile(jsonPath).CreateScoped(SheetsService.Scope.SpreadsheetsReadonly)`로 서비스계정 인증.
   - `new SheetsService(new BaseClientService.Initializer { HttpClientInitializer = credential, ApplicationName = "Memoria" })`.
-  - `spreadsheets.values.get(sheetId, "{tab}!A:C")` (async) → `IList<IList<object>>` → `string` 격자로 변환(null 셀 → "").
+  - `spreadsheets.values.get(sheetId, "'{tab}'!A:C")` — 탭 이름은 작은따옴표로 감싸 공백·특수문자를 안전하게 처리(내부 따옴표는 `''` 이스케이프). `SheetA1.Range(tabName, "A:C")` 사용 (async) → `IList<IList<object>>` → `string` 격자로 변환(null 셀 → "").
   - **읽기 전용 스코프만** 사용. 시트 쓰기 API 미사용.
 - 어댑터는 얇게: 인증·fetch·격자 변환만. 파싱/분류/렌더는 하지 않음.
 

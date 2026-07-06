@@ -23,4 +23,11 @@ public partial class SettingsWindow : Window
         // 창을 닫을 때 비-테마 설정을 일괄 저장한다.
         Closed += (_, _) => settingsVm.SaveCommand.Execute(null);
     }
+
+    private void OnBrowseJsonClick(object sender, System.Windows.RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "JSON 키|*.json|모든 파일|*.*" };
+        if (dlg.ShowDialog() == true && DataContext is SettingsViewModel vm)
+            vm.ServiceAccountJsonPath = dlg.FileName;
+    }
 }

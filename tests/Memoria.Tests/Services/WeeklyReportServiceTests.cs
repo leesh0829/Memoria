@@ -100,6 +100,33 @@ public class WeeklyReportServiceTests
     }
 
     [Fact]
+    public void BuildFromTexts_ClassifiesTasks_WrapsIssues_CountsUnclassified()
+    {
+        using var db = new TestDb();
+        var (svc, _, _, clients) = Build(db);
+        var sldId = clients.GetAll().Single(c => c.Name == "SLD").Id;
+        var options = new ReportRenderOptions
+        {
+            WeekStart = new DateOnly(2026, 6, 22),
+            WeekEnd = new DateOnly(2026, 6, 26),
+            Clients = clients.GetAll(enabledOnly: true),
+        };
+
+        var result = svc.BuildFromTexts(
+            new[] { "SLD 점검", "기타 정리" },
+            new[] { "장비 오류" },
+            new DateOnly(2026, 6, 22), new DateOnly(2026, 6, 26), options);
+
+        result.Monday.Should().Be(new DateOnly(2026, 6, 22));
+        result.Friday.Should().Be(new DateOnly(2026, 6, 26));
+        result.Data.Tasks.Should().HaveCount(2);
+        result.Data.Tasks.Should().OnlyContain(t => t.Done);   // 시트엔 완료여부 없음 → 전부 완료
+        result.Data.Tasks.Should().Contain(t => t.Text == "SLD 점검" && t.ClientId == sldId);
+        result.Data.Issues.Should().ContainSingle(i => i.Text == "장비 오류");
+        result.UnclassifiedTaskCount.Should().Be(1);
+    }
+
+    [Fact]
     public void Build_IncludeDoneOnly_AffectsUnclassifiedCount()
     {
         using var db = new TestDb();

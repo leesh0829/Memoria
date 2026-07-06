@@ -15,4 +15,8 @@ public interface IWeeklyReportService
     WeeklyReportBuildResult Build(DateOnly anyDateInWeek, ReportRenderOptions options);
     /// 렌더(IWeeklyReportRenderer 위임).
     string Render(ReportFormatKind format, WeeklyReportData data, ReportRenderOptions options);
+    /// 시트 등 텍스트 목록에서 빌드(자동 분류, Done=true). 체크리스트 경로와 병존.
+    WeeklyReportBuildResult BuildFromTexts(
+        IReadOnlyList<string> taskTexts, IReadOnlyList<string> issueTexts,
+        DateOnly monday, DateOnly friday, ReportRenderOptions options);
 }

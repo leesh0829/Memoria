@@ -66,4 +66,23 @@ public sealed class WeeklyReportService : IWeeklyReportService
 
     public string Render(ReportFormatKind format, WeeklyReportData data, ReportRenderOptions options)
         => _renderer.Render(format, data, options);
+
+    public WeeklyReportBuildResult BuildFromTexts(
+        IReadOnlyList<string> taskTexts, IReadOnlyList<string> issueTexts,
+        DateOnly monday, DateOnly friday, ReportRenderOptions options)
+    {
+        var rules = _clients.GetRules();
+        var enabledIds = _clients.GetAll(enabledOnly: true).Select(c => c.Id).ToHashSet();
+
+        var tasks = taskTexts
+            .Select(t => new ReportTask(t, _classifier.Classify(t, rules, enabledIds), Done: true))
+            .ToList();
+        var issues = issueTexts.Select(t => new ReportIssue(t)).ToList();
+
+        var relevant = options.IncludeDoneOnly ? tasks.Where(t => t.Done) : tasks;
+        int unclassified = relevant.Count(t => t.ClientId is null);
+
+        var data = new WeeklyReportData(tasks, issues);
+        return new WeeklyReportBuildResult(data, unclassified, monday, friday);
+    }
 }

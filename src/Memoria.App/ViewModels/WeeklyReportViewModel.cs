@@ -7,6 +7,8 @@ using Memoria.Core.Data;
 using Memoria.Core.Models;
 using Memoria.Core.Reporting;
 using Memoria.Core.Services;
+using Memoria.Core.Sheets;
+using System.Threading.Tasks;
 
 namespace Memoria.App.ViewModels;
 
@@ -21,6 +23,7 @@ public partial class WeeklyReportViewModel : ObservableObject
     private readonly IClipboardService _clipboard;
     private readonly IConfirmationDialogService _dialogs;
     private readonly TimeProvider _timeProvider;
+    private readonly ISpreadsheetReader _sheetReader;
 
     private const string WeeklyReportGroupName = "주간보고";
 
@@ -62,7 +65,8 @@ public partial class WeeklyReportViewModel : ObservableObject
         ISettingsRepository settings,
         IClipboardService clipboard,
         IConfirmationDialogService dialogs,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ISpreadsheetReader sheetReader)
     {
         _reportService = reportService;
         _weekCalculator = weekCalculator;
@@ -73,6 +77,7 @@ public partial class WeeklyReportViewModel : ObservableObject
         _clipboard = clipboard;
         _dialogs = dialogs;
         _timeProvider = timeProvider;
+        _sheetReader = sheetReader;
 
         // 기본 = 오늘이 포함된 주. 부작용(리포지토리 호출)을 피하려고 backing field에 직접 설정.
         _selectedDate = DateOnly.FromDateTime(_timeProvider.GetLocalNow().DateTime);
@@ -180,6 +185,41 @@ public partial class WeeklyReportViewModel : ObservableObject
     // #5 양식 전환 시: 해당 양식으로 저장된 보고서가 있으면 재사용, 없으면 즉시 새로 렌더한다.
     //    (이전엔 LoadExisting이 없는 경우 ReportText를 비워 화면이 빈 채로 남는 버그가 있었다.)
     partial void OnSelectedFormatChanged(ReportFormatKind value) => Generate();
+
+    [RelayCommand]
+    private async Task GenerateFromSheet()
+    {
+        var monday = WeekStart;
+        var friday = WeekEnd;
+        var sheetId = _settings.GetOrDefault(SettingsKeys.GoogleSheetId, "");
+        var tabName = _settings.GetOrDefault(SettingsKeys.GoogleSheetTabName, "일자 작업내역");
+        if (string.IsNullOrWhiteSpace(sheetId))
+        {
+            _dialogs.Confirm("구글 시트 ID가 설정되지 않았습니다. 설정 > 구글 연동에서 입력하세요.");
+            return;
+        }
+        try
+        {
+            var grid = await _sheetReader.ReadRowsAsync(sheetId, tabName);
+            var parsed = SheetWorkParser.Parse(grid, monday, friday);
+            if (parsed.Tasks.Count == 0 && parsed.Issues.Count == 0)
+            {
+                _dialogs.Confirm("이번 주에 해당하는 시트 행이 없습니다. 주(날짜)와 탭 이름을 확인하세요.");
+                return;
+            }
+            var options = BuildOptions(monday, friday);
+            var build = _reportService.BuildFromTexts(parsed.Tasks, parsed.Issues, monday, friday, options);
+            UnclassifiedTaskCount = build.UnclassifiedTaskCount;
+            var text = _reportService.Render(SelectedFormat, build.Data, options);
+            ReportText = text;
+            var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
+            Persist(monday, existing, text);
+        }
+        catch (System.Exception ex)
+        {
+            _dialogs.Confirm($"구글 시트에서 가져오지 못했습니다: {ex.Message}");
+        }
+    }
 
     [RelayCommand]
     private void Copy() => _clipboard.SetText(ReportText ?? "");

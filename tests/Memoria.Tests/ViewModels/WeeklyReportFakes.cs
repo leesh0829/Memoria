@@ -52,6 +52,25 @@ internal sealed class FakeWeeklyReportService : IWeeklyReportService
         LastRenderFormat = format;
         return RenderResult;
     }
+
+    public IReadOnlyList<string>? LastTaskTexts { get; private set; }
+    public IReadOnlyList<string>? LastIssueTexts { get; private set; }
+    public int BuildFromTextsCallCount { get; private set; }
+
+    public WeeklyReportBuildResult BuildFromTexts(
+        IReadOnlyList<string> taskTexts, IReadOnlyList<string> issueTexts,
+        DateOnly monday, DateOnly friday, ReportRenderOptions options)
+    {
+        BuildFromTextsCallCount++;
+        LastTaskTexts = taskTexts;
+        LastIssueTexts = issueTexts;
+        LastOptions = options;
+        return new WeeklyReportBuildResult(
+            new WeeklyReportData(
+                taskTexts.Select(t => new ReportTask(t, null, true)).ToList(),
+                issueTexts.Select(t => new ReportIssue(t)).ToList()),
+            0, monday, friday);
+    }
 }
 
 internal sealed class FakeClientRepository : IClientRepository
@@ -86,4 +105,24 @@ internal sealed class FakeConfirmationDialogService : IConfirmationDialogService
     public int CallCount { get; private set; }
     public string? LastMessage { get; private set; }
     public bool Confirm(string message) { CallCount++; LastMessage = message; return Result; }
+}
+
+internal sealed class FakeSpreadsheetReader : Memoria.Core.Sheets.ISpreadsheetReader
+{
+    public IReadOnlyList<IReadOnlyList<string>> Grid { get; set; } =
+        new List<IReadOnlyList<string>>();
+    public string? LastSheetId { get; private set; }
+    public string? LastTabName { get; private set; }
+    public int CallCount { get; private set; }
+    public System.Exception? Throw { get; set; }
+
+    public System.Threading.Tasks.Task<IReadOnlyList<IReadOnlyList<string>>> ReadRowsAsync(
+        string sheetId, string tabName, System.Threading.CancellationToken ct = default)
+    {
+        CallCount++;
+        LastSheetId = sheetId;
+        LastTabName = tabName;
+        if (Throw is not null) throw Throw;
+        return System.Threading.Tasks.Task.FromResult(Grid);
+    }
 }

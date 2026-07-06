@@ -13,7 +13,8 @@ public class WeeklyReportViewModelTests
 {
     private static (WeeklyReportViewModel vm, FakeWeeklyReportService svc, FakeNoteRepository notes,
         FakeClientRepository clients, FakeGroupRepository groups, FakeSettingsRepository settings,
-        FakeClipboardService clip, FakeConfirmationDialogService dlg) CreateSut(DateTimeOffset? now = null)
+        FakeClipboardService clip, FakeConfirmationDialogService dlg) CreateSut(
+        DateTimeOffset? now = null, FakeSpreadsheetReader? reader = null)
     {
         var svc = new FakeWeeklyReportService();
         var notes = new FakeNoteRepository();
@@ -27,7 +28,8 @@ public class WeeklyReportViewModelTests
         var dlg = new FakeConfirmationDialogService();
         var vm = new WeeklyReportViewModel(
             svc, new FakeWeekCalculator(), notes, clients, groups, settings, clip, dlg,
-            new WeeklyReportFixedTimeProvider(now ?? new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero)));
+            new WeeklyReportFixedTimeProvider(now ?? new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero)),
+            reader ?? new FakeSpreadsheetReader());
         return (vm, svc, notes, clients, groups, settings, clip, dlg);
     }
 
@@ -290,5 +292,63 @@ public class WeeklyReportViewModelTests
         vm.SelectedFormat = ReportFormatKind.B;
 
         vm.ReportText.Should().Be("B 새 본문");
+    }
+
+    [Fact]
+    public async Task GenerateFromSheet_EmptyWeek_ShowsMessageAndDoesNotPersist()
+    {
+        // Row date is OUTSIDE the selected week (2026-06-24 week = 6/22~6/26).
+        // Row date 2026-06-15 (Monday of prior week) → parser yields zero tasks/issues.
+        var reader = new FakeSpreadsheetReader
+        {
+            Grid = new List<IReadOnlyList<string>>
+            {
+                new List<string> { "일자", "작업내역", "특이사항" },
+                new List<string> { "2026.06.15 (월)", "1. 지난주 업무", "" },
+            },
+        };
+        var (vm, svc, notes, _, _, settings, _, dlg) = CreateSut(
+            now: new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero),
+            reader: reader);
+        settings.Set(SettingsKeys.GoogleSheetId, "SHEET123");
+        settings.Set(SettingsKeys.GoogleSheetTabName, "일자 작업내역");
+        vm.SelectedDate = new DateOnly(2026, 6, 24);   // week = 6/22~6/26
+
+        await vm.GenerateFromSheetCommand.ExecuteAsync(null);
+
+        dlg.CallCount.Should().Be(1);
+        dlg.LastMessage.Should().Contain("시트 행이 없습니다");
+        svc.BuildFromTextsCallCount.Should().Be(0);  // BuildFromTexts not called
+        notes.Created.Should().BeEmpty();            // nothing persisted
+        notes.Updated.Should().BeEmpty();
+        vm.ReportText.Should().BeEmpty();            // ReportText unchanged (still "")
+    }
+
+    [Fact]
+    public async Task GenerateFromSheet_ReadsGrid_ParsesWeek_BuildsAndSetsReportText()
+    {
+        var reader = new FakeSpreadsheetReader
+        {
+            Grid = new List<IReadOnlyList<string>>
+            {
+                new List<string> { "일자", "작업내역", "특이사항" },
+                new List<string> { "2026.06.24 (수)", "1. SLD 점검", "1. 장비 오류" },
+            },
+        };
+        var (vm, svc, _, _, _, settings, _, _) = CreateSut(
+            now: new DateTimeOffset(2026, 6, 24, 9, 0, 0, TimeSpan.Zero),
+            reader: reader);
+        settings.Set(SettingsKeys.GoogleSheetId, "SHEET123");
+        settings.Set(SettingsKeys.GoogleSheetTabName, "일자 작업내역");
+        svc.RenderResult = "SHEET-REPORT";
+        vm.SelectedDate = new DateOnly(2026, 6, 24);   // 월=6/22
+
+        await vm.GenerateFromSheetCommand.ExecuteAsync(null);
+
+        reader.CallCount.Should().Be(1);
+        reader.LastSheetId.Should().Be("SHEET123");
+        svc.LastTaskTexts.Should().Equal("SLD 점검");
+        svc.LastIssueTexts.Should().Equal("장비 오류");
+        vm.ReportText.Should().Be("SHEET-REPORT");
     }
 }

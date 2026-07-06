@@ -76,6 +76,8 @@ public partial class App : Application
         sc.AddSingleton<Memoria.App.Services.IMarkdownRenderer>(
             sp => new Memoria.App.Services.MarkdownRenderer(
                 sp.GetRequiredService<Memoria.Core.Attachments.IAttachmentService>()));
+        sc.AddSingleton<Memoria.Core.Sheets.ISpreadsheetReader>(
+            sp => new Memoria.App.Services.GoogleSheetReader(sp.GetRequiredService<ISettingsRepository>()));
         sc.AddSingleton<IAutosaveService>(sp =>
         {
             var settings = sp.GetRequiredService<ISettingsRepository>();
