@@ -31,6 +31,8 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<SidebarNodeViewModel> SystemNodes { get; } = new();    // #5 시스템 그룹(하단 고정)
     public ObservableCollection<NoteListItemViewModel> Notes { get; } = new();
     public ObservableCollection<SearchHit> SearchResults { get; } = new();
+    public ObservableCollection<FolderEntryViewModel> Folders { get; } = new();
+    public ObservableCollection<BreadcrumbSegmentViewModel> Breadcrumb { get; } = new();
 
     [ObservableProperty]
     private SidebarNodeViewModel? selectedNode;
@@ -213,6 +215,8 @@ public partial class MainViewModel : ObservableObject
     {
         IsUndoAvailable = false;   // 그룹 이동 등 다른 동작 시 휴지통 Undo 토스트 자동 해제
         LoadNotes();
+        BuildFolders();
+        BuildBreadcrumb();
     }
 
     partial void OnSelectedNoteChanged(NoteListItemViewModel? value)
@@ -502,6 +506,43 @@ public partial class MainViewModel : ObservableObject
         var stamp = _time.GetLocalNow().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
         PostToUi(() => SaveStatus = $"저장됨 {stamp}");
     }
+
+    private void BuildFolders()
+    {
+        Folders.Clear();
+        if (SelectedNode is null) return;
+        foreach (var child in SelectedNode.Children.Where(c => c.Kind == SidebarNodeKind.Group))
+            Folders.Add(new FolderEntryViewModel(child));
+    }
+
+    private void BuildBreadcrumb()
+    {
+        Breadcrumb.Clear();
+        if (SelectedNode is null) return;
+        var path = new System.Collections.Generic.List<SidebarNodeViewModel>();
+        if (FindPath(SidebarNodes, SelectedNode, path))
+            foreach (var n in path) Breadcrumb.Add(new BreadcrumbSegmentViewModel(n));
+        else
+            Breadcrumb.Add(new BreadcrumbSegmentViewModel(SelectedNode)); // 시스템/미분류 단일 조각
+    }
+
+    private static bool FindPath(
+        System.Collections.Generic.IEnumerable<SidebarNodeViewModel> nodes,
+        SidebarNodeViewModel target,
+        System.Collections.Generic.List<SidebarNodeViewModel> path)
+    {
+        foreach (var n in nodes)
+        {
+            path.Add(n);
+            if (ReferenceEquals(n, target)) return true;
+            if (FindPath(n.Children, target, path)) return true;
+            path.RemoveAt(path.Count - 1);
+        }
+        return false;
+    }
+
+    /// 가운데 폴더/브레드크럼 클릭 → 그 노드를 현재 폴더로.
+    public void NavigateToFolder(SidebarNodeViewModel node) => SelectedNode = node;
 
     // 시작 시 감지된 미저장 스냅샷을 DB에 반영(§8.1).
     public void ApplyRecovery(IReadOnlyList<RecoverySnapshot> snapshots)
