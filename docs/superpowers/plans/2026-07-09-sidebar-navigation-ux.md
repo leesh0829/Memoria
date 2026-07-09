@@ -477,7 +477,146 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## A5: 통합 — 빌드·테스트·퍼블리시 + GUI 체크리스트
+## A5: ⑤ 열 폭 드래그 조정 + 영속화 (App, 빌드+GUI)
+
+**Files:**
+- Modify: `src/Memoria.App/MainWindow.xaml`, `src/Memoria.App/MainWindow.xaml.cs`
+- Modify: `src/Memoria.Core/SettingsKeys.cs`
+
+**Interfaces:**
+- Consumes: `ISettingsRepository.GetOrDefault/Set` (기존; MainWindow에서 접근하는 방식은 기존 코드 확인 — `AppServices.Resolve<ISettingsRepository>()` 사용 가능).
+- Produces: `SettingsKeys.UiCol0Width`/`UiCol1Width`.
+
+> WPF → 빌드 게이트 + GUI.
+
+- [ ] **Step 1: 설정 키 추가** — `SettingsKeys.cs`의 google.* 아래에 추가
+
+```csharp
+    public const string UiCol0Width = "ui.col0Width";
+    public const string UiCol1Width = "ui.col1Width";
+    public const string UiSidebarCollapsed = "ui.sidebarCollapsed";
+```
+
+- [ ] **Step 2: 최상위 Grid에 GridSplitter + MinWidth** — `MainWindow.xaml`의 최상위 3열 Grid의 ColumnDefinitions를 확인하고, 그룹트리(열0)·가운데(열1)·에디터(열2) 사이에 GridSplitter 2개를 추가. ColumnDefinitions를 아래 형태로 조정(실제 열 순서/이름에 맞춰):
+
+```xml
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="Col0" Width="200" MinWidth="150" />  <!-- 그룹 트리 -->
+            <ColumnDefinition Width="Auto" />                               <!-- Splitter -->
+            <ColumnDefinition x:Name="Col1" Width="240" MinWidth="150" />  <!-- 가운데 패널 -->
+            <ColumnDefinition Width="Auto" />                               <!-- Splitter -->
+            <ColumnDefinition x:Name="Col2" Width="*" MinWidth="200" />    <!-- 에디터 -->
+        </Grid.ColumnDefinitions>
+```
+그리고 기존 컨텐츠들의 `Grid.Column`을 새 인덱스(0,2,4)로 재배치(그룹트리=0, 가운데=2, 에디터=4). Splitter 2개 추가:
+
+```xml
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch" Background="{DynamicResource Brush.Border}" ResizeBehavior="PreviousAndNext"/>
+        <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch" Background="{DynamicResource Brush.Border}" ResizeBehavior="PreviousAndNext"/>
+```
+> 기존 세로 구분선(Border BorderThickness) 대신/과 함께 GridSplitter가 드래그 핸들 역할. 중복 구분선은 정리.
+
+- [ ] **Step 3: 열 폭 저장/복원** — `MainWindow.xaml.cs`. 시작 시 복원(생성자/Loaded), 닫힘 시 저장(기존 Closing 핸들러 있으면 거기, 없으면 추가).
+
+```csharp
+    private void RestoreColumnWidths()
+    {
+        var s = AppServices.Resolve<Memoria.Core.Data.ISettingsRepository>();
+        if (double.TryParse(s.GetOrDefault(Memoria.Core.SettingsKeys.UiCol0Width, ""), out var w0) && w0 >= 150)
+            Col0.Width = new System.Windows.GridLength(w0);
+        if (double.TryParse(s.GetOrDefault(Memoria.Core.SettingsKeys.UiCol1Width, ""), out var w1) && w1 >= 150)
+            Col1.Width = new System.Windows.GridLength(w1);
+    }
+
+    private void SaveColumnWidths()
+    {
+        var s = AppServices.Resolve<Memoria.Core.Data.ISettingsRepository>();
+        s.Set(Memoria.Core.SettingsKeys.UiCol0Width, Col0.ActualWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        s.Set(Memoria.Core.SettingsKeys.UiCol1Width, Col1.ActualWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+```
+`RestoreColumnWidths()`를 창 Loaded에서 호출, `SaveColumnWidths()`를 창 Closing에서 호출(기존 AllowClose/Closing 로직과 공존). 실제 훅 지점은 기존 코드 확인 후 연결.
+
+- [ ] **Step 4: 빌드 확인 + 커밋**
+
+```bash
+taskkill.exe /IM Memoria.exe /F 2>/dev/null; dotnet.exe build "Memoria.sln" -c Release 2>&1 | tail -6
+git add src/Memoria.App/MainWindow.xaml src/Memoria.App/MainWindow.xaml.cs src/Memoria.Core/SettingsKeys.cs
+git commit -m "feat(ux): draggable resizable columns with min widths + persist
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## A6: ⑥ 사이드바 접기 토글 + 영속화 (App, 빌드+GUI)
+
+**Files:**
+- Modify: `src/Memoria.App/MainWindow.xaml`, `src/Memoria.App/MainWindow.xaml.cs`
+
+**Interfaces:**
+- Consumes: `Col0`/`Col1` (A5), GridSplitter 열들, `SettingsKeys.UiSidebarCollapsed` (A5), `ISettingsRepository`.
+
+- [ ] **Step 1: ☰ 버튼을 툴바 첫 항목으로** — `MainWindow.xaml` 상단 툴바에서 '새 메모' 버튼 **앞에** 추가
+
+```xml
+                <Button Content="☰" Click="OnToggleSidebarClick" Padding="8,2" Margin="0,0,4,0"
+                        ToolTip="사이드바 접기/펴기"/>
+```
+> 실제 툴바 컨테이너(StackPanel/WrapPanel)에서 '새 메모' 버튼 바로 앞에 배치.
+
+- [ ] **Step 2: 접기/펴기 + 영속화** — `MainWindow.xaml.cs`
+
+```csharp
+    private double _savedCol0 = 200, _savedCol1 = 240;
+    private bool _sidebarCollapsed;
+
+    private void OnToggleSidebarClick(object sender, System.Windows.RoutedEventArgs e)
+        => SetSidebarCollapsed(!_sidebarCollapsed, persist: true);
+
+    private void SetSidebarCollapsed(bool collapsed, bool persist)
+    {
+        if (collapsed && !_sidebarCollapsed)
+        {
+            _savedCol0 = Col0.ActualWidth > 0 ? Col0.ActualWidth : _savedCol0;
+            _savedCol1 = Col1.ActualWidth > 0 ? Col1.ActualWidth : _savedCol1;
+            Col0.Width = new System.Windows.GridLength(0);
+            Col1.Width = new System.Windows.GridLength(0);
+            Col0.MinWidth = 0; Col1.MinWidth = 0;
+            SidebarSplitter0.Visibility = System.Windows.Visibility.Collapsed;
+            SidebarSplitter1.Visibility = System.Windows.Visibility.Collapsed;
+        }
+        else if (!collapsed && _sidebarCollapsed)
+        {
+            Col0.MinWidth = 150; Col1.MinWidth = 150;
+            Col0.Width = new System.Windows.GridLength(_savedCol0);
+            Col1.Width = new System.Windows.GridLength(_savedCol1);
+            SidebarSplitter0.Visibility = System.Windows.Visibility.Visible;
+            SidebarSplitter1.Visibility = System.Windows.Visibility.Visible;
+        }
+        _sidebarCollapsed = collapsed;
+        if (persist)
+            AppServices.Resolve<Memoria.Core.Data.ISettingsRepository>()
+                .Set(Memoria.Core.SettingsKeys.UiSidebarCollapsed, collapsed ? "true" : "false");
+    }
+```
+> A5의 두 GridSplitter에 `x:Name="SidebarSplitter0"`/`SidebarSplitter1` 부여. `RestoreColumnWidths()` 뒤에 `if (설정 sidebarCollapsed==true) SetSidebarCollapsed(true, persist:false);` 호출로 시작 시 복원.
+
+- [ ] **Step 3: 빌드 확인 + 커밋**
+
+```bash
+taskkill.exe /IM Memoria.exe /F 2>/dev/null; dotnet.exe build "Memoria.sln" -c Release 2>&1 | tail -6
+git add src/Memoria.App/MainWindow.xaml src/Memoria.App/MainWindow.xaml.cs
+git commit -m "feat(ux): sidebar collapse toggle (☰) with persist
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+## A7: 통합 — 빌드·테스트·퍼블리시 + GUI 체크리스트
 
 **Files:** 없음(검증).
 
@@ -502,7 +641,9 @@ ls -la --time-style=+%H:%M publish/Memoria.exe
   2. **②** 선택된 그룹/시스템그룹/메모를 **다시 클릭 → 해제**(그룹 해제=가운데 비움, 메모 해제=에디터 닫힘). **드래그(메모→그룹, 그룹 재부모)는 여전히 동작**.
   3. **④** 하위 그룹 있는 그룹 클릭 → 가운데에 📁 하위 그룹 + 메모, 폴더 클릭 → 드릴다운, **브레드크럼**으로 상위 이동, 왼쪽 트리도 따라 선택/펼침.
   4. 하위 없는 그룹/(미분류)/시스템 그룹 → 폴더 행 없이 기존처럼 메모만.
-  5. 다크/라이트 대비.
+  5. **⑤** 열 사이 구분선을 드래그해 폭 조정, 각 열 최소 폭 이하로 안 줄어듦, **재시작 후 폭 복원**.
+  6. **⑥** ☰ 버튼으로 사이드바(그룹트리+가운데) 접기/펴기, **재시작 후 접힘 상태 복원**.
+  7. 다크/라이트 대비.
 
 - [ ] **Step 4: (통과 후) finishing-a-development-branch로 병합 + v0.5.0 릴리스**
 
@@ -510,7 +651,7 @@ ls -la --time-style=+%H:%M publish/Memoria.exe
 
 ## Self-Review (작성자 점검 결과)
 
-- **스펙 커버리지**: §3.1 말줄임→A1, §3.3 폴더/브레드크럼 모델→A2, 그 XAML→A3, §3.2 선택해제→A4, §6 테스트→A2 자동 + A5 수동. 전 항목 매핑.
+- **스펙 커버리지**: §3.1 말줄임→A1, §3.3 폴더/브레드크럼 모델→A2, 그 XAML→A3, §3.2 선택해제→A4, §3.5 열폭 조정+영속화→A5, §3.6 사이드바 접기+영속화→A6, §6 테스트→A2 자동 + A7 수동. 전 항목 매핑.
 - **스펙 대비 구현 정제(명시)**: §3.3의 "혼합 목록(DataTemplateSelector)"을 **폴더 ItemsControl + 기존 메모 ListBox 분리**로 구현(기존 `SelectedNote` 바인딩·🗑·선택 하이라이트 보존, 타입 혼합 SelectedItem 문제 회피). 동일 결과(하위그룹+메모 표시), 더 단순. 리뷰어가 spec 편차로 볼 수 있으니 명시.
 - **플레이스홀더**: 없음. WPF 태스크(A1/A3/A4)는 자동 테스트 없음(명시).
 - **타입 일관성**: `FolderEntryViewModel(.Node/.Name/.GroupId)`, `BreadcrumbSegmentViewModel(.Node/.Name)`, `MainViewModel.Folders/Breadcrumb/NavigateToFolder`, 핸들러 `OnFolderClick/OnBreadcrumbClick`, `NoteList_/GroupTree_/SystemList_PreviewMouseLeftButtonUp`, `_wasSelectedOnDown` — 태스크 간 일치.
