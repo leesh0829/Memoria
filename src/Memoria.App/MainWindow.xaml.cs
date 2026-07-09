@@ -164,15 +164,18 @@ public partial class MainWindow : Window
         // 저장은 InvariantCulture로 하므로 복원 파싱도 InvariantCulture로 맞춘다(로케일 무관 왕복).
         var inv = System.Globalization.CultureInfo.InvariantCulture;
         var num = System.Globalization.NumberStyles.Float;
-        if (double.TryParse(_settings.GetOrDefault(SettingsKeys.UiCol0Width, ""), num, inv, out var w0) && w0 >= 150)
+        // 저장된 폭이 유효하면 현재 MinWidth로 클램프(하드코딩 150 대신 — MinWidth 변경에 안전).
+        if (double.TryParse(_settings.GetOrDefault(SettingsKeys.UiCol0Width, ""), num, inv, out var w0))
         {
-            Col0.Width = new System.Windows.GridLength(w0);
-            _savedCol0 = w0;
+            var c0 = System.Math.Max(w0, Col0.MinWidth);
+            Col0.Width = new System.Windows.GridLength(c0);
+            _savedCol0 = c0;
         }
-        if (double.TryParse(_settings.GetOrDefault(SettingsKeys.UiCol1Width, ""), num, inv, out var w1) && w1 >= 150)
+        if (double.TryParse(_settings.GetOrDefault(SettingsKeys.UiCol1Width, ""), num, inv, out var w1))
         {
-            Col1.Width = new System.Windows.GridLength(w1);
-            _savedCol1 = w1;
+            var c1 = System.Math.Max(w1, Col1.MinWidth);
+            Col1.Width = new System.Windows.GridLength(c1);
+            _savedCol1 = c1;
         }
         // A6: 접힌 상태를 복원 (폭 복원 뒤에 수행해야 _savedCol0/1이 확정됨).
         if (_settings.GetOrDefault(SettingsKeys.UiSidebarCollapsed, "false") == "true")
