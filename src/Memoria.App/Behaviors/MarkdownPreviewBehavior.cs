@@ -15,10 +15,16 @@ public static class MarkdownPreviewBehavior
         DependencyProperty.RegisterAttached("Active", typeof(bool), typeof(MarkdownPreviewBehavior),
             new PropertyMetadata(false, OnChanged));
 
+    public static readonly DependencyProperty RenderModeProperty =
+        DependencyProperty.RegisterAttached("RenderMode", typeof(string), typeof(MarkdownPreviewBehavior),
+            new PropertyMetadata("rendered", OnChanged));
+
     public static void SetMarkdown(DependencyObject o, string v) => o.SetValue(MarkdownProperty, v);
     public static string GetMarkdown(DependencyObject o) => (string)o.GetValue(MarkdownProperty);
     public static void SetActive(DependencyObject o, bool v) => o.SetValue(ActiveProperty, v);
     public static bool GetActive(DependencyObject o) => (bool)o.GetValue(ActiveProperty);
+    public static void SetRenderMode(DependencyObject o, string v) => o.SetValue(RenderModeProperty, v);
+    public static string GetRenderMode(DependencyObject o) => (string)o.GetValue(RenderModeProperty);
 
     private static void OnChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -27,6 +33,9 @@ public static class MarkdownPreviewBehavior
         var renderer = AppServices.Resolve<IMarkdownRenderer>();
         // Active may fire before the Markdown binding propagates → GetMarkdown null.
         // Render already guards null, but decouple the behavior from that contract.
-        viewer.Document = renderer.Render(GetMarkdown(viewer) ?? string.Empty);
+        var text = GetMarkdown(viewer) ?? string.Empty;
+        viewer.Document = GetRenderMode(viewer) == "read"
+            ? renderer.RenderRead(text)
+            : renderer.Render(text);
     }
 }

@@ -16,6 +16,9 @@ namespace Memoria.App.Services;
 /// <summary>Markdig AST → WPF FlowDocument. 테마 브러시 연동, 실패 시 원문 폴백.</summary>
 public sealed class MarkdownRenderer : IMarkdownRenderer
 {
+    private static readonly FontFamily UiFont =
+        new FontFamily("Segoe UI, Malgun Gothic");
+
     private readonly IAttachmentService _attachments;
     private readonly MarkdownPipeline _pipeline =
         new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
@@ -24,7 +27,7 @@ public sealed class MarkdownRenderer : IMarkdownRenderer
 
     public FlowDocument Render(string? markdown)
     {
-        var flow = new FlowDocument { PagePadding = new Thickness(0), FontSize = 14 };
+        var flow = new FlowDocument { PagePadding = new Thickness(0), FontSize = 14, FontFamily = UiFont };
         flow.SetResourceReference(FlowDocument.ForegroundProperty, "Brush.Foreground");
         try
         {
@@ -38,6 +41,62 @@ public sealed class MarkdownRenderer : IMarkdownRenderer
             flow.Blocks.Add(new Paragraph(new Run(markdown ?? "")));
         }
         return flow;
+    }
+
+    public FlowDocument RenderRead(string? markdown)
+    {
+        var flow = new FlowDocument { PagePadding = new Thickness(0), FontSize = 14, FontFamily = UiFont };
+        flow.SetResourceReference(FlowDocument.ForegroundProperty, "Brush.Foreground");
+        try
+        {
+            var para = new Paragraph { Margin = new Thickness(0, 0, 0, 6) };
+            foreach (var seg in Memoria.Core.Text.MarkdownReadSegmenter.Segment(markdown))
+            {
+                if (seg.IsImage)
+                {
+                    para.Inlines.Add(BuildReadImage(seg.Value));
+                }
+                else
+                {
+                    // 텍스트 그대로(줄바꿈 보존).
+                    var lines = seg.Value.Split('\n');
+                    for (int i = 0; i < lines.Length; i++)
+                    {
+                        para.Inlines.Add(new Run(lines[i]));
+                        if (i < lines.Length - 1) para.Inlines.Add(new LineBreak());
+                    }
+                }
+            }
+            flow.Blocks.Add(para);
+        }
+        catch
+        {
+            flow.Blocks.Clear();
+            flow.Blocks.Add(new Paragraph(new Run(markdown ?? "")));
+        }
+        return flow;
+    }
+
+    private WInline BuildReadImage(string relPath)
+    {
+        try
+        {
+            var abs = _attachments.ResolveToAbsolute(relPath);
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.UriSource = new Uri(abs);
+            bmp.EndInit();
+            var img = new System.Windows.Controls.Image
+            {
+                Source = bmp,
+                Stretch = Stretch.Uniform,
+                MaxWidth = bmp.PixelWidth > 0 ? bmp.PixelWidth : 600,
+                MaxHeight = 400,
+            };
+            return new InlineUIContainer(img);
+        }
+        catch { return new Run($"[이미지: {relPath}]"); }
     }
 
     private WBlock? ConvertBlock(Markdig.Syntax.Block block)
