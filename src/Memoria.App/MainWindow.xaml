@@ -15,7 +15,9 @@
 
         <!-- 상단 툴바 (M9: [+ 체크리스트]/[📋 주간보고]/검색 추가) -->
         <DockPanel Grid.Row="0" Background="{DynamicResource Brush.ToolbarBackground}" LastChildFill="True">
-            <Button Content="+ 새 메모"    Command="{Binding NewPlainNoteCommand}"      Margin="8,6,4,6" Padding="10,4" />
+            <Button Content="☰" Click="OnToggleSidebarClick" Padding="8,2" Margin="8,6,4,6"
+                    ToolTip="사이드바 접기/펴기"/>
+            <Button Content="+ 새 메모"    Command="{Binding NewPlainNoteCommand}"      Margin="0,6,4,6" Padding="10,4" />
             <Button Content="+ 그룹"       Click="OnNewGroupClick"                     Margin="0,6,4,6" Padding="10,4" />
             <Button Content="+ 체크리스트" Command="{Binding NewChecklistCommand}"      Margin="0,6,4,6" Padding="10,4" />
             <Button Content="📋 주간보고"  Command="{Binding OpenWeeklyReportCommand}"  Margin="0,6,4,6" Padding="10,4" />

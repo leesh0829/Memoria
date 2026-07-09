@@ -49,6 +49,10 @@ public partial class MainWindow : Window
     // ② 재클릭 해제: 누를 때 이미 선택돼 있었는지 기록(뗄 때 드래그 아니면 해제).
     private bool _wasSelectedOnDown;
 
+    // A6: 사이드바 접기 상태 — 접힌 동안 실제 폭을 기억해 복원에 사용.
+    private double _savedCol0 = 200, _savedCol1 = 240;
+    private bool   _sidebarCollapsed;
+
     public MainWindow(ISettingsRepository settings)
     {
         _settings = settings;
@@ -161,16 +165,60 @@ public partial class MainWindow : Window
         var inv = System.Globalization.CultureInfo.InvariantCulture;
         var num = System.Globalization.NumberStyles.Float;
         if (double.TryParse(_settings.GetOrDefault(SettingsKeys.UiCol0Width, ""), num, inv, out var w0) && w0 >= 150)
+        {
             Col0.Width = new System.Windows.GridLength(w0);
+            _savedCol0 = w0;
+        }
         if (double.TryParse(_settings.GetOrDefault(SettingsKeys.UiCol1Width, ""), num, inv, out var w1) && w1 >= 150)
+        {
             Col1.Width = new System.Windows.GridLength(w1);
+            _savedCol1 = w1;
+        }
+        // A6: 접힌 상태를 복원 (폭 복원 뒤에 수행해야 _savedCol0/1이 확정됨).
+        if (_settings.GetOrDefault(SettingsKeys.UiSidebarCollapsed, "false") == "true")
+            SetSidebarCollapsed(true, persist: false);
     }
 
     private void SaveColumnWidths()
     {
         var inv = System.Globalization.CultureInfo.InvariantCulture;
-        _settings.Set(SettingsKeys.UiCol0Width, Col0.ActualWidth.ToString(inv));
-        _settings.Set(SettingsKeys.UiCol1Width, Col1.ActualWidth.ToString(inv));
+        // A6: 접힌 상태에서 ActualWidth는 0 — 실제 폭(_savedCol0/1)을 영속화해 0으로 덮어쓰지 않도록.
+        double c0 = _sidebarCollapsed ? _savedCol0 : Col0.ActualWidth;
+        double c1 = _sidebarCollapsed ? _savedCol1 : Col1.ActualWidth;
+        _settings.Set(SettingsKeys.UiCol0Width, c0.ToString(inv));
+        _settings.Set(SettingsKeys.UiCol1Width, c1.ToString(inv));
+    }
+
+    // -----------------------------------------------------------------
+    // A6: 사이드바 접기/펴기 토글
+    // -----------------------------------------------------------------
+
+    private void OnToggleSidebarClick(object sender, RoutedEventArgs e)
+        => SetSidebarCollapsed(!_sidebarCollapsed, persist: true);
+
+    private void SetSidebarCollapsed(bool collapsed, bool persist)
+    {
+        if (collapsed && !_sidebarCollapsed)
+        {
+            _savedCol0 = Col0.ActualWidth > 0 ? Col0.ActualWidth : _savedCol0;
+            _savedCol1 = Col1.ActualWidth > 0 ? Col1.ActualWidth : _savedCol1;
+            Col0.Width = new GridLength(0);
+            Col1.Width = new GridLength(0);
+            Col0.MinWidth = 0; Col1.MinWidth = 0;
+            SidebarSplitter0.Visibility = Visibility.Collapsed;
+            SidebarSplitter1.Visibility = Visibility.Collapsed;
+        }
+        else if (!collapsed && _sidebarCollapsed)
+        {
+            Col0.MinWidth = 150; Col1.MinWidth = 150;
+            Col0.Width = new GridLength(_savedCol0);
+            Col1.Width = new GridLength(_savedCol1);
+            SidebarSplitter0.Visibility = Visibility.Visible;
+            SidebarSplitter1.Visibility = Visibility.Visible;
+        }
+        _sidebarCollapsed = collapsed;
+        if (persist)
+            _settings.Set(SettingsKeys.UiSidebarCollapsed, collapsed ? "true" : "false");
     }
 
     // -----------------------------------------------------------------
