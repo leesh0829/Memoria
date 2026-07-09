@@ -238,6 +238,24 @@ public partial class MainWindow : Window
             ViewModel.DeleteNoteCommand.Execute(note);
     }
 
+    private void OnFolderClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: FolderEntryViewModel f })
+        {
+            ViewModel.NavigateToFolder(f.Node);
+            SyncSidebarSelection();
+        }
+    }
+
+    private void OnBreadcrumbClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: BreadcrumbSegmentViewModel b })
+        {
+            ViewModel.NavigateToFolder(b.Node);
+            SyncSidebarSelection();
+        }
+    }
+
     private void OnRenameGroupMenuItemClick(object sender, RoutedEventArgs e)
     {
         if (GroupVm.SelectedGroup is null) return;
