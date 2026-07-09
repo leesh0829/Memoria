@@ -66,6 +66,6 @@ public class MainViewModelMarkdownTests
 
         // VM 상태
         vm.BodyFormat.Should().Be("markdown");
-        vm.IsPreviewMode.Should().BeFalse("전환 직후는 편집 모드여야 한다");
+        vm.ViewMode.Should().Be(MarkdownViewMode.Edit, "전환 직후는 편집 모드여야 한다");
     }
 }

@@ -55,34 +55,38 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool isEditorVisible;
 
     // RM6: 마크다운 에디터 상태
-    [ObservableProperty] private bool isPreviewMode = true;
+    [ObservableProperty] private MarkdownViewMode viewMode = MarkdownViewMode.Read;
     [ObservableProperty] private string bodyFormat = "plain";
 
-    public bool IsMarkdown => BodyFormat == "markdown";
-    public bool ShowToolbar => IsMarkdown && !IsPreviewMode;
-    public bool ShowPreview => IsMarkdown && IsPreviewMode;
-    public bool ShowSource  => !ShowPreview;   // plain이거나 편집 모드
+    public bool IsMarkdown  => BodyFormat == "markdown";
+    public bool ShowRead     => IsMarkdown && ViewMode == MarkdownViewMode.Read;
+    public bool ShowRendered => IsMarkdown && ViewMode == MarkdownViewMode.Rendered;
+    public bool ShowEdit     => !IsMarkdown || ViewMode == MarkdownViewMode.Edit;   // plain은 항상 편집
+    public bool ShowToolbar  => IsMarkdown && ViewMode == MarkdownViewMode.Edit;
 
     // RM7: 코드비하인드에서 현재 열린 노트 id를 읽어 첨부 저장에 사용.
     public int? CurrentNoteId => _current?.Id;
 
-    partial void OnIsPreviewModeChanged(bool value)
+    partial void OnViewModeChanged(MarkdownViewMode value)
     {
+        OnPropertyChanged(nameof(ShowRead));
+        OnPropertyChanged(nameof(ShowRendered));
+        OnPropertyChanged(nameof(ShowEdit));
         OnPropertyChanged(nameof(ShowToolbar));
-        OnPropertyChanged(nameof(ShowPreview));
-        OnPropertyChanged(nameof(ShowSource));
     }
 
     partial void OnBodyFormatChanged(string value)
     {
         OnPropertyChanged(nameof(IsMarkdown));
+        OnPropertyChanged(nameof(ShowRead));
+        OnPropertyChanged(nameof(ShowRendered));
+        OnPropertyChanged(nameof(ShowEdit));
         OnPropertyChanged(nameof(ShowToolbar));
-        OnPropertyChanged(nameof(ShowPreview));
-        OnPropertyChanged(nameof(ShowSource));
     }
 
-    [RelayCommand]
-    private void TogglePreview() => IsPreviewMode = !IsPreviewMode;
+    [RelayCommand] private void SetReadMode()     => ViewMode = MarkdownViewMode.Read;
+    [RelayCommand] private void SetEditMode()     => ViewMode = MarkdownViewMode.Edit;
+    [RelayCommand] private void SetRenderedMode() => ViewMode = MarkdownViewMode.Rendered;
 
     [RelayCommand]
     private void ConvertToMarkdown()
@@ -98,7 +102,7 @@ public partial class MainViewModel : ObservableObject
         _noteRepo.Update(note);
         _current = note;
 
-        IsPreviewMode = false;              // BodyFormat 설정보다 먼저 → 전환 순간 미리보기 렌더 방지
+        ViewMode = MarkdownViewMode.Edit;   // BodyFormat 설정보다 먼저 → 전환 순간 미리보기 렌더 방지
         BodyFormat = "markdown";
         UpdateListItemTitle(_current.Id, ResolveLiveTitle());
     }
@@ -429,8 +433,9 @@ public partial class MainViewModel : ObservableObject
         _suppressDirty = false;
 
         BodyFormat = note.BodyFormat;
-        // 새/빈 본문 → 편집 모드, 내용 있으면 미리보기(markdown 노트만 미리보기 의미 있음).
-        IsPreviewMode = note.BodyFormat == "markdown" && !string.IsNullOrEmpty(note.Body);
+        // 새/빈 본문 → 편집 모드, 내용 있으면 읽기 모드(markdown 노트만 읽기/편집 구분 의미 있음).
+        ViewMode = note.BodyFormat == "markdown" && !string.IsNullOrEmpty(note.Body)
+            ? MarkdownViewMode.Read : MarkdownViewMode.Edit;
 
         SaveStatus = "";   // 노트 전환 시 저장 표시 초기화
         HeaderText = EditorHeaderFormatter.Format(note.CreatedAt.ToLocalTime(), note.UpdatedAt.ToLocalTime());
