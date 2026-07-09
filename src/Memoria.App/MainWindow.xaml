@@ -63,6 +63,7 @@
                               DragLeave="GroupTree_DragLeave"
                               Drop="GroupTree_Drop"
                               PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
+                              PreviewMouseLeftButtonUp="GroupTree_PreviewMouseLeftButtonUp"
                               PreviewMouseMove="GroupTree_PreviewMouseMove">
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
@@ -126,7 +127,9 @@
                              Background="Transparent"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ItemsSource="{Binding SystemNodes}"
-                             SelectionChanged="SystemListBox_SelectionChanged">
+                             SelectionChanged="SystemListBox_SelectionChanged"
+                             PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
+                             PreviewMouseLeftButtonUp="SystemList_PreviewMouseLeftButtonUp">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Border Padding="0" Background="Transparent">
@@ -191,6 +194,7 @@
                          ItemsSource="{Binding Notes}"
                          SelectedItem="{Binding SelectedNote, Mode=TwoWay}"
                          PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
+                         PreviewMouseLeftButtonUp="NoteList_PreviewMouseLeftButtonUp"
                          PreviewMouseMove="NoteList_PreviewMouseMove">
                     <ListBox.ItemTemplate>
                         <DataTemplate>

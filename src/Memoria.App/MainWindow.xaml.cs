@@ -46,6 +46,9 @@ public partial class MainWindow : Window
     // 메모(noteId) 드래그 중 하이라이트된 드롭 대상 노드. 한 번에 하나만 강조.
     private SidebarNodeViewModel?    _noteDropTarget;
 
+    // ② 재클릭 해제: 누를 때 이미 선택돼 있었는지 기록(뗄 때 드래그 아니면 해제).
+    private bool _wasSelectedOnDown;
+
     public MainWindow(ISettingsRepository settings)
     {
         _settings = settings;
@@ -533,9 +536,60 @@ public partial class MainWindow : Window
         }
     }
 
-    // 드래그 임계값 판정을 위해 좌클릭 시작점을 기록(두 리스트 공용).
+    // 드래그 임계값 판정을 위해 좌클릭 시작점을 기록(세 표면 공용).
+    // ② 재클릭 해제: 눌린 항목이 이미 선택 상태인지도 함께 기록한다.
     private void List_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        => _dragStartPoint = e.GetPosition(null);
+    {
+        _dragStartPoint = e.GetPosition(null);
+        // 눌린 항목이 이미 선택 상태인지 판정(메모/그룹 공통).
+        _wasSelectedOnDown = false;
+        if (FindDataContext<NoteListItemViewModel>(e.OriginalSource) is { } note)
+            _wasSelectedOnDown = ReferenceEquals(ViewModel.SelectedNote, note);
+        else if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node)
+            _wasSelectedOnDown = node.IsSelected || ReferenceEquals(ViewModel.SelectedNode, node);
+    }
+
+    // ② 재클릭 해제 — 메모 목록
+    private void NoteList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;   // 드래그면 해제 안 함
+        if (FindDataContext<NoteListItemViewModel>(e.OriginalSource) is { } note
+            && ReferenceEquals(ViewModel.SelectedNote, note))
+        {
+            ViewModel.SelectedNote = null;   // 에디터 닫힘(기존 경로)
+            e.Handled = true;
+        }
+    }
+
+    // ② 재클릭 해제 — 그룹 트리
+    private void GroupTree_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;
+        if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node
+            && (node.IsSelected || ReferenceEquals(ViewModel.SelectedNode, node)))
+        {
+            _syncingSelection = true;
+            ClearTreeNodeSelection(ViewModel.SidebarNodes);   // 트리 하이라이트 해제
+            _syncingSelection = false;
+            ViewModel.SelectedNode = null;                    // 가운데 비움(LoadNotes Clear)
+            e.Handled = true;
+        }
+    }
+
+    // ② 재클릭 해제 — 시스템 목록
+    private void SystemList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;
+        if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node
+            && ReferenceEquals(ViewModel.SelectedNode, node))
+        {
+            _syncingSelection = true;
+            SystemListBox.SelectedItem = null;
+            _syncingSelection = false;
+            ViewModel.SelectedNode = null;
+            e.Handled = true;
+        }
+    }
 
     private bool ExceededDragThreshold(MouseEventArgs e)
     {
