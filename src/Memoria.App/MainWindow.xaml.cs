@@ -58,6 +58,7 @@ public partial class MainWindow : Window
         GroupVm.Load();
 
         DataContextChanged += OnDataContextChanged;
+        Loaded += (_, _) => RestoreColumnWidths();
     }
 
     // -----------------------------------------------------------------
@@ -143,6 +144,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
+        SaveColumnWidths();
         bool closeToTray = bool.Parse(_settings.GetOrDefault(SettingsKeys.CloseToTray, "true"));
         if (closeToTray && !AllowClose)
         {
@@ -151,6 +153,22 @@ public partial class MainWindow : Window
             return;
         }
         base.OnClosing(e);
+    }
+
+    private void RestoreColumnWidths()
+    {
+        var s = AppServices.Resolve<Memoria.Core.Data.ISettingsRepository>();
+        if (double.TryParse(s.GetOrDefault(Memoria.Core.SettingsKeys.UiCol0Width, ""), out var w0) && w0 >= 150)
+            Col0.Width = new System.Windows.GridLength(w0);
+        if (double.TryParse(s.GetOrDefault(Memoria.Core.SettingsKeys.UiCol1Width, ""), out var w1) && w1 >= 150)
+            Col1.Width = new System.Windows.GridLength(w1);
+    }
+
+    private void SaveColumnWidths()
+    {
+        var s = AppServices.Resolve<Memoria.Core.Data.ISettingsRepository>();
+        s.Set(Memoria.Core.SettingsKeys.UiCol0Width, Col0.ActualWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        s.Set(Memoria.Core.SettingsKeys.UiCol1Width, Col1.ActualWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     // -----------------------------------------------------------------

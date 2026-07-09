@@ -37,13 +37,20 @@
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" />
-                <ColumnDefinition Width="240" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="Col0" Width="220" MinWidth="150" />  <!-- 그룹 트리 -->
+                <ColumnDefinition Width="Auto" />                               <!-- Splitter -->
+                <ColumnDefinition x:Name="Col1" Width="240" MinWidth="150" />  <!-- 가운데 패널 -->
+                <ColumnDefinition Width="Auto" />                               <!-- Splitter -->
+                <ColumnDefinition x:Name="Col2" Width="*" MinWidth="200" />    <!-- 에디터 -->
             </Grid.ColumnDefinitions>
 
-            <!-- 사이드바(#1 우측 세로 구분선): 위=사용자 그룹(드래그·드롭), 아래=시스템 그룹(고정, #5) -->
-            <Border Grid.Column="0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,1,0"
+            <GridSplitter x:Name="SidebarSplitter0" Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch" Background="{DynamicResource Brush.Border}" ResizeBehavior="PreviousAndNext"/>
+            <GridSplitter x:Name="SidebarSplitter1" Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch" Background="{DynamicResource Brush.Border}" ResizeBehavior="PreviousAndNext"/>
+
+            <!-- 사이드바: 위=사용자 그룹(드래그·드롭), 아래=시스템 그룹(고정, #5) -->
+            <Border Grid.Column="0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0"
                     Background="{DynamicResource Brush.SidebarBackground}">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -142,8 +149,8 @@
                 </Grid>
             </Border>
 
-            <!-- 메모 목록 + 검색 결과 패널 (#1 우측 세로 구분선) -->
-            <Border Grid.Column="1" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,1,0">
+            <!-- 메모 목록 + 검색 결과 패널 -->
+            <Border Grid.Column="2" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />  <!-- 브레드크럼 -->
@@ -240,7 +247,7 @@
             </Border>
 
             <!-- 에디터 영역: NoteType별 DataTemplate (M9). Border로 빈 상태 배경 보장 -->
-            <Border Grid.Column="2" Background="{DynamicResource Brush.EditorBackground}">
+            <Border Grid.Column="4" Background="{DynamicResource Brush.EditorBackground}">
             <ContentControl Margin="12" Content="{Binding CurrentEditor}">
                 <ContentControl.Resources>
                     <!-- plain: CurrentEditor == MainViewModel 자신. 박스/포커스 테두리 없이 '가로 줄'로만 구분(#7) -->
@@ -327,7 +334,7 @@
             </Border>
 
             <!-- Undo 토스트 (#4: MainViewModel 소유) N7.3: slide-up + fade-in on appear -->
-            <Border Grid.Column="0" Grid.ColumnSpan="3"
+            <Border Grid.Column="0" Grid.ColumnSpan="5"
                     VerticalAlignment="Bottom" HorizontalAlignment="Center"
                     Margin="0,0,0,20" Padding="12,8"
                     Background="{DynamicResource Brush.Surface}"
