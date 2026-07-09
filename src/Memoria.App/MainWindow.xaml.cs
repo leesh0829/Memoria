@@ -157,18 +157,20 @@ public partial class MainWindow : Window
 
     private void RestoreColumnWidths()
     {
-        var s = AppServices.Resolve<Memoria.Core.Data.ISettingsRepository>();
-        if (double.TryParse(s.GetOrDefault(Memoria.Core.SettingsKeys.UiCol0Width, ""), out var w0) && w0 >= 150)
+        // 저장은 InvariantCulture로 하므로 복원 파싱도 InvariantCulture로 맞춘다(로케일 무관 왕복).
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var num = System.Globalization.NumberStyles.Float;
+        if (double.TryParse(_settings.GetOrDefault(SettingsKeys.UiCol0Width, ""), num, inv, out var w0) && w0 >= 150)
             Col0.Width = new System.Windows.GridLength(w0);
-        if (double.TryParse(s.GetOrDefault(Memoria.Core.SettingsKeys.UiCol1Width, ""), out var w1) && w1 >= 150)
+        if (double.TryParse(_settings.GetOrDefault(SettingsKeys.UiCol1Width, ""), num, inv, out var w1) && w1 >= 150)
             Col1.Width = new System.Windows.GridLength(w1);
     }
 
     private void SaveColumnWidths()
     {
-        var s = AppServices.Resolve<Memoria.Core.Data.ISettingsRepository>();
-        s.Set(Memoria.Core.SettingsKeys.UiCol0Width, Col0.ActualWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        s.Set(Memoria.Core.SettingsKeys.UiCol1Width, Col1.ActualWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        _settings.Set(SettingsKeys.UiCol0Width, Col0.ActualWidth.ToString(inv));
+        _settings.Set(SettingsKeys.UiCol1Width, Col1.ActualWidth.ToString(inv));
     }
 
     // -----------------------------------------------------------------
