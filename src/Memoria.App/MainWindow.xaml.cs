@@ -564,6 +564,7 @@ public partial class MainWindow : Window
     // ② 재클릭 해제 — 그룹 트리
     private void GroupTree_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (_syncingSelection) return;   // 프로그램적 동기화 중 재클릭 해제 억제(SelectedItemChanged와 일관).
         if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;
         if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node
             && (node.IsSelected || ReferenceEquals(ViewModel.SelectedNode, node)))
@@ -579,6 +580,7 @@ public partial class MainWindow : Window
     // ② 재클릭 해제 — 시스템 목록
     private void SystemList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (_syncingSelection) return;   // 프로그램적 동기화 중 재클릭 해제 억제(일관).
         if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;
         if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node
             && ReferenceEquals(ViewModel.SelectedNode, node))
