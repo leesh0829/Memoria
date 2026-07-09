@@ -20,4 +20,7 @@ public static class SettingsKeys
     public const string GoogleServiceAccountJsonPath = "google.serviceAccountJsonPath";
     public const string GoogleSheetId = "google.sheetId";
     public const string GoogleSheetTabName = "google.sheetTabName";
+    public const string UiCol0Width = "ui.col0Width";
+    public const string UiCol1Width = "ui.col1Width";
+    public const string UiSidebarCollapsed = "ui.sidebarCollapsed";
 }

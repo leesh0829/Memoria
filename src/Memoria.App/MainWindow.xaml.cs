@@ -46,6 +46,13 @@ public partial class MainWindow : Window
     // 메모(noteId) 드래그 중 하이라이트된 드롭 대상 노드. 한 번에 하나만 강조.
     private SidebarNodeViewModel?    _noteDropTarget;
 
+    // ② 재클릭 해제: 누를 때 이미 선택돼 있었는지 기록(뗄 때 드래그 아니면 해제).
+    private bool _wasSelectedOnDown;
+
+    // A6: 사이드바 접기 상태 — 접힌 동안 실제 폭을 기억해 복원에 사용.
+    private double _savedCol0 = 200, _savedCol1 = 240;
+    private bool   _sidebarCollapsed;
+
     public MainWindow(ISettingsRepository settings)
     {
         _settings = settings;
@@ -55,6 +62,7 @@ public partial class MainWindow : Window
         GroupVm.Load();
 
         DataContextChanged += OnDataContextChanged;
+        Loaded += (_, _) => RestoreColumnWidths();
     }
 
     // -----------------------------------------------------------------
@@ -140,6 +148,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
+        SaveColumnWidths();
         bool closeToTray = bool.Parse(_settings.GetOrDefault(SettingsKeys.CloseToTray, "true"));
         if (closeToTray && !AllowClose)
         {
@@ -148,6 +157,71 @@ public partial class MainWindow : Window
             return;
         }
         base.OnClosing(e);
+    }
+
+    private void RestoreColumnWidths()
+    {
+        // 저장은 InvariantCulture로 하므로 복원 파싱도 InvariantCulture로 맞춘다(로케일 무관 왕복).
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var num = System.Globalization.NumberStyles.Float;
+        // 저장된 폭이 유효하면 현재 MinWidth로 클램프(하드코딩 150 대신 — MinWidth 변경에 안전).
+        if (double.TryParse(_settings.GetOrDefault(SettingsKeys.UiCol0Width, ""), num, inv, out var w0))
+        {
+            var c0 = System.Math.Max(w0, Col0.MinWidth);
+            Col0.Width = new System.Windows.GridLength(c0);
+            _savedCol0 = c0;
+        }
+        if (double.TryParse(_settings.GetOrDefault(SettingsKeys.UiCol1Width, ""), num, inv, out var w1))
+        {
+            var c1 = System.Math.Max(w1, Col1.MinWidth);
+            Col1.Width = new System.Windows.GridLength(c1);
+            _savedCol1 = c1;
+        }
+        // A6: 접힌 상태를 복원 (폭 복원 뒤에 수행해야 _savedCol0/1이 확정됨).
+        if (_settings.GetOrDefault(SettingsKeys.UiSidebarCollapsed, "false") == "true")
+            SetSidebarCollapsed(true, persist: false);
+    }
+
+    private void SaveColumnWidths()
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        // A6: 접힌 상태에서 ActualWidth는 0 — 실제 폭(_savedCol0/1)을 영속화해 0으로 덮어쓰지 않도록.
+        double c0 = _sidebarCollapsed ? _savedCol0 : Col0.ActualWidth;
+        double c1 = _sidebarCollapsed ? _savedCol1 : Col1.ActualWidth;
+        _settings.Set(SettingsKeys.UiCol0Width, c0.ToString(inv));
+        _settings.Set(SettingsKeys.UiCol1Width, c1.ToString(inv));
+    }
+
+    // -----------------------------------------------------------------
+    // A6: 사이드바 접기/펴기 토글
+    // -----------------------------------------------------------------
+
+    private void OnToggleSidebarClick(object sender, RoutedEventArgs e)
+        => SetSidebarCollapsed(!_sidebarCollapsed, persist: true);
+
+    private void SetSidebarCollapsed(bool collapsed, bool persist)
+    {
+        if (collapsed && !_sidebarCollapsed)
+        {
+            _savedCol0 = Col0.ActualWidth > 0 ? Col0.ActualWidth : _savedCol0;
+            _savedCol1 = Col1.ActualWidth > 0 ? Col1.ActualWidth : _savedCol1;
+            Col0.Width = new GridLength(0);
+            Col1.Width = new GridLength(0);
+            Col0.MinWidth = 0; Col1.MinWidth = 0;
+            SidebarSplitter0.Visibility = Visibility.Collapsed;
+            SidebarSplitter1.Visibility = Visibility.Collapsed;
+        }
+        else if (!collapsed && _sidebarCollapsed)
+        {
+            Col0.MinWidth = 150; Col1.MinWidth = 150;
+            Col0.Width = new GridLength(_savedCol0);
+            Col1.Width = new GridLength(_savedCol1);
+            SidebarSplitter0.Visibility = Visibility.Visible;
+            SidebarSplitter1.Visibility = Visibility.Visible;
+        }
+        _sidebarCollapsed = collapsed;
+        if (persist)
+            _settings.Set(SettingsKeys.UiSidebarCollapsed, collapsed ? "true" : "false");
     }
 
     // -----------------------------------------------------------------
@@ -236,6 +310,24 @@ public partial class MainWindow : Window
     {
         if (sender is FrameworkElement { DataContext: NoteListItemViewModel note })
             ViewModel.DeleteNoteCommand.Execute(note);
+    }
+
+    private void OnFolderClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: FolderEntryViewModel f })
+        {
+            ViewModel.NavigateToFolder(f.Node);
+            SyncSidebarSelection();
+        }
+    }
+
+    private void OnBreadcrumbClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: BreadcrumbSegmentViewModel b })
+        {
+            ViewModel.NavigateToFolder(b.Node);
+            SyncSidebarSelection();
+        }
     }
 
     private void OnRenameGroupMenuItemClick(object sender, RoutedEventArgs e)
@@ -515,9 +607,62 @@ public partial class MainWindow : Window
         }
     }
 
-    // 드래그 임계값 판정을 위해 좌클릭 시작점을 기록(두 리스트 공용).
+    // 드래그 임계값 판정을 위해 좌클릭 시작점을 기록(세 표면 공용).
+    // ② 재클릭 해제: 눌린 항목이 이미 선택 상태인지도 함께 기록한다.
     private void List_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        => _dragStartPoint = e.GetPosition(null);
+    {
+        _dragStartPoint = e.GetPosition(null);
+        // 눌린 항목이 이미 선택 상태인지 판정(메모/그룹 공통).
+        _wasSelectedOnDown = false;
+        if (FindDataContext<NoteListItemViewModel>(e.OriginalSource) is { } note)
+            _wasSelectedOnDown = ReferenceEquals(ViewModel.SelectedNote, note);
+        else if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node)
+            _wasSelectedOnDown = node.IsSelected || ReferenceEquals(ViewModel.SelectedNode, node);
+    }
+
+    // ② 재클릭 해제 — 메모 목록
+    private void NoteList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;   // 드래그면 해제 안 함
+        if (FindDataContext<NoteListItemViewModel>(e.OriginalSource) is { } note
+            && ReferenceEquals(ViewModel.SelectedNote, note))
+        {
+            ViewModel.SelectedNote = null;   // 에디터 닫힘(기존 경로)
+            e.Handled = true;
+        }
+    }
+
+    // ② 재클릭 해제 — 그룹 트리
+    private void GroupTree_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_syncingSelection) return;   // 프로그램적 동기화 중 재클릭 해제 억제(SelectedItemChanged와 일관).
+        if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;
+        if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node
+            && (node.IsSelected || ReferenceEquals(ViewModel.SelectedNode, node)))
+        {
+            _syncingSelection = true;
+            ClearTreeNodeSelection(ViewModel.SidebarNodes);   // 트리 하이라이트 해제
+            _syncingSelection = false;
+            ViewModel.SelectedNode = null;                    // 가운데 비움(LoadNotes Clear)
+            e.Handled = true;
+        }
+    }
+
+    // ② 재클릭 해제 — 시스템 목록
+    private void SystemList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_syncingSelection) return;   // 프로그램적 동기화 중 재클릭 해제 억제(일관).
+        if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;
+        if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node
+            && ReferenceEquals(ViewModel.SelectedNode, node))
+        {
+            _syncingSelection = true;
+            SystemListBox.SelectedItem = null;
+            _syncingSelection = false;
+            ViewModel.SelectedNode = null;
+            e.Handled = true;
+        }
+    }
 
     private bool ExceededDragThreshold(MouseEventArgs e)
     {
