@@ -74,9 +74,10 @@ public event Action<int>? NoteMaterialized;               // 지연 생성으로
 partial void OnLogDateChanged(DateOnly value)
 {
     if (_loading) return;                       // Load/LoadDraft 중 초기값은 무시(기존 가드)
-    if (value == _note?.LogDate) return;        // 동일 날짜 → converter round-trip 억제
     NavigateToDateRequested?.Invoke(value);     // 기존 _notes.Update(재-date) 제거
 }
+// 동일 값 재설정(converter round-trip)은 [ObservableProperty]의 SetProperty 동등성 비교가
+// 이미 무시하므로 별도 same-date 가드 불필요(YAGNI).
 ```
 
 **`MainViewModel`** (신규):
@@ -120,7 +121,21 @@ public void LoadDraft(DateOnly date)
 }
 ```
 
-`MainViewModel.LoadChecklistDraft(date)`: `(CurrentEditor as ChecklistViewModel)?.LoadDraft(date)` + `SelectedNote = null`(목록에 해당 row 없음) + `_currentEditorNoteId = null`.
+`MainViewModel.LoadChecklistDraft(date)`: 현재 에디터를 재사용하지 않는다(‑ `SelectedNote=null`이 `OnSelectedNoteChanged(null)`로 CurrentEditor를 비우기 때문). **신규 draft VM을 만들어 호스팅**한다:
+```csharp
+private void LoadChecklistDraft(DateOnly date)
+{
+    SelectedNote = null;                        // 이전 선택/에디터 정리(목록에 해당 날짜 row 없음)
+    var draft = _checklistEditorFactory();
+    draft.NavigateToDateRequested += OpenChecklistForDate;
+    draft.NoteMaterialized += OnChecklistMaterialized;
+    draft.LoadDraft(date);
+    CurrentNoteType = NoteType.Checklist;
+    CurrentEditor = draft;
+    IsEditorVisible = true;
+    _currentEditorNoteId = null;                // 아직 실 노트 없음
+}
+```
 
 **첫 입력 시 materialize**(`ChecklistViewModel.AddItem`, L85 확장):
 
