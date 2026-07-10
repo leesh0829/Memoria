@@ -280,10 +280,13 @@
                                         <TextBlock Text="{Binding SaveStatus}" VerticalAlignment="Center"
                                                    Margin="0,0,8,0"
                                                    Foreground="{DynamicResource Brush.SecondaryForeground}" />
-                                        <!-- markdown 노트: 미리보기/편집 토글 -->
-                                        <Button Content="{Binding IsPreviewMode, Converter={StaticResource PreviewToggleLabel}}"
-                                                Command="{Binding TogglePreviewCommand}" Padding="8,2"
-                                                Visibility="{Binding IsMarkdown, Converter={StaticResource BoolToVis}}" />
+                                        <!-- markdown 노트: 읽기/편집/마크다운 3-모드 -->
+                                        <StackPanel Orientation="Horizontal"
+                                                    Visibility="{Binding IsMarkdown, Converter={StaticResource BoolToVis}}">
+                                            <Button Content="읽기"   Command="{Binding SetReadModeCommand}"     Padding="8,2" Margin="0,0,2,0"/>
+                                            <Button Content="편집"   Command="{Binding SetEditModeCommand}"     Padding="8,2" Margin="0,0,2,0"/>
+                                            <Button Content="마크다운" Command="{Binding SetRenderedModeCommand}" Padding="8,2"/>
+                                        </StackPanel>
                                         <!-- plain 노트: 마크다운으로 전환 -->
                                         <Button Content="마크다운으로 전환" Command="{Binding ConvertToMarkdownCommand}"
                                                 Padding="8,2"
@@ -304,7 +307,15 @@
                                 <Button Content="🖼" Width="28" Tag="image" Click="OnInsertImageClick"/>
                             </StackPanel>
 
-                            <!-- 본문: 소스 편집 -->
+                            <!-- 본문: 읽기 뷰(텍스트 그대로 + 이미지) -->
+                            <FlowDocumentScrollViewer Grid.Row="3" Margin="0,8,0,0"
+                                     VerticalScrollBarVisibility="Auto" Background="Transparent"
+                                     beh:MarkdownPreviewBehavior.RenderMode="read"
+                                     beh:MarkdownPreviewBehavior.Active="{Binding ShowRead}"
+                                     beh:MarkdownPreviewBehavior.Markdown="{Binding EditorBody}"
+                                     Visibility="{Binding ShowRead, Converter={StaticResource BoolToVis}}" />
+
+                            <!-- 본문: 편집(원본 소스) -->
                             <TextBox Grid.Row="3" x:Name="BodyEditor"
                                      Text="{Binding EditorBody, UpdateSourceTrigger=PropertyChanged}"
                                      AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap"
@@ -312,15 +323,15 @@
                                      BorderThickness="0" Background="Transparent"
                                      Foreground="{DynamicResource Brush.Foreground}"
                                      PreviewKeyDown="BodyEditor_PreviewKeyDown"
-                                     Visibility="{Binding ShowSource, Converter={StaticResource BoolToVis}}" />
+                                     Visibility="{Binding ShowEdit, Converter={StaticResource BoolToVis}}" />
 
-                            <!-- 본문: 렌더 미리보기 -->
+                            <!-- 본문: 마크다운 렌더 -->
                             <FlowDocumentScrollViewer Grid.Row="3" Margin="0,8,0,0"
-                                     VerticalScrollBarVisibility="Auto"
-                                     Background="Transparent"
-                                     beh:MarkdownPreviewBehavior.Active="{Binding ShowPreview}"
+                                     VerticalScrollBarVisibility="Auto" Background="Transparent"
+                                     beh:MarkdownPreviewBehavior.RenderMode="rendered"
+                                     beh:MarkdownPreviewBehavior.Active="{Binding ShowRendered}"
                                      beh:MarkdownPreviewBehavior.Markdown="{Binding EditorBody}"
-                                     Visibility="{Binding ShowPreview, Converter={StaticResource BoolToVis}}" />
+                                     Visibility="{Binding ShowRendered, Converter={StaticResource BoolToVis}}" />
                         </Grid>
                     </DataTemplate>
                     <!-- checklist -->
