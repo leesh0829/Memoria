@@ -325,28 +325,65 @@ public class ChecklistViewModelTests
     }
 
     [Fact]
-    public void Changing_log_date_persists_to_note()
+    public void Changing_log_date_raises_navigate_event_and_does_not_write()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        DateOnly? raised = null;
+        sut.NavigateToDateRequested += d => raised = d;
+
+        sut.LogDate = new DateOnly(2026, 6, 27);
+
+        raised.Should().Be(new DateOnly(2026, 6, 27));
+        _notes.Updated.Should().BeEmpty();               // 재-date 쓰기 없음
+        _notes.Get(1)!.LogDate.Should().Be(new DateOnly(2026, 6, 26));  // 원본 노트 날짜 불변
+    }
+
+    [Fact]
+    public void Loading_note_does_not_raise_navigate_event()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        DateOnly? raised = null;
+        sut.NavigateToDateRequested += d => raised = d;
+
+        sut.Load(note);
+
+        raised.Should().BeNull();
+    }
+
+    [Fact]
+    public void AddTask_on_draft_materializes_note_and_raises_event()
+    {
+        _groups.Groups.Add(new Group { Id = 1, Name = "일일업무일지", IsSystem = true, SortOrder = 100 });
+        var sut = CreateSut();
+        int? materializedId = null;
+        sut.NoteMaterialized += id => materializedId = id;
+
+        sut.LoadDraft(new DateOnly(2026, 7, 8));
+        sut.AddTask();
+
+        materializedId.Should().NotBeNull();
+        var created = _notes.Get(materializedId!.Value)!;
+        created.Type.Should().Be(NoteType.Checklist);
+        created.LogDate.Should().Be(new DateOnly(2026, 7, 8));
+        created.GroupId.Should().Be(1);
+        sut.Items.Should().ContainSingle();
+        _checklist.Items.Should().ContainSingle(i => i.NoteId == created.Id);
+    }
+
+    [Fact]
+    public void AddTask_on_loaded_note_does_not_create_new_note()
     {
         var note = SeedNote();
         var sut = CreateSut();
         sut.Load(note);
 
-        sut.LogDate = new DateOnly(2026, 6, 27);
+        sut.AddTask();
 
-        _notes.Get(1)!.LogDate.Should().Be(new DateOnly(2026, 6, 27));
-    }
-
-    [Fact]
-    public void Loading_note_does_not_repersist_log_date()
-    {
-        var note = SeedNote();
-        note.LogDate = new DateOnly(2026, 6, 26);
-        var before = note.UpdatedAt;
-        var sut = CreateSut();
-
-        sut.Load(note);   // 로드 자체는 UpdatedAt를 바꾸지 않아야 함
-
-        _notes.Get(1)!.UpdatedAt.Should().Be(before);
+        _notes.Created.Should().BeEmpty();               // 실 노트 로드 상태 → materialize 안 함
+        _checklist.Items.Should().ContainSingle(i => i.NoteId == 1);
     }
 
     [Fact]
