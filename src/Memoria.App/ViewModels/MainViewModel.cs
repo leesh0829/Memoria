@@ -233,6 +233,10 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
+        // 이미 우측에 호스팅 중인 노트로의 (프로그램적) 재선택은 에디터를 다시 만들지 않는다.
+        // materialize 직후 목록 강조 동기화 및 이미 열린 노트로의 navigate에서 포커스/상태 보존.
+        if (value.Id == _currentEditorNoteId) return;
+
         var note = _noteRepo.Get(value.Id);
         if (note is null) return;
 
@@ -251,6 +255,8 @@ public partial class MainViewModel : ObservableObject
                 return this;                // plain DataTemplate은 MainViewModel 자신에 바인딩
             case NoteType.Checklist:
                 var checklist = _checklistEditorFactory();
+                checklist.NavigateToDateRequested += OpenChecklistForDate;
+                checklist.NoteMaterialized += OnChecklistMaterialized;
                 checklist.Load(note);
                 return checklist;
             case NoteType.WeeklyReport:
@@ -271,10 +277,12 @@ public partial class MainViewModel : ObservableObject
 
         var notes = _noteRepo.GetByGroup(SelectedNode.GroupId)
             .OrderByDescending(n => n.Pinned)
-            .ThenByDescending(n => n.UpdatedAt);
+            .ThenByDescending(n => n.UpdatedAt)
+            .ToList();
 
-        foreach (var n in notes)
-            Notes.Add(new NoteListItemViewModel(n.Id, NoteTitleResolver.Resolve(n), n.Pinned, n.UpdatedAt));
+        var titles = NoteTitleResolver.ResolveList(notes);   // 같은 날짜 체크리스트 접미사
+        for (int i = 0; i < notes.Count; i++)
+            Notes.Add(new NoteListItemViewModel(notes[i].Id, titles[i], notes[i].Pinned, notes[i].UpdatedAt));
     }
 
     [RelayCommand]
@@ -301,15 +309,19 @@ public partial class MainViewModel : ObservableObject
     private void NewChecklist()
     {
         IsUndoAvailable = false;
+        var today = DateOnly.FromDateTime(_time.GetUtcNow().LocalDateTime.Date);
+
+        var existing = _noteRepo.FindChecklistForDate(today);
+        if (existing is not null) { NavigateToNote(existing.Id, existing.GroupId); return; }
+
         var group = _groupRepo.GetAll()
             .FirstOrDefault(g => g.IsSystem && g.Name == ChecklistViewModel.DailyLogGroupName);
-
         var now = _time.GetUtcNow();
         var note = new Note
         {
             Type = NoteType.Checklist,
             GroupId = group?.Id,
-            LogDate = DateOnly.FromDateTime(now.LocalDateTime.Date),
+            LogDate = today,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -327,6 +339,39 @@ public partial class MainViewModel : ObservableObject
 
         LoadNotes();   // SelectedNode가 이미 동일하면 OnSelectedNodeChanged가 안 울리므로 명시 재로드
         SelectedNote = Notes.FirstOrDefault(n => n.Id == noteId);
+    }
+
+    // 날짜 선택/이동의 단일 진입점: 보류 저장 확정 → 조회 → 이동(또는 draft).
+    public void OpenChecklistForDate(DateOnly date)
+    {
+        (CurrentEditor as ChecklistViewModel)?.FlushSaves();   // 이전 날짜 dirty 항목 확정(유실 방지)
+
+        var found = _noteRepo.FindChecklistForDate(date);
+        if (found is not null) { NavigateToNote(found.Id, found.GroupId); return; }
+
+        LoadChecklistDraft(date);
+    }
+
+    // 노트가 없는 날짜: 생성하지 않고 빈 draft 에디터를 호스팅(첫 항목에서 실 노트 생성).
+    private void LoadChecklistDraft(DateOnly date)
+    {
+        SelectedNote = null;                       // 이전 선택/에디터 정리(OnSelectedNoteChanged(null))
+        var draft = _checklistEditorFactory();
+        draft.NavigateToDateRequested += OpenChecklistForDate;
+        draft.NoteMaterialized += OnChecklistMaterialized;
+        draft.LoadDraft(date);
+        CurrentNoteType = NoteType.Checklist;
+        CurrentEditor = draft;
+        IsEditorVisible = true;
+        _currentEditorNoteId = null;               // 아직 실 노트 없음
+    }
+
+    // draft에서 첫 항목 추가로 실 노트가 생겼을 때: 목록 갱신 + 새 row 강조(에디터는 유지).
+    private void OnChecklistMaterialized(int id)
+    {
+        _currentEditorNoteId = id;                 // SelectedNote 설정 전에 → 가드로 재호스팅 방지
+        LoadNotes();                               // 새 날짜 row 등장
+        SelectedNote = Notes.FirstOrDefault(n => n.Id == id);
     }
 
     // #4 메모 삭제 → 휴지통. 열려 있는(선택 중) 노트면 자동저장 정리 + 우측 에디터를 빈 화면으로.

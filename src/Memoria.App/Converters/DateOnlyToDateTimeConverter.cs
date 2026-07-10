@@ -20,6 +20,6 @@ public sealed class DateOnlyToDateTimeConverter : IValueConverter
     {
         if (value is DateTime dt)
             return DateOnly.FromDateTime(dt);
-        return DateOnly.FromDateTime(DateTime.Today);
+        return Binding.DoNothing;   // 비우기/무효 → 바인딩 소스 미변경(오늘로 튀지 않음)
     }
 }

@@ -130,4 +130,45 @@ public class NoteRepositoryTests
         var id = sut.Create(new Note { Type = NoteType.Plain, Title = "t", BodyFormat = "markdown" });
         sut.Get(id)!.BodyFormat.Should().Be("markdown");
     }
+
+    [Fact]
+    public void FindChecklistForDate_ReturnsNull_WhenNone()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        sut.FindChecklistForDate(new DateOnly(2026, 7, 6)).Should().BeNull();
+    }
+
+    [Fact]
+    public void FindChecklistForDate_ReturnsMatch_ForThatDate()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var id = sut.Create(new Note { Type = NoteType.Checklist, LogDate = new DateOnly(2026, 7, 6) });
+        sut.Create(new Note { Type = NoteType.Checklist, LogDate = new DateOnly(2026, 7, 7) });
+
+        sut.FindChecklistForDate(new DateOnly(2026, 7, 6))!.Id.Should().Be(id);
+    }
+
+    [Fact]
+    public void FindChecklistForDate_ReturnsLowestId_WhenDuplicates()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var first = sut.Create(new Note { Type = NoteType.Checklist, LogDate = new DateOnly(2026, 7, 6) });
+        sut.Create(new Note { Type = NoteType.Checklist, LogDate = new DateOnly(2026, 7, 6) });
+
+        sut.FindChecklistForDate(new DateOnly(2026, 7, 6))!.Id.Should().Be(first);
+    }
+
+    [Fact]
+    public void FindChecklistForDate_IgnoresSoftDeleted()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var id = sut.Create(new Note { Type = NoteType.Checklist, LogDate = new DateOnly(2026, 7, 6) });
+        sut.SoftDelete(id);
+
+        sut.FindChecklistForDate(new DateOnly(2026, 7, 6)).Should().BeNull();
+    }
 }

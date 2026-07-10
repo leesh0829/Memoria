@@ -35,6 +35,11 @@ public partial class ChecklistViewModel : ObservableObject
     [ObservableProperty]
     private DateOnly _logDate;
 
+    /// 날짜 변경 요청(MainViewModel이 해당 날짜 체크리스트로 이동). VM은 _note를 직접 바꾸지 않는다.
+    public event Action<DateOnly>? NavigateToDateRequested;
+    /// draft(빈) 상태에서 첫 항목 추가로 실 노트가 생성됐을 때 그 id.
+    public event Action<int>? NoteMaterialized;
+
     public ChecklistViewModel(
         IChecklistRepository checklist,
         IClientRepository clients,
@@ -76,6 +81,22 @@ public partial class ChecklistViewModel : ObservableObject
         }
     }
 
+    /// 아직 노트가 없는 날짜의 빈 에디터. 첫 AddItem에서 실 노트를 생성(§lazy-create).
+    public void LoadDraft(DateOnly date)
+    {
+        _loading = true;
+        try
+        {
+            _note = null;
+            LogDate = date;                       // _loading 가드로 이벤트 억제
+            AvailableClients.Clear();
+            foreach (var client in _clients.GetAll(enabledOnly: true))
+                AvailableClients.Add(client);
+            Items.Clear();
+        }
+        finally { _loading = false; }
+    }
+
     [RelayCommand]
     public void AddTask() => AddItem(ItemKind.Task);
 
@@ -84,6 +105,11 @@ public partial class ChecklistViewModel : ObservableObject
 
     private ChecklistItemViewModel AddItem(ItemKind kind)
     {
+        if (_note is null)   // draft → 실 노트 생성 후 진행
+        {
+            _note = CreateChecklistNote(_notes, _groups, LogDate);
+            NoteMaterialized?.Invoke(_note.Id);
+        }
         var now = DateTimeOffset.UtcNow;
         var model = new ChecklistItem
         {
@@ -159,11 +185,8 @@ public partial class ChecklistViewModel : ObservableObject
 
     partial void OnLogDateChanged(DateOnly value)
     {
-        if (_loading) return;          // Load() 중 초기값 설정은 재영속화하지 않음
-        if (_note is null) return;
-        _note.LogDate = value;
-        _note.UpdatedAt = DateTimeOffset.UtcNow;
-        _notes.Update(_note);
+        if (_loading) return;                    // Load/LoadDraft 초기값 설정은 무시(기존 가드)
+        NavigateToDateRequested?.Invoke(value);  // 재-date 쓰기 제거 → 이동 요청만
     }
 
     /// 새 checklist 메모를 시스템 그룹 '일일업무일지'(M1 시드)에 배치하여 생성한다.

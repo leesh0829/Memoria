@@ -68,6 +68,10 @@ public sealed class FakeNoteRepository : INoteRepository
         Items.Where(n => n.DeletedAt == null && n.Type == NoteType.Checklist
                          && n.LogDate is { } d && d >= monday && d <= friday).ToList();
 
+    public Note? FindChecklistForDate(DateOnly date) =>
+        Items.Where(n => n.DeletedAt == null && n.Type == NoteType.Checklist && n.LogDate == date)
+             .OrderBy(n => n.Id).FirstOrDefault();
+
     public Note? FindWeeklyReport(DateOnly weekStart, ReportFormatKind format) =>
         Items.FirstOrDefault(n => n.Type == NoteType.WeeklyReport
                                   && n.ReportWeekStart == weekStart && n.ReportFormat == format);

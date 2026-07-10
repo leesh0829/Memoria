@@ -14,5 +14,6 @@ public interface INoteRepository
     IReadOnlyList<Note> GetByGroup(int? groupId);  // 활성, groupId=null → 미분류
     IReadOnlyList<Note> GetTrash();                // deleted_at NOT NULL
     IReadOnlyList<Note> GetChecklistsInWeek(DateOnly monday, DateOnly friday);
+    Note? FindChecklistForDate(DateOnly date);    // 활성 체크리스트 중 MIN(id), 없으면 null
     Note? FindWeeklyReport(DateOnly weekStart, ReportFormatKind format);
 }
