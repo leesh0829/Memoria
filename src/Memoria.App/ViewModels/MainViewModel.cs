@@ -271,10 +271,12 @@ public partial class MainViewModel : ObservableObject
 
         var notes = _noteRepo.GetByGroup(SelectedNode.GroupId)
             .OrderByDescending(n => n.Pinned)
-            .ThenByDescending(n => n.UpdatedAt);
+            .ThenByDescending(n => n.UpdatedAt)
+            .ToList();
 
-        foreach (var n in notes)
-            Notes.Add(new NoteListItemViewModel(n.Id, NoteTitleResolver.Resolve(n), n.Pinned, n.UpdatedAt));
+        var titles = NoteTitleResolver.ResolveList(notes);   // 같은 날짜 체크리스트 접미사
+        for (int i = 0; i < notes.Count; i++)
+            Notes.Add(new NoteListItemViewModel(notes[i].Id, titles[i], notes[i].Pinned, notes[i].UpdatedAt));
     }
 
     [RelayCommand]
@@ -301,15 +303,19 @@ public partial class MainViewModel : ObservableObject
     private void NewChecklist()
     {
         IsUndoAvailable = false;
+        var today = DateOnly.FromDateTime(_time.GetUtcNow().LocalDateTime.Date);
+
+        var existing = _noteRepo.FindChecklistForDate(today);
+        if (existing is not null) { NavigateToNote(existing.Id, existing.GroupId); return; }
+
         var group = _groupRepo.GetAll()
             .FirstOrDefault(g => g.IsSystem && g.Name == ChecklistViewModel.DailyLogGroupName);
-
         var now = _time.GetUtcNow();
         var note = new Note
         {
             Type = NoteType.Checklist,
             GroupId = group?.Id,
-            LogDate = DateOnly.FromDateTime(now.LocalDateTime.Date),
+            LogDate = today,
             CreatedAt = now,
             UpdatedAt = now,
         };
