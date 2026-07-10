@@ -175,6 +175,16 @@ public sealed class NoteRepository : INoteRepository
             }).ToList();
     }
 
+    public Note? FindChecklistForDate(DateOnly date)
+    {
+        using var conn = _factory.Open();
+        return conn.QuerySingleOrDefault<Note>(
+            $"SELECT {SelectColumns} FROM notes " +
+            "WHERE type = 'Checklist' AND deleted_at IS NULL AND log_date = @Date " +
+            "ORDER BY id LIMIT 1;",
+            new { Date = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) });
+    }
+
     public Note? FindWeeklyReport(DateOnly weekStart, ReportFormatKind format)
     {
         using var conn = _factory.Open();

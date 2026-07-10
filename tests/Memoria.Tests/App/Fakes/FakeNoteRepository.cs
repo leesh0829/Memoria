@@ -40,5 +40,8 @@ internal sealed class FakeNoteRepository : INoteRepository
 
     public IReadOnlyList<Note> GetTrash() => Items.Where(n => n.DeletedAt != null).ToList();
     public IReadOnlyList<Note> GetChecklistsInWeek(DateOnly monday, DateOnly friday) => new List<Note>();
+    public Note? FindChecklistForDate(DateOnly date) =>
+        Items.Where(n => n.DeletedAt == null && n.Type == NoteType.Checklist && n.LogDate == date)
+             .OrderBy(n => n.Id).FirstOrDefault();
     public Note? FindWeeklyReport(DateOnly weekStart, ReportFormatKind format) => null;
 }
