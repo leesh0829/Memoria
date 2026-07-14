@@ -202,6 +202,10 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          ItemsSource="{Binding Notes}"
                          SelectedItem="{Binding SelectedNote, Mode=TwoWay}"
+                         AllowDrop="True"
+                         DragOver="NoteList_DragOver"
+                         Drop="NoteList_Drop"
+                         DragLeave="NoteList_DragLeave"
                          PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
                          PreviewMouseLeftButtonUp="NoteList_PreviewMouseLeftButtonUp"
                          PreviewMouseMove="NoteList_PreviewMouseMove">

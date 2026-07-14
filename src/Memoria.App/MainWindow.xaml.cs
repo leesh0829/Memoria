@@ -39,6 +39,10 @@ public partial class MainWindow : Window
     private DragAdorner?          _dragAdorner;
     private DropIndicatorAdorner? _dropIndicator;
 
+    // 메모 리스트 순서변경용 드롭 인디케이터 — GroupTree용(_dropIndicator)과 반드시 분리한다
+    // (DropIndicatorAdorner는 대상 컨트롤의 AdornerLayer에 바인딩되므로 NoteListBox 전용 인스턴스 필요).
+    private DropIndicatorAdorner? _noteDropIndicator;
+
     // N7.3 스프링로드 펼침 — 접힌 노드 위 700ms 정지 시 자동 펼침.
     private DispatcherTimer?         _springLoadTimer;
     private SidebarNodeViewModel?    _springLoadTarget;
@@ -604,6 +608,82 @@ public partial class MainWindow : Window
         finally
         {
             ClearNoteDropTarget();   // 드롭/취소/예외 무관하게 강조 해제.
+            _noteDropIndicator?.Remove();   // 리스트 밖으로 드롭/취소 시 순서변경 인디케이터 정리.
+            _noteDropIndicator = null;
+        }
+    }
+
+    // -----------------------------------------------------------------
+    // 메모 리스트 내부 순서변경(드래그 앤 드롭) — noteId를 NoteListBox 위에 드롭하면 재정렬.
+    // (그룹 노드 위에 드롭하면 기존 GroupNode_DropNote가 그룹 이동을 처리 — 서로 다른 드롭 대상)
+    // -----------------------------------------------------------------
+
+    private void NoteList_DragOver(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent("noteId")) { e.Effects = DragDropEffects.None; return; }
+        e.Effects = DragDropEffects.Move;
+
+        try
+        {
+            var lbi = FindVisualAncestor<System.Windows.Controls.ListBoxItem>(
+                NoteListBox.InputHitTest(e.GetPosition(NoteListBox)) as DependencyObject);
+            if (lbi is not null)
+            {
+                var pos  = e.GetPosition(lbi);
+                var zone = pos.Y < lbi.ActualHeight / 2 ? DropZone.Before : DropZone.After;
+                _noteDropIndicator ??= DropIndicatorAdorner.TryCreate(NoteListBox);
+                _noteDropIndicator?.Update(lbi, zone);
+            }
+            else
+            {
+                _noteDropIndicator?.Clear();   // 항목 밖(빈 공간) — 선 숨김(드롭 시 맨 끝으로).
+            }
+        }
+        catch { /* degrade gracefully */ }
+
+        e.Handled = true;
+    }
+
+    private void NoteList_Drop(object sender, DragEventArgs e)
+    {
+        _noteDropIndicator?.Remove();
+        _noteDropIndicator = null;
+        if (!e.Data.GetDataPresent("noteId")) return;
+        var noteId = (int)e.Data.GetData("noteId");
+
+        var notes = ViewModel.Notes;
+        int oldIndex = -1;
+        for (int i = 0; i < notes.Count; i++)
+            if (notes[i].Id == noteId) { oldIndex = i; break; }
+        if (oldIndex < 0) return;   // 다른 그룹의 노트(리스트에 없음) → 무시.
+
+        var lbi = FindVisualAncestor<System.Windows.Controls.ListBoxItem>(
+            NoteListBox.InputHitTest(e.GetPosition(NoteListBox)) as DependencyObject);
+
+        int insertIndex;
+        if (lbi?.DataContext is NoteListItemViewModel target)
+        {
+            int t = notes.IndexOf(target);
+            var pos = e.GetPosition(lbi);
+            bool after = pos.Y >= lbi.ActualHeight / 2;
+            insertIndex = NoteDropCalculator.ResolveInsertIndex(oldIndex, t, after);
+        }
+        else
+        {
+            insertIndex = notes.Count - 1;   // 빈 공간에 드롭 → 맨 끝.
+        }
+
+        ViewModel.ReorderNote(noteId, insertIndex);
+        e.Handled = true;
+    }
+
+    private void NoteList_DragLeave(object sender, DragEventArgs e)
+    {
+        var pos = e.GetPosition(NoteListBox);
+        if (pos.X < 0 || pos.Y < 0 || pos.X > NoteListBox.ActualWidth || pos.Y > NoteListBox.ActualHeight)
+        {
+            _noteDropIndicator?.Remove();
+            _noteDropIndicator = null;
         }
     }
 

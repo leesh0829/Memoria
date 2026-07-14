@@ -25,7 +25,7 @@ public class MainViewModelEditorHostTests
 
         Func<ChecklistViewModel> checklistFactory = () =>
             new ChecklistViewModel(new FakeChecklistRepo(), new FakeClientRepo(),
-                new FakeTagging(), notes, groups);
+                new FakeTagging(), notes, groups, new FakeClipboard());
         Func<WeeklyReportViewModel> weeklyFactory = () =>
             new WeeklyReportViewModel(new FakeWeeklyReportService(), new FakeWeekCalc(), notes,
                 new FakeClientRepo(), groups, new FakeSettings(), new FakeClipboard(),

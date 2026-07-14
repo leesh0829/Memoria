@@ -101,6 +101,17 @@ public sealed class NoteRepository : INoteRepository
         }
     }
 
+    public void SetSortOrder(int id, int sortOrder)
+    {
+        // 순서변경은 메타 조작이므로 updated_at을 갱신하지 않는다(정렬/최근수정 의미 보존).
+        lock (_factory.WriteSync)
+        {
+            _factory.Write.Execute(
+                "UPDATE notes SET sort_order = @sortOrder WHERE id = @id;",
+                new { id, sortOrder });
+        }
+    }
+
     public void SoftDelete(int id)
     {
         lock (_factory.WriteSync)
@@ -149,7 +160,7 @@ public sealed class NoteRepository : INoteRepository
         var where = groupId is null ? "group_id IS NULL" : "group_id = @groupId";
         return conn.Query<Note>(
             $"SELECT {SelectColumns} FROM notes WHERE deleted_at IS NULL AND {where} " +
-            "ORDER BY pinned DESC, updated_at DESC, id DESC;", new { groupId }).ToList();
+            "ORDER BY pinned DESC, sort_order ASC, updated_at DESC, id DESC;", new { groupId }).ToList();
     }
 
     public IReadOnlyList<Note> GetTrash()
