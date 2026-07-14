@@ -6,8 +6,10 @@ using System.Linq;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Memoria.App.Services;
 using Memoria.Core.Data;
 using Memoria.Core.Models;
+using Memoria.Core.Reporting;
 using Memoria.Core.Services;
 
 namespace Memoria.App.ViewModels;
@@ -21,6 +23,7 @@ public partial class ChecklistViewModel : ObservableObject
     private readonly ITaggingService _tagging;
     private readonly INoteRepository _notes;
     private readonly IGroupRepository _groups;
+    private readonly IClipboardService _clipboard;
 
     private Note? _note;
     private bool _loading;
@@ -35,6 +38,16 @@ public partial class ChecklistViewModel : ObservableObject
     [ObservableProperty]
     private DateOnly _logDate;
 
+    // Read(양식 출력) 탭: Write=false / Read=true. Read 진입 시 최신 상태로 출력 렌더.
+    [ObservableProperty]
+    private bool _isReadMode;
+
+    [ObservableProperty]
+    private string _taskOutput = "";
+
+    [ObservableProperty]
+    private string _issueOutput = "";
+
     /// 날짜 변경 요청(MainViewModel이 해당 날짜 체크리스트로 이동). VM은 _note를 직접 바꾸지 않는다.
     public event Action<DateOnly>? NavigateToDateRequested;
     /// draft(빈) 상태에서 첫 항목 추가로 실 노트가 생성됐을 때 그 id.
@@ -45,13 +58,15 @@ public partial class ChecklistViewModel : ObservableObject
         IClientRepository clients,
         ITaggingService tagging,
         INoteRepository notes,
-        IGroupRepository groups)
+        IGroupRepository groups,
+        IClipboardService clipboard)
     {
         _checklist = checklist;
         _clients = clients;
         _tagging = tagging;
         _notes = notes;
         _groups = groups;
+        _clipboard = clipboard;
 
         TasksView = new ListCollectionView(Items)
             { Filter = o => o is ChecklistItemViewModel { IsTask: true } };
@@ -102,6 +117,37 @@ public partial class ChecklistViewModel : ObservableObject
 
     [RelayCommand]
     public void AddIssue() => AddItem(ItemKind.Issue);
+
+    // ---- Read(양식 출력) 탭 ----
+
+    [RelayCommand]
+    private void SetWriteMode() => IsReadMode = false;
+
+    [RelayCommand]
+    private void SetReadMode() => IsReadMode = true;
+
+    [RelayCommand]
+    private void CopyTaskOutput() => _clipboard.SetText(TaskOutput ?? "");
+
+    [RelayCommand]
+    private void CopyIssueOutput() => _clipboard.SetText(IssueOutput ?? "");
+
+    partial void OnIsReadModeChanged(bool value)
+    {
+        if (value) BuildOutputs();
+    }
+
+    /// Read 탭 진입 시 최신 상태로 렌더. 보류 저장(dirty)을 먼저 확정해 최신 텍스트+자동태깅을 반영한다.
+    /// Items(정렬된 원본)를 Kind로 필터해 렌더러에 전달(필터 뷰 아님). 고객사명은 전체(비활성 포함)에서 해석.
+    private void BuildOutputs()
+    {
+        FlushSaves();
+        var clientNames = _clients.GetAll().ToDictionary(c => c.Id, c => c.Name);
+        var tasks = Items.Where(i => i.IsTask).Select(i => (i.Text, i.ClientId)).ToList();
+        var issues = Items.Where(i => !i.IsTask).Select(i => i.Text).ToList();
+        TaskOutput = DailyLogRenderer.RenderTasks(tasks, clientNames);
+        IssueOutput = DailyLogRenderer.RenderIssues(issues);
+    }
 
     private ChecklistItemViewModel AddItem(ItemKind kind)
     {

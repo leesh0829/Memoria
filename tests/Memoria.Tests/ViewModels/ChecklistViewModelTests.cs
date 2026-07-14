@@ -16,9 +16,10 @@ public class ChecklistViewModelTests
     private readonly FakeTaggingService _tagging = new();
     private readonly FakeNoteRepository _notes = new();
     private readonly FakeGroupRepository _groups = new();
+    private readonly FakeClipboardService _clipboard = new();
 
     private ChecklistViewModel CreateSut() =>
-        new(_checklist, _clients, _tagging, _notes, _groups);
+        new(_checklist, _clients, _tagging, _notes, _groups, _clipboard);
 
     private Note SeedNote(int id = 1)
     {
@@ -457,5 +458,86 @@ public class ChecklistViewModelTests
 
         sut.Items.Should().HaveCount(1);
         sut.Items[0].Should().Be(only);
+    }
+
+    // ---- Read(양식 출력) 탭 ----
+
+    [Fact]
+    public void SetReadMode_renders_numbered_task_and_issue_outputs_with_client_prefix()
+    {
+        var note = SeedNote();
+        _clients.Clients.Add(new Client { Id = 1, Name = "SLD", SortOrder = 0, Enabled = true });
+        _clients.Clients.Add(new Client { Id = 2, Name = "SLD 자율형공장", SortOrder = 1, Enabled = true });
+        _checklist.AddItem(new ChecklistItem { NoteId = 1, Kind = ItemKind.Task, Text = "비전회의", ClientId = 1, SortOrder = 0 });
+        _checklist.AddItem(new ChecklistItem { NoteId = 1, Kind = ItemKind.Task, Text = "라인 셋업", ClientId = 2, SortOrder = 1 });
+        _checklist.AddItem(new ChecklistItem { NoteId = 1, Kind = ItemKind.Issue, Text = "파주 출장", SortOrder = 2 });
+        var sut = CreateSut();
+        sut.Load(note);
+
+        sut.SetReadModeCommand.Execute(null);
+
+        sut.IsReadMode.Should().BeTrue();
+        sut.TaskOutput.Should().Be("1. SLD 비전회의\n2. SLD 자율형공장 라인 셋업");
+        sut.IssueOutput.Should().Be("1. 파주 출장");
+    }
+
+    [Fact]
+    public void SetReadMode_flushes_pending_edits_and_autotags_before_render()
+    {
+        var note = SeedNote();
+        _clients.Clients.Add(new Client { Id = 6, Name = "SLD", SortOrder = 0, Enabled = true });
+        _tagging.KeywordToClient["점검"] = 6;
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items.Single(i => i.IsTask);
+        item.Text = "장비 점검";   // dirty (아직 저장/태깅 전)
+
+        sut.SetReadModeCommand.Execute(null);
+
+        item.IsDirty.Should().BeFalse();                 // Read 진입 시 FlushSaves 확정
+        sut.TaskOutput.Should().Be("1. SLD 장비 점검");   // 자동태깅된 고객사 접두어 반영
+    }
+
+    [Fact]
+    public void ReadMode_resolves_name_of_disabled_client()
+    {
+        var note = SeedNote();
+        _clients.Clients.Add(new Client { Id = 9, Name = "옛고객사", SortOrder = 0, Enabled = false });
+        _checklist.AddItem(new ChecklistItem { NoteId = 1, Kind = ItemKind.Task, Text = "잔무", ClientId = 9, SortOrder = 0 });
+        var sut = CreateSut();
+        sut.Load(note);
+
+        sut.SetReadModeCommand.Execute(null);
+
+        sut.TaskOutput.Should().Be("1. 옛고객사 잔무"); // 비활성 고객사도 이름 해석
+    }
+
+    [Fact]
+    public void CopyTaskOutput_and_CopyIssueOutput_set_clipboard()
+    {
+        var note = SeedNote();
+        _checklist.AddItem(new ChecklistItem { NoteId = 1, Kind = ItemKind.Task, Text = "할일", SortOrder = 0 });
+        _checklist.AddItem(new ChecklistItem { NoteId = 1, Kind = ItemKind.Issue, Text = "이슈", SortOrder = 1 });
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.SetReadModeCommand.Execute(null);
+
+        sut.CopyTaskOutputCommand.Execute(null);
+        _clipboard.LastText.Should().Be("1. 할일");
+
+        sut.CopyIssueOutputCommand.Execute(null);
+        _clipboard.LastText.Should().Be("1. 이슈");
+    }
+
+    [Fact]
+    public void SetWriteMode_returns_to_write_mode()
+    {
+        var sut = CreateSut();
+        sut.SetReadModeCommand.Execute(null);
+        sut.IsReadMode.Should().BeTrue();
+
+        sut.SetWriteModeCommand.Execute(null);
+        sut.IsReadMode.Should().BeFalse();
     }
 }

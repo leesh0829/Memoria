@@ -36,6 +36,12 @@ public sealed class FakeNoteRepository : INoteRepository
         else Items.Add(note);
     }
 
+    public void SetSortOrder(int id, int sortOrder)
+    {
+        var n = Items.FirstOrDefault(x => x.Id == id);
+        if (n != null) n.SortOrder = sortOrder; // updated_at 불변(메타 조작 미러)
+    }
+
     public void SoftDelete(int id)
     {
         var n = Items.FirstOrDefault(x => x.Id == id);
@@ -59,7 +65,9 @@ public sealed class FakeNoteRepository : INoteRepository
     public Note? Get(int id) => Items.FirstOrDefault(n => n.Id == id);
 
     public IReadOnlyList<Note> GetByGroup(int? groupId) =>
-        Items.Where(n => n.DeletedAt == null && n.GroupId == groupId).ToList();
+        Items.Where(n => n.DeletedAt == null && n.GroupId == groupId)
+             .OrderByDescending(n => n.Pinned).ThenBy(n => n.SortOrder)
+             .ThenByDescending(n => n.UpdatedAt).ThenByDescending(n => n.Id).ToList();
 
     public IReadOnlyList<Note> GetTrash() =>
         Items.Where(n => n.DeletedAt != null).ToList();

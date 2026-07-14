@@ -277,12 +277,32 @@ public partial class MainViewModel : ObservableObject
 
         var notes = _noteRepo.GetByGroup(SelectedNode.GroupId)
             .OrderByDescending(n => n.Pinned)
+            .ThenBy(n => n.SortOrder)              // 수동 순서(드래그) 우선; 미지정(0 동률)이면 최근수정순 폴백
             .ThenByDescending(n => n.UpdatedAt)
             .ToList();
 
         var titles = NoteTitleResolver.ResolveList(notes);   // 같은 날짜 체크리스트 접미사
         for (int i = 0; i < notes.Count; i++)
             Notes.Add(new NoteListItemViewModel(notes[i].Id, titles[i], notes[i].Pinned, notes[i].UpdatedAt));
+    }
+
+    /// 메모 목록 드래그 순서변경: Notes를 이동한 뒤 현재 그룹의 보이는 목록 전체를 0..n-1로
+    /// 재번호하여 sort_order를 영속화한다. 첫 드래그 시 baseline(0..n-1)을 확정해 sort_order=0 동률을 해소한다.
+    /// 순서변경은 메타 조작 → updated_at 갱신 안 함, LoadNotes 재호출(깜빡임) 안 함.
+    public void ReorderNote(int noteId, int newIndex)
+    {
+        var oldIndex = -1;
+        for (int i = 0; i < Notes.Count; i++)
+            if (Notes[i].Id == noteId) { oldIndex = i; break; }
+        if (oldIndex < 0) return;
+
+        if (newIndex < 0) newIndex = 0;
+        if (newIndex > Notes.Count - 1) newIndex = Notes.Count - 1;
+        if (oldIndex == newIndex) return;
+
+        Notes.Move(oldIndex, newIndex);
+        for (int i = 0; i < Notes.Count; i++)
+            _noteRepo.SetSortOrder(Notes[i].Id, i);
     }
 
     [RelayCommand]

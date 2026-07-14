@@ -6,6 +6,7 @@ public interface INoteRepository
 {
     int Create(Note note);                        // created_at/updated_at 채움, Id 반환
     void Update(Note note);                        // 전달된 Note 그대로 저장
+    void SetSortOrder(int id, int sortOrder);     // sort_order만 갱신(updated_at 불변; 순서변경 메타 조작)
     void SoftDelete(int id);                       // deleted_at 설정
     void Restore(int id);                          // deleted_at = null
     void Purge(int id);                            // 영구삭제(checklist_items CASCADE)

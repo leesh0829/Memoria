@@ -101,7 +101,7 @@ internal static class M9EditorFakes
     public static Func<Memoria.App.ViewModels.ChecklistViewModel> ChecklistFactory(
         INoteRepository notes, IGroupRepository groups) =>
         () => new Memoria.App.ViewModels.ChecklistViewModel(
-            new FakeChecklistRepo(), new FakeClientRepo(), new FakeTagging(), notes, groups);
+            new FakeChecklistRepo(), new FakeClientRepo(), new FakeTagging(), notes, groups, new FakeClipboard());
 
     public static Func<Memoria.App.ViewModels.WeeklyReportViewModel> WeeklyFactory(
         INoteRepository notes, IGroupRepository groups, TimeProvider time) =>

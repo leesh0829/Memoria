@@ -1,3 +1,4 @@
+using System.Linq;
 using FluentAssertions;
 using Memoria.Core.Data;
 using Memoria.Core.Models;
@@ -43,6 +44,33 @@ public class NoteRepositoryTests
         sut.GetByGroup(1).Should().Contain(n => n.Id == inGroup);
         sut.GetByGroup(null).Should().Contain(n => n.Id == unclassified)
             .And.NotContain(n => n.Id == inGroup);
+    }
+
+    [Fact]
+    public void GetByGroup_OrdersBySortOrderAscending_WithinSamePinned()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var id2 = sut.Create(new Note { Type = NoteType.Plain, GroupId = null, Title = "second", SortOrder = 2 });
+        var id0 = sut.Create(new Note { Type = NoteType.Plain, GroupId = null, Title = "zeroth", SortOrder = 0 });
+        var id1 = sut.Create(new Note { Type = NoteType.Plain, GroupId = null, Title = "first",  SortOrder = 1 });
+
+        sut.GetByGroup(null).Select(n => n.Id).Should().ContainInOrder(id0, id1, id2);
+    }
+
+    [Fact]
+    public void SetSortOrder_UpdatesOnlySortOrder_NotUpdatedAt()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var id = sut.Create(new Note { Type = NoteType.Plain, GroupId = null, Title = "t" });
+        var before = sut.Get(id)!.UpdatedAt;
+
+        sut.SetSortOrder(id, 5);
+
+        var after = sut.Get(id)!;
+        after.SortOrder.Should().Be(5);
+        after.UpdatedAt.Should().Be(before); // 순서변경은 updated_at을 건드리지 않는다
     }
 
     [Fact]

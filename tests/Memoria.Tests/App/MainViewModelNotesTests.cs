@@ -132,6 +132,69 @@ public class MainViewModelNotesTests
     }
 
     [Fact]
+    public void ReorderNote_moves_item_and_renumbers_sortOrder_and_persists()
+    {
+        var groups = new FakeGroupRepository();
+        var gid = groups.Create(new Group { Name = "업무", SortOrder = 1 });
+        var notes = new FakeNoteRepository();
+        var t0 = DateTimeOffset.UnixEpoch;
+        var a = notes.Create(new Note { GroupId = gid, Type = NoteType.Plain, Title = "A", UpdatedAt = t0.AddDays(2) });
+        var b = notes.Create(new Note { GroupId = gid, Type = NoteType.Plain, Title = "B", UpdatedAt = t0.AddDays(1) });
+        var c = notes.Create(new Note { GroupId = gid, Type = NoteType.Plain, Title = "C", UpdatedAt = t0 });
+        var vm = Build(groups, notes, new FakeTimeProvider());
+        vm.LoadGroups();
+        vm.SelectedNode = vm.SidebarNodes.First(n => n.GroupId == gid);
+        vm.Notes.Select(n => n.DisplayTitle).Should().ContainInOrder("A", "B", "C"); // 초기: 최근수정순
+
+        vm.ReorderNote(a, 2); // A를 맨 아래로
+
+        vm.Notes.Select(n => n.DisplayTitle).Should().ContainInOrder("B", "C", "A");
+        notes.Get(b)!.SortOrder.Should().Be(0);
+        notes.Get(c)!.SortOrder.Should().Be(1);
+        notes.Get(a)!.SortOrder.Should().Be(2);
+
+        // 영속화 검증: 재로드해도 수동 순서 유지(GetByGroup sort_order ASC)
+        vm.LoadNotes();
+        vm.Notes.Select(n => n.DisplayTitle).Should().ContainInOrder("B", "C", "A");
+    }
+
+    [Fact]
+    public void ReorderNote_does_not_change_updatedAt()
+    {
+        var groups = new FakeGroupRepository();
+        var gid = groups.Create(new Group { Name = "업무", SortOrder = 1 });
+        var notes = new FakeNoteRepository();
+        var t0 = DateTimeOffset.UnixEpoch;
+        var a = notes.Create(new Note { GroupId = gid, Type = NoteType.Plain, Title = "A", UpdatedAt = t0.AddDays(2) });
+        notes.Create(new Note { GroupId = gid, Type = NoteType.Plain, Title = "B", UpdatedAt = t0.AddDays(1) });
+        var vm = Build(groups, notes, new FakeTimeProvider());
+        vm.LoadGroups();
+        vm.SelectedNode = vm.SidebarNodes.First(n => n.GroupId == gid);
+
+        vm.ReorderNote(a, 1);
+
+        notes.Get(a)!.UpdatedAt.Should().Be(t0.AddDays(2)); // 순서변경은 메타 조작 → updated_at 불변
+    }
+
+    [Fact]
+    public void ReorderNote_is_noop_for_unknown_id_or_same_index()
+    {
+        var groups = new FakeGroupRepository();
+        var gid = groups.Create(new Group { Name = "업무", SortOrder = 1 });
+        var notes = new FakeNoteRepository();
+        var a = notes.Create(new Note { GroupId = gid, Type = NoteType.Plain, Title = "A", UpdatedAt = DateTimeOffset.UnixEpoch.AddDays(1) });
+        var b = notes.Create(new Note { GroupId = gid, Type = NoteType.Plain, Title = "B", UpdatedAt = DateTimeOffset.UnixEpoch });
+        var vm = Build(groups, notes, new FakeTimeProvider());
+        vm.LoadGroups();
+        vm.SelectedNode = vm.SidebarNodes.First(n => n.GroupId == gid);
+
+        vm.ReorderNote(99999, 0);     // 없는 id
+        vm.ReorderNote(a, 0);         // 같은 위치(A는 이미 0)
+
+        vm.Notes.Select(n => n.DisplayTitle).Should().ContainInOrder("A", "B"); // 변화 없음
+    }
+
+    [Fact]
     public void UndoDelete_restores_note_to_list()
     {
         var groups = new FakeGroupRepository();
