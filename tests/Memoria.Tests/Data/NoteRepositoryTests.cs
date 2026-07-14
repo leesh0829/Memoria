@@ -59,6 +59,21 @@ public class NoteRepositoryTests
     }
 
     [Fact]
+    public void GetByGroup_TieBreaksBySortOrderZero_ByUpdatedAtDescending()
+    {
+        // 하위호환 보증: 기존 노트는 전부 sort_order=0 → 동률이므로 updated_at DESC로 폴백해야 한다.
+        // (Create가 updated_at을 now로 덮으므로 Update로 명시 타임스탬프를 심는다.)
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var older = sut.Create(new Note { Type = NoteType.Plain, GroupId = null, Title = "older" });
+        var newer = sut.Create(new Note { Type = NoteType.Plain, GroupId = null, Title = "newer" });
+        var o = sut.Get(older)!; o.UpdatedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero); sut.Update(o);
+        var n = sut.Get(newer)!; n.UpdatedAt = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero); sut.Update(n);
+
+        sut.GetByGroup(null).Select(x => x.Id).Should().ContainInOrder(newer, older);
+    }
+
+    [Fact]
     public void SetSortOrder_UpdatesOnlySortOrder_NotUpdatedAt()
     {
         using var db = new TestDb();

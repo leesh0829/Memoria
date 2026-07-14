@@ -279,6 +279,7 @@ public partial class MainViewModel : ObservableObject
             .OrderByDescending(n => n.Pinned)
             .ThenBy(n => n.SortOrder)              // 수동 순서(드래그) 우선; 미지정(0 동률)이면 최근수정순 폴백
             .ThenByDescending(n => n.UpdatedAt)
+            .ThenByDescending(n => n.Id)           // GetByGroup SQL/Fake와 동일 정렬(완전 동률 시 id DESC)
             .ToList();
 
         var titles = NoteTitleResolver.ResolveList(notes);   // 같은 날짜 체크리스트 접미사
@@ -301,6 +302,8 @@ public partial class MainViewModel : ObservableObject
         if (oldIndex == newIndex) return;
 
         Notes.Move(oldIndex, newIndex);
+        // 보이는 목록 전체를 재번호. 현재 Pinned은 항상 false(핀 UI 없음)라 경계 문제가 없다.
+        // 향후 핀 기능을 추가하면 pinned/unpinned 경계를 넘는 드롭은 pinned DESC 재정렬로 되돌아가므로 클램프가 필요.
         for (int i = 0; i < Notes.Count; i++)
             _noteRepo.SetSortOrder(Notes[i].Id, i);
     }
