@@ -20,6 +20,12 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
+      # 태그명(vX.Y.Z)에서 'v'를 떼어 어셈블리 버전으로 주입 → 앱 '정보' 탭 표시가 릴리스 태그와 자동 일치.
+      - name: Compute version from tag
+        id: ver
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
       - name: Publish single-file (self-contained, win-x64, no trim / no compression)
         run: >
           dotnet publish src/Memoria.App
@@ -30,6 +36,7 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=false
           -p:PublishTrimmed=false
+          -p:Version=${{ steps.ver.outputs.version }}
           -o publish
 
       - name: Create GitHub Release and upload asset
