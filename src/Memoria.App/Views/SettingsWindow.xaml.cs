@@ -30,4 +30,16 @@ public partial class SettingsWindow : Window
         if (dlg.ShowDialog() == true && DataContext is SettingsViewModel vm)
             vm.ServiceAccountJsonPath = dlg.FileName;
     }
+
+    // 정보 탭 링크 → 기본 브라우저로 열기.
+    private void OnOpenLinkClick(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        }
+        catch { /* 브라우저 실행 실패 시 무시 */ }
+        e.Handled = true;
+    }
 }

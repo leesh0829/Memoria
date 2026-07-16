@@ -23,6 +23,9 @@
     <UseWPF>true</UseWPF>
     <!-- 산출 실행 파일명을 제품명과 일치(Memoria.exe). README/트레이/release.yml 기준. -->
     <AssemblyName>Memoria</AssemblyName>
+    <Product>Memoria</Product>
+    <!-- 개발/로컬 빌드용 기본 버전. 릴리스는 release.yml이 태그값(-p:Version)으로 덮어씀. 릴리스 시 함께 올릴 것. -->
+    <Version>0.8.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
