@@ -18,14 +18,29 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
 
     private static string RenderA(WeeklyReportData data, ReportRenderOptions options)
     {
+        var clientNames = options.Clients.ToDictionary(c => c.Id, c => c.Name);
         var lines = new List<string> { options.TaskHeaderA };
         foreach (var t in VisibleTasks(data, options))
-            lines.Add(options.Indent + "* " + t.Text);
+            lines.Add(options.Indent + "* " + WithClientPrefix(t, clientNames));
         lines.Add("");
         lines.Add(options.IssueHeaderA);
         foreach (var i in data.Issues)
             lines.Add(options.Indent + "* " + i.Text);
         return string.Join("\n", lines);
+    }
+
+    /// 업무 텍스트 앞에 선택한 고객사명을 붙인다. 텍스트가 이미 고객사명으로 시작하면(구글시트 경로처럼
+    /// 셀에 회사명이 포함된 경우) 중복을 피하려고 그대로 둔다.
+    private static string WithClientPrefix(ReportTask t, IReadOnlyDictionary<int, string> clientNames)
+    {
+        if (t.ClientId is int id
+            && clientNames.TryGetValue(id, out var name)
+            && !string.IsNullOrWhiteSpace(name)
+            && !t.Text.StartsWith(name, StringComparison.Ordinal))
+        {
+            return name + " " + t.Text;
+        }
+        return t.Text;
     }
 
     private static string RenderB(WeeklyReportData data, ReportRenderOptions options)

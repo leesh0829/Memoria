@@ -22,7 +22,7 @@ public class TaggingServiceTests
     {
         using var db = new TestDb();
         var (svc, clients) = Build(db);
-        var autoFactoryId = clients.GetAll().Single(c => c.Name == "자율형 공장").Id;
+        var autoFactoryId = clients.GetAll().Single(c => c.Name == "SLD 자율형공장").Id;
 
         var item = new ChecklistItem { Kind = ItemKind.Task, Text = "자율형공장 점검", IsManual = false };
         var result = svc.ApplyAutoTag(item);

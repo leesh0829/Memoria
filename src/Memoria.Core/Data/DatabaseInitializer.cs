@@ -4,7 +4,7 @@ namespace Memoria.Core.Data;
 
 public sealed class DatabaseInitializer : IDatabaseInitializer
 {
-    private const long TargetVersion = 2;
+    private const long TargetVersion = 3;
     private readonly SqliteConnectionFactory _factory;
 
     public DatabaseInitializer(SqliteConnectionFactory factory) => _factory = factory;
@@ -23,6 +23,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
 
             if (current < 1) ApplyV1(conn);
             if (current < 2) ApplyV2(conn);
+            if (current < 3) ApplyV3(conn);
         }
     }
 
@@ -46,6 +47,19 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
             "INSERT INTO _migrations(version, applied_at) VALUES(2, strftime('%Y-%m-%dT%H:%M:%fZ','now'));",
             transaction: tx);
         conn.Execute("PRAGMA user_version = 2;", transaction: tx);
+        tx.Commit();
+    }
+
+    // '자율형 공장' 고객사 표시명을 'SLD 자율형공장'으로 개명(일일업무일지/주간보고 출력 표기 통일).
+    // 규칙은 client_id로 연결되어 있어 개명해도 분류 규칙은 유지된다.
+    private static void ApplyV3(Microsoft.Data.Sqlite.SqliteConnection conn)
+    {
+        using var tx = conn.BeginTransaction();
+        conn.Execute("UPDATE clients SET name = 'SLD 자율형공장' WHERE name = '자율형 공장';", transaction: tx);
+        conn.Execute(
+            "INSERT INTO _migrations(version, applied_at) VALUES(3, strftime('%Y-%m-%dT%H:%M:%fZ','now'));",
+            transaction: tx);
+        conn.Execute("PRAGMA user_version = 3;", transaction: tx);
         tx.Commit();
     }
 
