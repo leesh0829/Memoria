@@ -22,6 +22,17 @@ public class SettingsViewModelTests
         public void Disable() => Enabled = false;
     }
 
+    private static FakeClientRepository SeededClients()
+    {
+        var clients = new FakeClientRepository();
+        clients.Clients.AddRange(
+        [
+            new Client { Id = 1, Name = "SLD", SortOrder = 1, Enabled = true },
+            new Client { Id = 5, Name = "SLD 자율형공장", SortOrder = 5, Enabled = true },
+        ]);
+        return clients;
+    }
+
     private static (SettingsViewModel vm, InMemorySettingsRepository settings, FakeAutostartService autostart, FakeThemeApplier applier)
         Create()
     {
@@ -30,7 +41,7 @@ public class SettingsViewModelTests
         var theme = new ThemeService(settings, applier, new FakeSystemThemeSource { Light = true });
         theme.Initialize();
         var autostart = new FakeAutostartService();
-        var vm = new SettingsViewModel(settings, theme, autostart);
+        var vm = new SettingsViewModel(settings, theme, autostart, SeededClients());
         return (vm, settings, autostart, applier);
     }
 
@@ -65,7 +76,7 @@ public class SettingsViewModelTests
 
         var reloaded = new SettingsViewModel(settings,
             new ThemeService(settings, new FakeThemeApplier(), new FakeSystemThemeSource()),
-            new FakeAutostartService());
+            new FakeAutostartService(), SeededClients());
 
         reloaded.ReporterName.Should().Be("홍길동");
         reloaded.IncludeDoneOnly.Should().BeTrue();
@@ -128,6 +139,59 @@ public class SettingsViewModelTests
         settings.Get(SettingsKeys.CloseToTray).Should().Be("false");
         settings.Get(SettingsKeys.BackupRetentionCount).Should().Be("10");
         settings.Get(SettingsKeys.TrashRetentionDays).Should().Be("60");
+    }
+
+    [Fact]
+    public void FormatC_defaults_check_only_sld_autonomous_factory()
+    {
+        var (vm, _, _, _) = Create();
+
+        vm.StartDayC.Should().Be(DayOfWeek.Friday);
+        vm.EndDayC.Should().Be(DayOfWeek.Thursday);
+        vm.TitleHeaderC.Should().Be("[ 주간 실적 ]");
+        vm.PlanHeaderC.Should().Be("[ 차주 계획 ]");
+        vm.DetailMarkerC.Should().Be("o");
+        vm.FormatCClientOptions.Where(c => c.IsSelected).Select(c => c.Name)
+            .Should().Equal("SLD 자율형공장");
+    }
+
+    [Fact]
+    public void Save_persists_formatC_days_headers_and_clients()
+    {
+        var (vm, settings, _, _) = Create();
+        vm.StartDayC = DayOfWeek.Monday;
+        vm.EndDayC = DayOfWeek.Friday;
+        vm.TitleHeaderC = "[ 이번주 실적 ]";
+        vm.PlanHeaderC = "[ 다음주 계획 ]";
+        vm.DetailMarkerC = "-";
+        foreach (var c in vm.FormatCClientOptions)
+            c.IsSelected = true;
+
+        vm.SaveCommand.Execute(null);
+
+        settings.Get(SettingsKeys.FormatCStartDay).Should().Be("Monday");
+        settings.Get(SettingsKeys.FormatCEndDay).Should().Be("Friday");
+        settings.Get(SettingsKeys.FormatCTitleHeader).Should().Be("[ 이번주 실적 ]");
+        settings.Get(SettingsKeys.FormatCPlanHeader).Should().Be("[ 다음주 계획 ]");
+        settings.Get(SettingsKeys.FormatCDetailMarker).Should().Be("-");
+        settings.Get(SettingsKeys.FormatCClientIds).Should().Be("1,5");
+    }
+
+    [Fact]
+    public void FormatC_client_selection_round_trips_through_settings()
+    {
+        var (vm, settings, _, _) = Create();
+        foreach (var c in vm.FormatCClientOptions)
+            c.IsSelected = c.Name == "SLD";
+
+        vm.SaveCommand.Execute(null);
+
+        var reloaded = new SettingsViewModel(settings,
+            new ThemeService(settings, new FakeThemeApplier(), new FakeSystemThemeSource()),
+            new FakeAutostartService(), SeededClients());
+
+        reloaded.FormatCClientOptions.Where(c => c.IsSelected).Select(c => c.Name)
+            .Should().Equal("SLD");
     }
 
     [Fact]

@@ -96,7 +96,7 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
             "== " + options.ReporterName,
         };
 
-        foreach (var t in VisibleTasks(data, options))
+        foreach (var t in VisibleTasks(data, options).Where(t => IncludedInC(t, options)))
         {
             lines.Add("- " + t.Text);
             lines.Add(FormatCIndent + options.DetailMarkerC);
@@ -107,4 +107,10 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
 
         return string.Join("\n", lines);
     }
+
+    /// 양식 C 고객사 필터. ClientIdsC가 null이면 전부 포함, 아니면 그 고객사로 분류된 업무만
+    /// 포함한다(미분류 업무는 제외).
+    private static bool IncludedInC(ReportTask t, ReportRenderOptions options)
+        => options.ClientIdsC is null
+           || (t.ClientId is int id && options.ClientIdsC.Contains(id));
 }

@@ -84,6 +84,72 @@ public class WeeklyReportRendererFormatCTests
     }
 
     [Fact]
+    public void FormatC_KeepsOnlyTasksOfSelectedClients()
+    {
+        var data = new WeeklyReportData(
+            Tasks:
+            [
+                new ReportTask("자율형공장 라인 셋업", 5, false),
+                new ReportTask("SLD 비전회의", 1, false),
+                new ReportTask("분류 안 된 업무", null, false),
+            ],
+            Issues: []);
+        var options = new ReportRenderOptions { ClientIdsC = [5] };
+
+        var text = _sut.Render(ReportFormatKind.C, data, options);
+
+        text.Should().Be("[ 주간 실적 ]\n\n== 이승현\n- 자율형공장 라인 셋업\n    o\n\n[ 차주 계획 ]");
+    }
+
+    [Fact]
+    public void FormatC_EmptyClientFilter_OutputsNoTasks()
+    {
+        var data = new WeeklyReportData(
+            Tasks: [new ReportTask("업무1", 1, false)],
+            Issues: []);
+        var options = new ReportRenderOptions { ClientIdsC = [] };
+
+        var text = _sut.Render(ReportFormatKind.C, data, options);
+
+        text.Should().Be("[ 주간 실적 ]\n\n== 이승현\n\n[ 차주 계획 ]");
+    }
+
+    [Fact]
+    public void FormatC_NullClientFilter_KeepsEveryTask()
+    {
+        var data = new WeeklyReportData(
+            Tasks:
+            [
+                new ReportTask("분류된 업무", 1, false),
+                new ReportTask("미분류 업무", null, false),
+            ],
+            Issues: []);
+        var options = new ReportRenderOptions { ClientIdsC = null };
+
+        var text = _sut.Render(ReportFormatKind.C, data, options);
+
+        text.Should().Be("[ 주간 실적 ]\n\n== 이승현\n- 분류된 업무\n    o\n- 미분류 업무\n    o\n\n[ 차주 계획 ]");
+    }
+
+    [Fact]
+    public void FormatC_ClientFilterAndIncludeDoneOnly_ApplyTogether()
+    {
+        var data = new WeeklyReportData(
+            Tasks:
+            [
+                new ReportTask("완료 + 대상 고객사", 5, true),
+                new ReportTask("미완료 + 대상 고객사", 5, false),
+                new ReportTask("완료 + 다른 고객사", 1, true),
+            ],
+            Issues: []);
+        var options = new ReportRenderOptions { ClientIdsC = [5], IncludeDoneOnly = true };
+
+        var text = _sut.Render(ReportFormatKind.C, data, options);
+
+        text.Should().Be("[ 주간 실적 ]\n\n== 이승현\n- 완료 + 대상 고객사\n    o\n\n[ 차주 계획 ]");
+    }
+
+    [Fact]
     public void FormatC_UsesConfiguredNameHeadersAndMarker()
     {
         var data = new WeeklyReportData(Tasks: [new ReportTask("업무1", null, false)], Issues: []);

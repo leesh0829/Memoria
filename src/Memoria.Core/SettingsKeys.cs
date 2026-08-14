@@ -14,6 +14,7 @@ public static class SettingsKeys
     public const string FormatCTitleHeader = "report.formatC.titleHeader";
     public const string FormatCPlanHeader = "report.formatC.planHeader";
     public const string FormatCDetailMarker = "report.formatC.detailMarker";
+    public const string FormatCClientIds = "report.formatC.clientIds";
     public const string ReportIndent = "report.indent";
     public const string IncludeDoneOnly = "report.includeDoneOnly";
     public const string HotkeyNewNote = "hotkey.newNote";
