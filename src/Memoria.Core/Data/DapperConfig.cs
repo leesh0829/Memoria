@@ -88,13 +88,20 @@ internal static class DapperConfig
         {
             "A" => ReportFormatKind.A,
             "B" => ReportFormatKind.B,
+            "C" => ReportFormatKind.C,
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown report format"),
         };
 
         public override void SetValue(IDbDataParameter parameter, ReportFormatKind value)
         {
             parameter.DbType = DbType.String;
-            parameter.Value = value == ReportFormatKind.A ? "A" : "B";
+            parameter.Value = value switch
+            {
+                ReportFormatKind.A => "A",
+                ReportFormatKind.B => "B",
+                ReportFormatKind.C => "C",
+                _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown report format"),
+            };
         }
     }
 }

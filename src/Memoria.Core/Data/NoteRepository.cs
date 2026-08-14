@@ -28,12 +28,13 @@ public sealed class NoteRepository : INoteRepository
         _ => throw new ArgumentOutOfRangeException(nameof(t)),
     };
 
-    // ReportFormatKind names "A" / "B" already match the desired DB strings.
+    // ReportFormatKind names "A" / "B" / "C" already match the desired DB strings.
     private static string? ReportFormatToString(ReportFormatKind? f) => f switch
     {
         null => null,
         ReportFormatKind.A => nameof(ReportFormatKind.A),
         ReportFormatKind.B => nameof(ReportFormatKind.B),
+        ReportFormatKind.C => nameof(ReportFormatKind.C),
         _ => throw new ArgumentOutOfRangeException(nameof(f)),
     };
 
@@ -206,7 +207,7 @@ public sealed class NoteRepository : INoteRepository
             new
             {
                 WeekStart = weekStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                Format = format == ReportFormatKind.A ? nameof(ReportFormatKind.A) : nameof(ReportFormatKind.B),
+                Format = ReportFormatToString(format),
             });
     }
 }

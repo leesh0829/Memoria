@@ -10,8 +10,13 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         {
             ReportFormatKind.A => RenderA(data, options),
             ReportFormatKind.B => RenderB(data, options),
+            ReportFormatKind.C => RenderC(data, options),
             _ => throw new ArgumentOutOfRangeException(nameof(format)),
         };
+
+    /// 양식 C의 설명 머릿말 줄 들여쓰기. 붙여넣는 문서마다 탭 폭이 달라 정렬이 깨지므로
+    /// 공통 report.indent(기본 탭) 대신 공백 4칸으로 고정한다.
+    private const string FormatCIndent = "    ";
 
     private static IEnumerable<ReportTask> VisibleTasks(WeeklyReportData data, ReportRenderOptions options)
         => options.IncludeDoneOnly ? data.Tasks.Where(t => t.Done) : data.Tasks;
@@ -76,6 +81,29 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         lines.Add(options.IssueHeaderB);
         foreach (var i in data.Issues)
             lines.Add(options.Indent + "* " + i.Text);
+
+        return string.Join("\n", lines);
+    }
+
+    /// 양식 C: 보고자 이름 아래로 업무 한 건마다 "- 업무" + 빈 설명 머릿말("o") 줄.
+    /// 이슈는 다루지 않고 고객사 접두도 붙이지 않는다. 차주 계획은 머리글만 두고 사용자가 채운다.
+    private static string RenderC(WeeklyReportData data, ReportRenderOptions options)
+    {
+        var lines = new List<string>
+        {
+            options.TitleHeaderC,
+            "",
+            "== " + options.ReporterName,
+        };
+
+        foreach (var t in VisibleTasks(data, options))
+        {
+            lines.Add("- " + t.Text);
+            lines.Add(FormatCIndent + options.DetailMarkerC);
+        }
+
+        lines.Add("");
+        lines.Add(options.PlanHeaderC);
 
         return string.Join("\n", lines);
     }

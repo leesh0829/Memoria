@@ -20,9 +20,12 @@
             <RadioButton Content="양식 A" Margin="0,0,8,4" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.Foreground}"
                          IsChecked="{Binding SelectedFormat, Converter={x:Static conv:EnumMatchConverter.Instance}, ConverterParameter={x:Static models:ReportFormatKind.A}}"/>
-            <RadioButton Content="양식 B" Margin="0,0,12,4" VerticalAlignment="Center"
+            <RadioButton Content="양식 B" Margin="0,0,8,4" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.Foreground}"
                          IsChecked="{Binding SelectedFormat, Converter={x:Static conv:EnumMatchConverter.Instance}, ConverterParameter={x:Static models:ReportFormatKind.B}}"/>
+            <RadioButton Content="양식 C" Margin="0,0,12,4" VerticalAlignment="Center"
+                         Foreground="{DynamicResource Brush.Foreground}"
+                         IsChecked="{Binding SelectedFormat, Converter={x:Static conv:EnumMatchConverter.Instance}, ConverterParameter={x:Static models:ReportFormatKind.C}}"/>
             <Button Content="생성" Command="{Binding GenerateCommand}" Margin="0,0,4,4" Padding="10,2"/>
             <Button Content="다시 생성" Command="{Binding RegenerateCommand}" Margin="0,0,4,4" Padding="10,2"/>
             <Button Content="복사" Command="{Binding CopyCommand}" Margin="0,0,4,4" Padding="10,2"/>

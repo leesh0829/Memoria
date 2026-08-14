@@ -42,4 +42,52 @@ public class WeekCalculatorTests
         monday.Should().Be(new DateOnly(2026, 12, 28));
         friday.Should().Be(new DateOnly(2027, 1, 1));
     }
+
+    [Fact]
+    public void CustomRange_FridayToThursday_SpansPreviousFridayToThisThursday()
+    {
+        // 2026-08-12(수)가 속한 주 = 08-10(월)~ → 목요일 08-13, 그 직전 금요일 08-07
+        var (start, end) = _calc.GetCustomRange(
+            new DateOnly(2026, 8, 12), DayOfWeek.Friday, DayOfWeek.Thursday);
+        start.Should().Be(new DateOnly(2026, 8, 7));
+        end.Should().Be(new DateOnly(2026, 8, 13));
+    }
+
+    [Fact]
+    public void CustomRange_MondayToFriday_MatchesWorkWeek()
+    {
+        var (start, end) = _calc.GetCustomRange(
+            new DateOnly(2026, 8, 12), DayOfWeek.Monday, DayOfWeek.Friday);
+        start.Should().Be(new DateOnly(2026, 8, 10));
+        end.Should().Be(new DateOnly(2026, 8, 14));
+    }
+
+    [Fact]
+    public void CustomRange_SameStartAndEndDay_SpansSevenDays()
+    {
+        var (start, end) = _calc.GetCustomRange(
+            new DateOnly(2026, 8, 12), DayOfWeek.Wednesday, DayOfWeek.Wednesday);
+        start.Should().Be(new DateOnly(2026, 8, 5));
+        end.Should().Be(new DateOnly(2026, 8, 12));
+    }
+
+    [Fact]
+    public void CustomRange_Sunday_UsesWeekStartedPreviousMonday()
+    {
+        // 2026-08-16(일)은 08-10(월) 주에 속한다 → 목요일 08-13 기준
+        var (start, end) = _calc.GetCustomRange(
+            new DateOnly(2026, 8, 16), DayOfWeek.Friday, DayOfWeek.Thursday);
+        start.Should().Be(new DateOnly(2026, 8, 7));
+        end.Should().Be(new DateOnly(2026, 8, 13));
+    }
+
+    [Fact]
+    public void CustomRange_SundayEndDay_ResolvesToWeekEndingSunday()
+    {
+        // 일요일은 월요일 기준 주의 마지막 날 → 08-10(월) 주의 일요일은 08-16
+        var (start, end) = _calc.GetCustomRange(
+            new DateOnly(2026, 8, 12), DayOfWeek.Monday, DayOfWeek.Sunday);
+        start.Should().Be(new DateOnly(2026, 8, 10));
+        end.Should().Be(new DateOnly(2026, 8, 16));
+    }
 }

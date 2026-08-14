@@ -44,16 +44,37 @@
 
         <!-- 주간보고 탭 -->
         <TabItem Header="주간보고">
-            <StackPanel Margin="12">
-                <TextBlock Text="보고자 이름" /><TextBox Text="{Binding ReporterName}" />
-                <TextBlock Text="양식 A — 업무 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding TaskHeaderA}" />
-                <TextBlock Text="양식 A — 이슈 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding IssueHeaderA}" />
-                <TextBlock Text="양식 B — 제목 문구" Margin="0,8,0,0" /><TextBox Text="{Binding TitleWordB}" />
-                <TextBlock Text="양식 B — 이슈 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding IssueHeaderB}" />
-                <CheckBox Content="완료 항목만 포함(includeDoneOnly)"
-                          IsChecked="{Binding IncludeDoneOnly}"
-                          Margin="0,8,0,0" />
-            </StackPanel>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="12">
+                    <TextBlock Text="보고자 이름" /><TextBox Text="{Binding ReporterName}" />
+                    <TextBlock Text="양식 A — 업무 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding TaskHeaderA}" />
+                    <TextBlock Text="양식 A — 이슈 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding IssueHeaderA}" />
+                    <TextBlock Text="양식 B — 제목 문구" Margin="0,8,0,0" /><TextBox Text="{Binding TitleWordB}" />
+                    <TextBlock Text="양식 B — 이슈 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding IssueHeaderB}" />
+
+                    <TextBlock Text="양식 C — 기간 시작 요일" Margin="0,8,0,0" />
+                    <ComboBox ItemsSource="{Binding DayOfWeekOptions}"
+                              SelectedValuePath="Value" DisplayMemberPath="Label"
+                              SelectedValue="{Binding StartDayC}"
+                              Width="140" HorizontalAlignment="Left" />
+                    <TextBlock Text="양식 C — 기간 종료 요일" Margin="0,8,0,0" />
+                    <ComboBox ItemsSource="{Binding DayOfWeekOptions}"
+                              SelectedValuePath="Value" DisplayMemberPath="Label"
+                              SelectedValue="{Binding EndDayC}"
+                              Width="140" HorizontalAlignment="Left" />
+                    <TextBlock Text="※ 기본값 금요일~목요일 = 전주 금요일부터 해당 주 목요일까지 집계합니다."
+                               TextWrapping="Wrap" Margin="0,4,0,0"
+                               Foreground="{DynamicResource Brush.SecondaryForeground}" />
+                    <TextBlock Text="양식 C — 실적 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding TitleHeaderC}" />
+                    <TextBlock Text="양식 C — 계획 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding PlanHeaderC}" />
+                    <TextBlock Text="양식 C — 설명 머릿말" Margin="0,8,0,0" />
+                    <TextBox Text="{Binding DetailMarkerC}" Width="80" HorizontalAlignment="Left" />
+
+                    <CheckBox Content="완료 항목만 포함(includeDoneOnly)"
+                              IsChecked="{Binding IncludeDoneOnly}"
+                              Margin="0,12,0,0" />
+                </StackPanel>
+            </ScrollViewer>
         </TabItem>
 
         <!-- 고객사 탭 -->
