@@ -70,6 +70,22 @@
                     <TextBlock Text="양식 C — 설명 머릿말" Margin="0,8,0,0" />
                     <TextBox Text="{Binding DetailMarkerC}" Width="80" HorizontalAlignment="Left" />
 
+                    <TextBlock Text="양식 C — 포함할 고객사" Margin="0,8,0,0" />
+                    <ItemsControl ItemsSource="{Binding FormatCClientOptions}" Margin="0,2,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}"
+                                          Margin="0,2,12,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <TextBlock Text="※ 체크한 고객사로 분류된 할 일만 양식 C에 출력됩니다(미분류는 제외). 기본값은 'SLD 자율형공장'입니다."
+                               TextWrapping="Wrap" Margin="0,4,0,0"
+                               Foreground="{DynamicResource Brush.SecondaryForeground}" />
+
                     <CheckBox Content="완료 항목만 포함(includeDoneOnly)"
                               IsChecked="{Binding IncludeDoneOnly}"
                               Margin="0,12,0,0" />

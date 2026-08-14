@@ -1,6 +1,8 @@
 // src/Memoria.App/ViewModels/SettingsViewModel.cs
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Memoria.App.Theming;
@@ -17,7 +19,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly ISettingsRepository _settings;
     private readonly IThemeService _theme;
     private readonly IAutostartService _autostart;
+    private readonly IClientRepository _clients;
     private bool _loading;
+
+    /// 양식 C에 포함할 고객사 체크 목록.
+    public ObservableCollection<FormatCClientSelection> FormatCClientOptions { get; } = new();
 
     public string[] AvailablePresets { get; } = ThemeResolver.Presets;
 
@@ -84,11 +90,13 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool CanSave => IsHotkeyValid;
 
-    public SettingsViewModel(ISettingsRepository settings, IThemeService theme, IAutostartService autostart)
+    public SettingsViewModel(
+        ISettingsRepository settings, IThemeService theme, IAutostartService autostart, IClientRepository clients)
     {
         _settings = settings;
         _theme = theme;
         _autostart = autostart;
+        _clients = clients;
         Load();
     }
 
@@ -111,6 +119,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         TitleHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCTitleHeader, "[ 주간 실적 ]");
         PlanHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCPlanHeader, "[ 차주 계획 ]");
         DetailMarkerC = _settings.GetOrDefault(SettingsKeys.FormatCDetailMarker, "o");
+        LoadFormatCClients();
         ReportIndent = _settings.GetOrDefault(SettingsKeys.ReportIndent, "\t");
         IncludeDoneOnly = bool.Parse(_settings.GetOrDefault(SettingsKeys.IncludeDoneOnly, "false"));
 
@@ -126,6 +135,21 @@ public sealed partial class SettingsViewModel : ObservableObject
         TrashRetentionDays = int.Parse(_settings.GetOrDefault(SettingsKeys.TrashRetentionDays, "30"), CultureInfo.InvariantCulture);
 
         _loading = false;
+    }
+
+    private void LoadFormatCClients()
+    {
+        var clients = _clients.GetAll();   // 이미 sort_order 정렬
+        var selected = Memoria.Core.Reporting.FormatCClients
+            .Resolve(_settings.Get(SettingsKeys.FormatCClientIds), clients);
+
+        FormatCClientOptions.Clear();
+        foreach (var c in clients)
+            FormatCClientOptions.Add(new FormatCClientSelection(c.Id, c.Name)
+            {
+                // 필터 미설정(null)이면 전 업무가 나가므로 전부 체크된 상태로 보여준다.
+                IsSelected = selected is null || selected.Contains(c.Id),
+            });
     }
 
     partial void OnModeChanged(ThemeMode value) => ApplyTheme();
@@ -163,6 +187,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.Set(SettingsKeys.FormatCTitleHeader, TitleHeaderC);
         _settings.Set(SettingsKeys.FormatCPlanHeader, PlanHeaderC);
         _settings.Set(SettingsKeys.FormatCDetailMarker, DetailMarkerC);
+        _settings.Set(
+            SettingsKeys.FormatCClientIds,
+            Memoria.Core.Reporting.FormatCClients.Format(
+                FormatCClientOptions.Where(c => c.IsSelected).Select(c => c.Id)));
         _settings.Set(SettingsKeys.ReportIndent, ReportIndent);
         _settings.Set(SettingsKeys.IncludeDoneOnly, IncludeDoneOnly ? "true" : "false");
 
@@ -189,3 +217,18 @@ public sealed record ThemeOption(string Key, string Label, string Swatch);
 
 /// 양식 C 기간 요일 콤보박스 항목(값/한글 라벨).
 public sealed record DayOfWeekOption(DayOfWeek Value, string Label);
+
+/// 양식 C 고객사 체크 목록의 한 줄.
+public sealed partial class FormatCClientSelection : ObservableObject
+{
+    public int Id { get; }
+    public string Name { get; }
+
+    [ObservableProperty] private bool _isSelected;
+
+    public FormatCClientSelection(int id, string name)
+    {
+        Id = id;
+        Name = name;
+    }
+}

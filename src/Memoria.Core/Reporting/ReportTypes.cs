@@ -21,6 +21,8 @@ public sealed record ReportRenderOptions
     public string TitleHeaderC { get; init; } = "[ 주간 실적 ]";
     public string PlanHeaderC { get; init; } = "[ 차주 계획 ]";
     public string DetailMarkerC { get; init; } = "o";
+    /// 양식 C에 포함할 고객사. null = 필터 없음(전부 포함), 빈 목록 = 해당 업무 없음.
+    public IReadOnlyList<int>? ClientIdsC { get; init; }
     public string Indent { get; init; } = "\t";
     public bool IncludeDoneOnly { get; init; } = false;
     public IReadOnlyList<Client> Clients { get; init; } = new List<Client>();

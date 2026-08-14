@@ -116,6 +116,8 @@ public partial class WeeklyReportViewModel : ObservableObject
         var includeDoneOnly =
             bool.TryParse(_settings.GetOrDefault(SettingsKeys.IncludeDoneOnly, "false"), out var b) && b;
 
+        var clients = _clientRepository.GetAll(enabledOnly: true);
+
         return new ReportRenderOptions
         {
             ReporterName = _settings.GetOrDefault(SettingsKeys.ReporterName, "이승현"),
@@ -128,9 +130,10 @@ public partial class WeeklyReportViewModel : ObservableObject
             TitleHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCTitleHeader, "[ 주간 실적 ]"),
             PlanHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCPlanHeader, "[ 차주 계획 ]"),
             DetailMarkerC = _settings.GetOrDefault(SettingsKeys.FormatCDetailMarker, "o"),
+            ClientIdsC = FormatCClients.Resolve(_settings.Get(SettingsKeys.FormatCClientIds), clients),
             Indent = _settings.GetOrDefault(SettingsKeys.ReportIndent, "\t"),
             IncludeDoneOnly = includeDoneOnly,
-            Clients = _clientRepository.GetAll(enabledOnly: true),
+            Clients = clients,
             UnclassifiedLabel = "미분류",
         };
     }

@@ -432,6 +432,39 @@ public class WeeklyReportViewModelTests
     }
 
     [Fact]
+    public void FormatC_defaults_client_filter_to_sld_autonomous_factory()
+    {
+        var (vm, svc, _, clients, _, _, _, _) =
+            CreateSut(new DateTimeOffset(2026, 8, 12, 9, 0, 0, TimeSpan.Zero));
+        clients.Clients.AddRange(
+        [
+            new Client { Id = 1, Name = "SLD", SortOrder = 1, Enabled = true },
+            new Client { Id = 5, Name = "SLD 자율형공장", SortOrder = 5, Enabled = true },
+        ]);
+
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        svc.LastOptions!.ClientIdsC.Should().Equal(5);
+    }
+
+    [Fact]
+    public void FormatC_uses_configured_client_filter()
+    {
+        var (vm, svc, _, clients, _, settings, _, _) =
+            CreateSut(new DateTimeOffset(2026, 8, 12, 9, 0, 0, TimeSpan.Zero));
+        clients.Clients.AddRange(
+        [
+            new Client { Id = 1, Name = "SLD", SortOrder = 1, Enabled = true },
+            new Client { Id = 5, Name = "SLD 자율형공장", SortOrder = 5, Enabled = true },
+        ]);
+        settings.Set(SettingsKeys.FormatCClientIds, "1,5");
+
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        svc.LastOptions!.ClientIdsC.Should().Equal(1, 5);
+    }
+
+    [Fact]
     public void Switching_format_back_to_A_restores_monday_to_friday_range()
     {
         var (vm, _, _, _, _, _, _, _) = CreateSut(new DateTimeOffset(2026, 8, 12, 9, 0, 0, TimeSpan.Zero));
