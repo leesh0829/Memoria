@@ -2,7 +2,7 @@ namespace Memoria.Core.Models;
 
 public enum NoteType { Plain, Checklist, WeeklyReport }
 public enum ItemKind { Task, Issue }
-public enum ReportFormatKind { A, B }
+public enum ReportFormatKind { A, B, C }
 public enum ThemeMode { Light, Dark, System }
 
 public sealed class Group

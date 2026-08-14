@@ -157,6 +157,25 @@ public class NoteRepositoryTests
     }
 
     [Fact]
+    public void FindWeeklyReport_RoundTripsFormatC()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var id = sut.Create(new Note
+        {
+            Type = NoteType.WeeklyReport,
+            ReportFormat = ReportFormatKind.C,
+            ReportWeekStart = new DateOnly(2026, 8, 10),
+        });
+
+        var found = sut.FindWeeklyReport(new DateOnly(2026, 8, 10), ReportFormatKind.C)!;
+        found.Id.Should().Be(id);
+        found.ReportFormat.Should().Be(ReportFormatKind.C);
+        // 같은 주 앵커라도 양식이 다르면 별개 노트로 취급된다.
+        sut.FindWeeklyReport(new DateOnly(2026, 8, 10), ReportFormatKind.A).Should().BeNull();
+    }
+
+    [Fact]
     public void Create_DefaultsBodyFormat_ToPlain()
     {
         using var db = new TestDb();

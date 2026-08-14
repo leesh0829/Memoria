@@ -9,6 +9,11 @@ public static class SettingsKeys
     public const string FormatAIssueHeader = "report.formatA.issueHeader";
     public const string FormatBTitleWord = "report.formatB.titleWord";
     public const string FormatBIssueHeader = "report.formatB.issueHeader";
+    public const string FormatCStartDay = "report.formatC.startDay";
+    public const string FormatCEndDay = "report.formatC.endDay";
+    public const string FormatCTitleHeader = "report.formatC.titleHeader";
+    public const string FormatCPlanHeader = "report.formatC.planHeader";
+    public const string FormatCDetailMarker = "report.formatC.detailMarker";
     public const string ReportIndent = "report.indent";
     public const string IncludeDoneOnly = "report.includeDoneOnly";
     public const string HotkeyNewNote = "hotkey.newNote";

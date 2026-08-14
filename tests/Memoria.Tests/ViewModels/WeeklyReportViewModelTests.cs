@@ -88,7 +88,8 @@ public class WeeklyReportViewModelTests
         opts.WeekStart.Should().Be(new DateOnly(2026, 6, 22));
         opts.WeekEnd.Should().Be(new DateOnly(2026, 6, 26));
         opts.Clients.Select(c => c.Name).Should().Equal("SLD"); // enabledOnly → MTP 제외
-        svc.LastAnyDate.Should().Be(new DateOnly(2026, 6, 24));
+        svc.LastRangeStart.Should().Be(new DateOnly(2026, 6, 22));
+        svc.LastRangeEnd.Should().Be(new DateOnly(2026, 6, 26));
     }
 
     [Fact]
@@ -350,5 +351,96 @@ public class WeeklyReportViewModelTests
         svc.LastTaskTexts.Should().Equal("SLD 점검");
         svc.LastIssueTexts.Should().Equal("장비 오류");
         vm.ReportText.Should().Be("SHEET-REPORT");
+    }
+
+    [Fact]
+    public void FormatC_uses_previous_friday_to_this_thursday_by_default()
+    {
+        // 2026-08-12(수) → 그 주 목요일 08/13, 그 직전 금요일 08/07
+        var (vm, _, _, _, _, _, _, _) = CreateSut(new DateTimeOffset(2026, 8, 12, 9, 0, 0, TimeSpan.Zero));
+
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        vm.WeekStart.Should().Be(new DateOnly(2026, 8, 7));
+        vm.WeekEnd.Should().Be(new DateOnly(2026, 8, 13));
+        vm.WeekRangeLabel.Should().Be("08/07 ~ 08/13");
+    }
+
+    [Fact]
+    public void FormatC_honours_configured_start_and_end_days()
+    {
+        var (vm, _, _, _, _, settings, _, _) =
+            CreateSut(new DateTimeOffset(2026, 8, 12, 9, 0, 0, TimeSpan.Zero));
+        settings.Set(SettingsKeys.FormatCStartDay, nameof(DayOfWeek.Monday));
+        settings.Set(SettingsKeys.FormatCEndDay, nameof(DayOfWeek.Friday));
+
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        vm.WeekStart.Should().Be(new DateOnly(2026, 8, 10));
+        vm.WeekEnd.Should().Be(new DateOnly(2026, 8, 14));
+    }
+
+    [Fact]
+    public void FormatC_builds_over_its_own_range_and_passes_headers()
+    {
+        var (vm, svc, _, _, _, settings, _, _) =
+            CreateSut(new DateTimeOffset(2026, 8, 12, 9, 0, 0, TimeSpan.Zero));
+        settings.Set(SettingsKeys.FormatCTitleHeader, "[ 이번주 실적 ]");
+        settings.Set(SettingsKeys.FormatCPlanHeader, "[ 다음주 계획 ]");
+        settings.Set(SettingsKeys.FormatCDetailMarker, "-");
+
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        svc.LastRangeStart.Should().Be(new DateOnly(2026, 8, 7));
+        svc.LastRangeEnd.Should().Be(new DateOnly(2026, 8, 13));
+        svc.LastRenderFormat.Should().Be(ReportFormatKind.C);
+        var opts = svc.LastOptions!;
+        opts.WeekStart.Should().Be(new DateOnly(2026, 8, 7));
+        opts.WeekEnd.Should().Be(new DateOnly(2026, 8, 13));
+        opts.TitleHeaderC.Should().Be("[ 이번주 실적 ]");
+        opts.PlanHeaderC.Should().Be("[ 다음주 계획 ]");
+        opts.DetailMarkerC.Should().Be("-");
+    }
+
+    [Fact]
+    public void FormatC_persists_note_anchored_to_week_monday()
+    {
+        // 앵커가 월요일이어야 저장된 노트를 다시 열 때 금~목 구간이 그대로 복원된다.
+        var (vm, svc, notes, _, _, _, _, _) =
+            CreateSut(new DateTimeOffset(2026, 8, 12, 9, 0, 0, TimeSpan.Zero));
+        svc.RenderResult = "C 본문";
+
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        var created = notes.Created.Should().ContainSingle().Subject;
+        created.ReportFormat.Should().Be(ReportFormatKind.C);
+        created.ReportWeekStart.Should().Be(new DateOnly(2026, 8, 10));  // 그 주 월요일
+        created.Body.Should().Be("C 본문");
+    }
+
+    [Fact]
+    public void Reopening_saved_formatC_note_restores_same_range()
+    {
+        var (vm, _, _, _, _, _, _, _) = CreateSut(new DateTimeOffset(2026, 8, 12, 9, 0, 0, TimeSpan.Zero));
+
+        // MainViewModel이 노트를 열 때 하는 일: 저장된 앵커(월요일)와 양식을 되돌린다.
+        vm.SelectedDate = new DateOnly(2026, 8, 10);
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        vm.WeekStart.Should().Be(new DateOnly(2026, 8, 7));
+        vm.WeekEnd.Should().Be(new DateOnly(2026, 8, 13));
+    }
+
+    [Fact]
+    public void Switching_format_back_to_A_restores_monday_to_friday_range()
+    {
+        var (vm, _, _, _, _, _, _, _) = CreateSut(new DateTimeOffset(2026, 8, 12, 9, 0, 0, TimeSpan.Zero));
+
+        vm.SelectedFormat = ReportFormatKind.C;
+        vm.SelectedFormat = ReportFormatKind.A;
+
+        vm.WeekStart.Should().Be(new DateOnly(2026, 8, 10));
+        vm.WeekEnd.Should().Be(new DateOnly(2026, 8, 14));
+        vm.WeekRangeLabel.Should().Be("08/10 ~ 08/14");
     }
 }

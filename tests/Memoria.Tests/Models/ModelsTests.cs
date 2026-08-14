@@ -11,7 +11,7 @@ public class ModelsTests
     {
         Enum.GetNames<NoteType>().Should().BeEquivalentTo("Plain", "Checklist", "WeeklyReport");
         Enum.GetNames<ItemKind>().Should().BeEquivalentTo("Task", "Issue");
-        Enum.GetNames<ReportFormatKind>().Should().BeEquivalentTo("A", "B");
+        Enum.GetNames<ReportFormatKind>().Should().BeEquivalentTo("A", "B", "C");
         Enum.GetNames<ThemeMode>().Should().BeEquivalentTo("Light", "Dark", "System");
     }
 

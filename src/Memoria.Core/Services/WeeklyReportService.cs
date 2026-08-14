@@ -33,6 +33,11 @@ public sealed class WeeklyReportService : IWeeklyReportService
     public WeeklyReportBuildResult Build(DateOnly anyDateInWeek, ReportRenderOptions options)
     {
         var (monday, friday) = _week.GetWorkWeek(anyDateInWeek);
+        return BuildRange(monday, friday, options);
+    }
+
+    public WeeklyReportBuildResult BuildRange(DateOnly monday, DateOnly friday, ReportRenderOptions options)
+    {
         var rules = _clients.GetRules();
         var enabledIds = _clients.GetAll(enabledOnly: true).Select(c => c.Id).ToHashSet();
 

@@ -8,6 +8,7 @@ using Memoria.App.Windows;
 using Memoria.Core;
 using Memoria.Core.Data;
 using Memoria.Core.Models;
+using Memoria.Core.Reporting;
 
 namespace Memoria.App.ViewModels;
 
@@ -34,6 +35,18 @@ public sealed partial class SettingsViewModel : ObservableObject
         new ThemeOption("purple",  "보라",       "#6A3DB8"),
     };
 
+    // 양식 C 기간 요일 선택용(콤보박스 항목).
+    public IReadOnlyList<DayOfWeekOption> DayOfWeekOptions { get; } = new[]
+    {
+        new DayOfWeekOption(DayOfWeek.Monday,    "월요일"),
+        new DayOfWeekOption(DayOfWeek.Tuesday,   "화요일"),
+        new DayOfWeekOption(DayOfWeek.Wednesday, "수요일"),
+        new DayOfWeekOption(DayOfWeek.Thursday,  "목요일"),
+        new DayOfWeekOption(DayOfWeek.Friday,    "금요일"),
+        new DayOfWeekOption(DayOfWeek.Saturday,  "토요일"),
+        new DayOfWeekOption(DayOfWeek.Sunday,    "일요일"),
+    };
+
     [ObservableProperty] private ThemeMode _mode;
     [ObservableProperty] private string _preset = "default";
 
@@ -42,6 +55,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _issueHeaderA = "[이슈]";
     [ObservableProperty] private string _titleWordB = "주간 보고";
     [ObservableProperty] private string _issueHeaderB = "* 이슈사항:";
+    [ObservableProperty] private DayOfWeek _startDayC = DayOfWeek.Friday;
+    [ObservableProperty] private DayOfWeek _endDayC = DayOfWeek.Thursday;
+    [ObservableProperty] private string _titleHeaderC = "[ 주간 실적 ]";
+    [ObservableProperty] private string _planHeaderC = "[ 차주 계획 ]";
+    [ObservableProperty] private string _detailMarkerC = "o";
     [ObservableProperty] private string _reportIndent = "\t";
     [ObservableProperty] private bool _includeDoneOnly;
 
@@ -86,6 +104,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         IssueHeaderA = _settings.GetOrDefault(SettingsKeys.FormatAIssueHeader, "[이슈]");
         TitleWordB = _settings.GetOrDefault(SettingsKeys.FormatBTitleWord, "주간 보고");
         IssueHeaderB = _settings.GetOrDefault(SettingsKeys.FormatBIssueHeader, "* 이슈사항:");
+        StartDayC = ReportDayOfWeek.Parse(
+            _settings.GetOrDefault(SettingsKeys.FormatCStartDay, nameof(DayOfWeek.Friday)), DayOfWeek.Friday);
+        EndDayC = ReportDayOfWeek.Parse(
+            _settings.GetOrDefault(SettingsKeys.FormatCEndDay, nameof(DayOfWeek.Thursday)), DayOfWeek.Thursday);
+        TitleHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCTitleHeader, "[ 주간 실적 ]");
+        PlanHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCPlanHeader, "[ 차주 계획 ]");
+        DetailMarkerC = _settings.GetOrDefault(SettingsKeys.FormatCDetailMarker, "o");
         ReportIndent = _settings.GetOrDefault(SettingsKeys.ReportIndent, "\t");
         IncludeDoneOnly = bool.Parse(_settings.GetOrDefault(SettingsKeys.IncludeDoneOnly, "false"));
 
@@ -133,6 +158,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.Set(SettingsKeys.FormatAIssueHeader, IssueHeaderA);
         _settings.Set(SettingsKeys.FormatBTitleWord, TitleWordB);
         _settings.Set(SettingsKeys.FormatBIssueHeader, IssueHeaderB);
+        _settings.Set(SettingsKeys.FormatCStartDay, StartDayC.ToString());
+        _settings.Set(SettingsKeys.FormatCEndDay, EndDayC.ToString());
+        _settings.Set(SettingsKeys.FormatCTitleHeader, TitleHeaderC);
+        _settings.Set(SettingsKeys.FormatCPlanHeader, PlanHeaderC);
+        _settings.Set(SettingsKeys.FormatCDetailMarker, DetailMarkerC);
         _settings.Set(SettingsKeys.ReportIndent, ReportIndent);
         _settings.Set(SettingsKeys.IncludeDoneOnly, IncludeDoneOnly ? "true" : "false");
 
@@ -156,3 +186,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
 /// 설정 창의 색 계열 스와치 한 개(키/한글 라벨/대표색).
 public sealed record ThemeOption(string Key, string Label, string Swatch);
+
+/// 양식 C 기간 요일 콤보박스 항목(값/한글 라벨).
+public sealed record DayOfWeekOption(DayOfWeek Value, string Label);

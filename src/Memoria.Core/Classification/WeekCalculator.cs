@@ -10,4 +10,14 @@ public sealed class WeekCalculator : IWeekCalculator
         DateOnly friday = monday.AddDays(4);
         return (monday, friday);
     }
+
+    public (DateOnly Start, DateOnly End) GetCustomRange(DateOnly anyDate, DayOfWeek startDay, DayOfWeek endDay)
+    {
+        var (monday, _) = GetWorkWeek(anyDate);
+        DateOnly end = monday.AddDays(((int)endDay + 6) % 7);   // 월=0 … 일=6
+
+        int back = ((int)endDay - (int)startDay + 7) % 7;
+        if (back == 0) back = 7;                                // 같은 요일이면 한 주 전
+        return (end.AddDays(-back), end);
+    }
 }

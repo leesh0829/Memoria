@@ -45,6 +45,15 @@ internal sealed class FakeWeekCalc : IWeekCalculator
         var monday = anyDate.AddDays(-delta);
         return (monday, monday.AddDays(4));
     }
+
+    public (DateOnly Start, DateOnly End) GetCustomRange(DateOnly anyDate, DayOfWeek startDay, DayOfWeek endDay)
+    {
+        var (monday, _) = GetWorkWeek(anyDate);
+        var end = monday.AddDays(((int)endDay + 6) % 7);
+        int back = ((int)endDay - (int)startDay + 7) % 7;
+        if (back == 0) back = 7;
+        return (end.AddDays(-back), end);
+    }
 }
 
 internal sealed class FakeWeeklyReportService : IWeeklyReportService
@@ -52,6 +61,8 @@ internal sealed class FakeWeeklyReportService : IWeeklyReportService
     public WeeklyReportBuildResult Build(DateOnly anyDateInWeek, ReportRenderOptions options) =>
         new(new WeeklyReportData(new List<ReportTask>(), new List<ReportIssue>()), 0,
             options.WeekStart, options.WeekEnd);
+    public WeeklyReportBuildResult BuildRange(DateOnly start, DateOnly end, ReportRenderOptions options) =>
+        new(new WeeklyReportData(new List<ReportTask>(), new List<ReportIssue>()), 0, start, end);
     public string Render(ReportFormatKind format, WeeklyReportData data, ReportRenderOptions options) => "";
     public WeeklyReportBuildResult BuildFromTexts(
         IReadOnlyList<string> taskTexts, IReadOnlyList<string> issueTexts,

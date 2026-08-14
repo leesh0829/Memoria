@@ -18,6 +18,9 @@ public sealed record ReportRenderOptions
     public string IssueHeaderA { get; init; } = "[이슈]";
     public string TitleWordB { get; init; } = "주간 보고";
     public string IssueHeaderB { get; init; } = "* 이슈사항:";
+    public string TitleHeaderC { get; init; } = "[ 주간 실적 ]";
+    public string PlanHeaderC { get; init; } = "[ 차주 계획 ]";
+    public string DetailMarkerC { get; init; } = "o";
     public string Indent { get; init; } = "\t";
     public bool IncludeDoneOnly { get; init; } = false;
     public IReadOnlyList<Client> Clients { get; init; } = new List<Client>();

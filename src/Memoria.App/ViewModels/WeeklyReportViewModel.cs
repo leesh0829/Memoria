@@ -29,6 +29,10 @@ public partial class WeeklyReportViewModel : ObservableObject
 
     private int? _currentNoteId;
 
+    /// 저장 앵커. 양식 C는 표시 구간이 금~목이라 시작일을 그대로 저장하면 노트를 다시 열 때
+    /// 구간이 한 주 밀린다. 그래서 A/B/C 모두 '선택 날짜가 속한 주의 월요일'을 키로 쓴다.
+    private DateOnly _anchorMonday;
+
     /// 현재 표시 중인 주간보고 노트 id(생성/로드 후). 사이드바·목록 동기화에 사용.
     public int? CurrentNoteId => _currentNoteId;
 
@@ -89,10 +93,23 @@ public partial class WeeklyReportViewModel : ObservableObject
     private void RecomputeWeek()
     {
         var (monday, friday) = _weekCalculator.GetWorkWeek(SelectedDate);
-        WeekStart = monday;
-        WeekEnd = friday;
-        WeekRangeLabel = $"{monday.ToString("MM/dd", System.Globalization.CultureInfo.InvariantCulture)} ~ {friday.ToString("MM/dd", System.Globalization.CultureInfo.InvariantCulture)}";
+        _anchorMonday = monday;
+
+        // 양식 C는 월~금이 아니라 설정된 요일 구간(기본 전주 금 ~ 해당 주 목)을 집계한다.
+        var (start, end) = SelectedFormat == ReportFormatKind.C
+            ? _weekCalculator.GetCustomRange(SelectedDate, FormatCStartDay(), FormatCEndDay())
+            : (monday, friday);
+
+        WeekStart = start;
+        WeekEnd = end;
+        WeekRangeLabel = $"{start.ToString("MM/dd", System.Globalization.CultureInfo.InvariantCulture)} ~ {end.ToString("MM/dd", System.Globalization.CultureInfo.InvariantCulture)}";
     }
+
+    private DayOfWeek FormatCStartDay() => ReportDayOfWeek.Parse(
+        _settings.GetOrDefault(SettingsKeys.FormatCStartDay, nameof(DayOfWeek.Friday)), DayOfWeek.Friday);
+
+    private DayOfWeek FormatCEndDay() => ReportDayOfWeek.Parse(
+        _settings.GetOrDefault(SettingsKeys.FormatCEndDay, nameof(DayOfWeek.Thursday)), DayOfWeek.Thursday);
 
     private ReportRenderOptions BuildOptions(DateOnly monday, DateOnly friday)
     {
@@ -108,6 +125,9 @@ public partial class WeeklyReportViewModel : ObservableObject
             IssueHeaderA = _settings.GetOrDefault(SettingsKeys.FormatAIssueHeader, "[이슈]"),
             TitleWordB = _settings.GetOrDefault(SettingsKeys.FormatBTitleWord, "주간 보고"),
             IssueHeaderB = _settings.GetOrDefault(SettingsKeys.FormatBIssueHeader, "* 이슈사항:"),
+            TitleHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCTitleHeader, "[ 주간 실적 ]"),
+            PlanHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCPlanHeader, "[ 차주 계획 ]"),
+            DetailMarkerC = _settings.GetOrDefault(SettingsKeys.FormatCDetailMarker, "o"),
             Indent = _settings.GetOrDefault(SettingsKeys.ReportIndent, "\t"),
             IncludeDoneOnly = includeDoneOnly,
             Clients = _clientRepository.GetAll(enabledOnly: true),
@@ -115,10 +135,10 @@ public partial class WeeklyReportViewModel : ObservableObject
         };
     }
 
-    private string RenderFresh(DateOnly monday, DateOnly friday)
+    private string RenderFresh(DateOnly start, DateOnly end)
     {
-        var options = BuildOptions(monday, friday);
-        var build = _reportService.Build(SelectedDate, options);
+        var options = BuildOptions(start, end);
+        var build = _reportService.BuildRange(start, end, options);
         UnclassifiedTaskCount = build.UnclassifiedTaskCount;
         return _reportService.Render(SelectedFormat, build.Data, options);
     }
@@ -128,29 +148,25 @@ public partial class WeeklyReportViewModel : ObservableObject
     {
         // #4 항상 현재 체크리스트(일일 업무일지)에서 새로 렌더 → 체크리스트 수정이 열 때마다 즉시 반영된다.
         //    (이전엔 저장된 옛 본문을 재사용해 '다시 생성'을 눌러야만 최신화됐다.)
-        var monday = WeekStart;   // RecomputeWeek가 SelectedDate에 맞춰 이미 채움
-        var friday = WeekEnd;
-        var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
-        var text = RenderFresh(monday, friday);
+        var existing = _noteRepository.FindWeeklyReport(_anchorMonday, SelectedFormat);
+        var text = RenderFresh(WeekStart, WeekEnd);   // RecomputeWeek가 SelectedDate·양식에 맞춰 이미 채움
         ReportText = text;
-        Persist(monday, existing, text);
+        Persist(_anchorMonday, existing, text);
     }
 
     [RelayCommand]
     private void Regenerate()
     {
-        var monday = WeekStart;   // RecomputeWeek가 SelectedDate에 맞춰 이미 채움
-        var friday = WeekEnd;
-        var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
+        var existing = _noteRepository.FindWeeklyReport(_anchorMonday, SelectedFormat);
         if (existing is not null && !string.IsNullOrEmpty(existing.Body))
         {
             if (!_dialogs.Confirm("기존에 편집한 주간보고 내용을 덮어씁니다. 계속할까요?"))
                 return;
         }
 
-        var text = RenderFresh(monday, friday);
+        var text = RenderFresh(WeekStart, WeekEnd);
         ReportText = text;
-        Persist(monday, existing, text);
+        Persist(_anchorMonday, existing, text);
     }
 
     private void Persist(DateOnly monday, Note? existing, string text)
@@ -184,12 +200,17 @@ public partial class WeeklyReportViewModel : ObservableObject
 
     // #5 양식 전환 시: 해당 양식으로 저장된 보고서가 있으면 재사용, 없으면 즉시 새로 렌더한다.
     //    (이전엔 LoadExisting이 없는 경우 ReportText를 비워 화면이 빈 채로 남는 버그가 있었다.)
-    partial void OnSelectedFormatChanged(ReportFormatKind value) => Generate();
+    //    양식마다 집계 구간이 다를 수 있으므로 렌더 전에 구간을 다시 계산한다.
+    partial void OnSelectedFormatChanged(ReportFormatKind value)
+    {
+        RecomputeWeek();
+        Generate();
+    }
 
     [RelayCommand]
     private async Task GenerateFromSheet()
     {
-        var monday = WeekStart;
+        var monday = WeekStart;   // 양식 C면 금~목 구간
         var friday = WeekEnd;
         var sheetId = _settings.GetOrDefault(SettingsKeys.GoogleSheetId, "");
         var tabName = _settings.GetOrDefault(SettingsKeys.GoogleSheetTabName, "일자 작업내역");
@@ -212,8 +233,8 @@ public partial class WeeklyReportViewModel : ObservableObject
             UnclassifiedTaskCount = build.UnclassifiedTaskCount;
             var text = _reportService.Render(SelectedFormat, build.Data, options);
             ReportText = text;
-            var existing = _noteRepository.FindWeeklyReport(monday, SelectedFormat);
-            Persist(monday, existing, text);
+            var existing = _noteRepository.FindWeeklyReport(_anchorMonday, SelectedFormat);
+            Persist(_anchorMonday, existing, text);
         }
         catch (System.Exception ex)
         {
