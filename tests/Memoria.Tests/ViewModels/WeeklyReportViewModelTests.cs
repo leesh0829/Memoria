@@ -432,6 +432,44 @@ public class WeeklyReportViewModelTests
     }
 
     [Fact]
+    public async Task GenerateFromSheet_in_formatC_uses_friday_to_thursday_range_and_formatC_options()
+    {
+        var reader = new FakeSpreadsheetReader
+        {
+            Grid = new List<IReadOnlyList<string>>
+            {
+                new List<string> { "일자", "작업내역", "특이사항" },
+                new List<string> { "2026.08.06 (목)", "1. 이전 구간 업무", "" },
+                new List<string> { "2026.08.07 (금)", "1. 자율형공장 라인 셋업", "1. 장비 오류" },
+                new List<string> { "2026.08.13 (목)", "1. 자율형공장 보고서 작성", "" },
+                new List<string> { "2026.08.14 (금)", "1. 다음 구간 업무", "" },
+            },
+        };
+        var (vm, svc, notes, clients, _, settings, _, _) = CreateSut(
+            now: new DateTimeOffset(2026, 8, 12, 9, 0, 0, TimeSpan.Zero),
+            reader: reader);
+        clients.Clients.Add(new Client { Id = 5, Name = "SLD 자율형공장", SortOrder = 5, Enabled = true });
+        settings.Set(SettingsKeys.GoogleSheetId, "SHEET123");
+        svc.RenderResult = "C-SHEET-REPORT";
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        await vm.GenerateFromSheetCommand.ExecuteAsync(null);
+
+        // 구간 밖 행은 파싱 단계에서 빠진다(양식 A·B의 월~금이 아니라 금~목 기준).
+        svc.LastTaskTexts.Should().Equal("자율형공장 라인 셋업", "자율형공장 보고서 작성");
+        var opts = svc.LastOptions!;
+        opts.WeekStart.Should().Be(new DateOnly(2026, 8, 7));
+        opts.WeekEnd.Should().Be(new DateOnly(2026, 8, 13));
+        opts.ClientIdsC.Should().Equal(5);
+        svc.LastRenderFormat.Should().Be(ReportFormatKind.C);
+        vm.ReportText.Should().Be("C-SHEET-REPORT");
+
+        // 저장 앵커는 그 주 월요일.
+        notes.Created.Should().Contain(n =>
+            n.ReportFormat == ReportFormatKind.C && n.ReportWeekStart == new DateOnly(2026, 8, 10));
+    }
+
+    [Fact]
     public void FormatC_defaults_client_filter_to_sld_autonomous_factory()
     {
         var (vm, svc, _, clients, _, _, _, _) =
