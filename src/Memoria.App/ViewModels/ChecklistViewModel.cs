@@ -3,6 +3,9 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -27,6 +30,8 @@ public partial class ChecklistViewModel : ObservableObject
 
     private Note? _note;
     private bool _loading;
+    private readonly SemaphoreSlim _persistenceGate = new(1, 1);
+    private readonly SemaphoreSlim _flushGate = new(1, 1);
 
     public ObservableCollection<ChecklistItemViewModel> Items { get; } = new();
     public ObservableCollection<Client> AvailableClients { get; } = new();
@@ -47,6 +52,15 @@ public partial class ChecklistViewModel : ObservableObject
 
     [ObservableProperty]
     private string _issueOutput = "";
+
+    [ObservableProperty]
+    private bool _isBusy;
+
+    [ObservableProperty]
+    private string _loadingMessage = "저장하는 중…";
+
+    [ObservableProperty]
+    private string _operationError = "";
 
     /// 날짜 변경 요청(MainViewModel이 해당 날짜 체크리스트로 이동). VM은 _note를 직접 바꾸지 않는다.
     public event Action<DateOnly>? NavigateToDateRequested;
@@ -133,11 +147,15 @@ public partial class ChecklistViewModel : ObservableObject
         finally { _loading = false; }
     }
 
-    [RelayCommand]
     public void AddTask() => AddItem(ItemKind.Task);
 
-    [RelayCommand]
     public void AddIssue() => AddItem(ItemKind.Issue);
+
+    [RelayCommand]
+    private Task AddTaskAsync() => AddItemAsync(ItemKind.Task);
+
+    [RelayCommand]
+    private Task AddIssueAsync() => AddItemAsync(ItemKind.Issue);
 
     // ---- Read(양식 출력) 탭 ----
 
@@ -199,7 +217,46 @@ public partial class ChecklistViewModel : ObservableObject
         return vm;
     }
 
-    [RelayCommand]
+    private async Task AddItemAsync(ItemKind kind)
+    {
+        var currentNote = _note;
+        var logDate = LogDate;
+        var sortOrder = NextSortOrder();
+        ChecklistAddResult? result = null;
+
+        var added = await RunBusyAsync("Checklist.AddItem", "항목을 추가하는 중…", async () =>
+        {
+            result = await RunPersistenceAsync(() =>
+            {
+                var note = currentNote ?? CreateChecklistNote(_notes, _groups, logDate);
+                var now = DateTimeOffset.UtcNow;
+                var model = new ChecklistItem
+                {
+                    NoteId = note.Id,
+                    Kind = kind,
+                    Text = "",
+                    Done = false,
+                    DoneAt = null,
+                    ClientId = null,
+                    IsManual = false,
+                    SortOrder = sortOrder,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+                model.Id = _checklist.AddItem(model);
+                _notes.Touch(note.Id, now);
+                note.UpdatedAt = now;
+                return new ChecklistAddResult(note, model);
+            });
+        });
+
+        if (!added || result is null) return;
+        var materialized = _note is null;
+        _note = result.Note;
+        Items.Add(new ChecklistItemViewModel(result.Item));
+        if (materialized) NoteMaterialized?.Invoke(result.Note.Id);
+    }
+
     public void ToggleDone(ChecklistItemViewModel item)
     {
         if (!item.IsTask) return;
@@ -211,12 +268,66 @@ public partial class ChecklistViewModel : ObservableObject
         TouchNote();
     }
 
-    [RelayCommand]
     public void RemoveItem(ChecklistItemViewModel item)
     {
         _checklist.DeleteItem(item.Id);
         Items.Remove(item);
         TouchNote();
+    }
+
+    [RelayCommand]
+    private async Task ToggleDoneAsync(ChecklistItemViewModel? item)
+    {
+        if (item is null || !item.IsTask) return;
+
+        var previousDone = item.Done;
+        var previousDoneAt = item.DoneAt;
+        var note = _note;
+        var now = DateTimeOffset.UtcNow;
+        item.Done = !item.Done;
+        item.DoneAt = item.Done ? now : null;
+        item.UpdatedAt = now;
+        var model = item.ToModel();
+
+        var saved = await RunBusyAsync("Checklist.ToggleDone", "완료 상태를 저장하는 중…", async () =>
+        {
+            await RunPersistenceAsync(() =>
+            {
+                _checklist.UpdateItemMetadata(model);
+                if (note is not null) _notes.Touch(note.Id, now);
+            });
+        });
+
+        if (saved)
+        {
+            if (note is not null) note.UpdatedAt = now;
+        }
+        else
+        {
+            item.Done = previousDone;
+            item.DoneAt = previousDoneAt;
+        }
+    }
+
+    [RelayCommand]
+    private async Task RemoveItemAsync(ChecklistItemViewModel? item)
+    {
+        if (item is null) return;
+        var note = _note;
+        var now = DateTimeOffset.UtcNow;
+
+        var removed = await RunBusyAsync("Checklist.RemoveItem", "항목을 삭제하는 중…", async () =>
+        {
+            await RunPersistenceAsync(() =>
+            {
+                _checklist.DeleteItem(item.Id);
+                if (note is not null) _notes.Touch(note.Id, now);
+            });
+        });
+
+        if (!removed) return;
+        Items.Remove(item);
+        if (note is not null) note.UpdatedAt = now;
     }
 
     /// 디바운스 저장 시점에 호출. dirty(텍스트 변경) 항목만 자동태깅 적용 후 영속화한다.
@@ -239,9 +350,59 @@ public partial class ChecklistViewModel : ObservableObject
         TouchNote();
     }
 
+    /// UI 컬렉션에서는 저장할 스냅샷만 캡처하고, 분류/SQLite 작업은 백그라운드에서
+    /// 직렬 실행한다. 저장 중 추가 입력이 생기면 최신 dirty 상태를 유지해 다음
+    /// 디바운스에서 다시 저장한다.
+    public async Task FlushSavesAsync()
+    {
+        await _flushGate.WaitAsync();
+        try
+        {
+            var pending = Items
+                .Where(i => i.IsDirty)
+                .Select(i => new PendingChecklistSave(i, i.ToModel()))
+                .ToList();
+            if (pending.Count == 0) return;
+
+            var note = _note;
+            var now = DateTimeOffset.UtcNow;
+            try
+            {
+                await RunPersistenceAsync(() =>
+                {
+                    foreach (var entry in pending)
+                    {
+                        var tagged = _tagging.ApplyAutoTag(entry.Model);
+                        tagged.UpdatedAt = now;
+                    }
+                    _checklist.UpdateItems(pending.Select(p => p.Model).ToList());
+                    if (note is not null) _notes.Touch(note.Id, now);
+                });
+
+                foreach (var entry in pending)
+                {
+                    if (!string.Equals(entry.ViewModel.Text, entry.Model.Text, StringComparison.Ordinal)) continue;
+                    entry.ViewModel.ClientId = entry.Model.ClientId;
+                    entry.ViewModel.UpdatedAt = entry.Model.UpdatedAt;
+                    entry.ViewModel.IsDirty = false;
+                }
+                if (note is not null) note.UpdatedAt = now;
+                OperationError = "";
+            }
+            catch (Exception ex)
+            {
+                OperationError = "저장하지 못했습니다. 입력 내용은 유지되며 다시 저장을 시도합니다.";
+                AppLog.Error("Checklist.FlushSaves", ex);
+            }
+        }
+        finally
+        {
+            _flushGate.Release();
+        }
+    }
+
     /// 드롭다운으로 사용자가 고객사를 교정했을 때 호출(item.ClientId는 바인딩으로 이미 갱신됨).
     /// 수동 교정으로 표시하여 이후 자동 재분류로부터 보호한다.
-    [RelayCommand]
     public void CommitClient(ChecklistItemViewModel item)
     {
         if (!item.IsTask) return;
@@ -250,6 +411,27 @@ public partial class ChecklistViewModel : ObservableObject
         item.UpdatedAt = DateTimeOffset.UtcNow;
         _checklist.UpdateItemMetadata(item.ToModel());
         TouchNote();
+    }
+
+    [RelayCommand]
+    private async Task CommitClientAsync(ChecklistItemViewModel? item)
+    {
+        if (item is null || !item.IsTask) return;
+        var note = _note;
+        var now = DateTimeOffset.UtcNow;
+        item.IsManual = true;
+        item.UpdatedAt = now;
+        var model = item.ToModel();
+
+        var saved = await RunBusyAsync("Checklist.CommitClient", "고객사 설정을 저장하는 중…", async () =>
+        {
+            await RunPersistenceAsync(() =>
+            {
+                _checklist.UpdateItemMetadata(model);
+                if (note is not null) _notes.Touch(note.Id, now);
+            });
+        });
+        if (saved && note is not null) note.UpdatedAt = now;
     }
 
     partial void OnLogDateChanged(DateOnly value)
@@ -316,4 +498,58 @@ public partial class ChecklistViewModel : ObservableObject
         _note.UpdatedAt = DateTimeOffset.UtcNow;
         _notes.Touch(_note.Id, _note.UpdatedAt);
     }
+
+    private async Task<bool> RunBusyAsync(string operation, string message, Func<Task> action)
+    {
+        if (IsBusy) return false;
+        IsBusy = true;
+        LoadingMessage = message;
+        OperationError = "";
+        try
+        {
+            using var perf = AppLog.Measure(operation);
+            await action();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            OperationError = "작업을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+            AppLog.Error(operation, ex);
+            return false;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task RunPersistenceAsync(Action action)
+    {
+        await _persistenceGate.WaitAsync();
+        try
+        {
+            if (CanOffloadPersistence()) await Task.Run(action);
+            else action();
+        }
+        finally { _persistenceGate.Release(); }
+    }
+
+    private async Task<T> RunPersistenceAsync<T>(Func<T> action)
+    {
+        await _persistenceGate.WaitAsync();
+        try
+        {
+            return CanOffloadPersistence() ? await Task.Run(action) : action();
+        }
+        finally { _persistenceGate.Release(); }
+    }
+
+    // 실제 앱의 UI Dispatcher에서 호출될 때만 I/O를 작업 스레드로 보낸다.
+    // WPF Dispatcher가 없는 단위 테스트에서는 같은 스레드에서 실행해
+    // ListCollectionView의 스레드 소유권을 보존한다.
+    private static bool CanOffloadPersistence()
+        => Application.Current?.Dispatcher is { } dispatcher && dispatcher.CheckAccess();
+
+    private sealed record ChecklistAddResult(Note Note, ChecklistItem Item);
+    private sealed record PendingChecklistSave(ChecklistItemViewModel ViewModel, ChecklistItem Model);
 }

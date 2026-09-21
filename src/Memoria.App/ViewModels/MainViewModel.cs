@@ -268,10 +268,10 @@ public partial class MainViewModel : ObservableObject
         BeginBusy("메모를 불러오는 중…");
         try
         {
+            if (previousChecklist is not null)
+                await previousChecklist.FlushSavesAsync();
             var note = await Task.Run(() =>
             {
-                // 화면 전환 직전 저장을 UI 스레드에서 실행하면 모든 클릭이 멈춘다.
-                previousChecklist?.FlushSaves();
                 _autosave.FlushAll();
                 return _noteRepo.Get(value.Id);
             });
@@ -528,11 +528,8 @@ public partial class MainViewModel : ObservableObject
         BeginBusy("일일업무일지를 불러오는 중…");
         try
         {
-            var found = await Task.Run(() =>
-            {
-                checklist?.FlushSaves();
-                return _noteRepo.FindChecklistForDate(date);
-            });
+            if (checklist is not null) await checklist.FlushSavesAsync();
+            var found = await Task.Run(() => _noteRepo.FindChecklistForDate(date));
             if (found is not null) NavigateToNote(found.Id, found.GroupId);
             else LoadChecklistDraft(date);
         }
@@ -560,9 +557,38 @@ public partial class MainViewModel : ObservableObject
     // draft에서 첫 항목 추가로 실 노트가 생겼을 때: 목록 갱신 + 새 row 강조(에디터는 유지).
     private void OnChecklistMaterialized(int id)
     {
+        if (CanUseAsyncUi())
+        {
+            _ = OnChecklistMaterializedAsync(id);
+            return;
+        }
+        var editor = CurrentEditor;
         _currentEditorNoteId = id;                 // SelectedNote 설정 전에 → 가드로 재호스팅 방지
         LoadNotes();                               // 새 날짜 row 등장
+        _currentEditorNoteId = id;                 // 실제 ListBox가 선택을 비운 경우 ClearEditor가 초기화할 수 있음
         SelectedNote = Notes.FirstOrDefault(n => n.Id == id);
+        CurrentNoteType = NoteType.Checklist;
+        CurrentEditor = editor;
+        IsEditorVisible = true;
+    }
+
+    private async Task OnChecklistMaterializedAsync(int id)
+    {
+        var editor = CurrentEditor;
+        try
+        {
+            _currentEditorNoteId = id;
+            await LoadNotesAsync(SelectedNode);
+            _currentEditorNoteId = id;
+            SelectedNote = Notes.FirstOrDefault(n => n.Id == id);
+            CurrentNoteType = NoteType.Checklist;
+            CurrentEditor = editor;
+            IsEditorVisible = true;
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Checklist.Materialize", ex);
+        }
     }
 
     // #4 메모 삭제 → 휴지통. 열려 있는(선택 중) 노트면 자동저장 정리 + 우측 에디터를 빈 화면으로.
@@ -606,9 +632,9 @@ public partial class MainViewModel : ObservableObject
         BeginBusy("메모를 삭제하는 중…");
         try
         {
+            if (checklist is not null) await checklist.FlushSavesAsync();
             await Task.Run(() =>
             {
-                checklist?.FlushSaves();
                 if (wasOpen)
                 {
                     _autosave.FlushAll();

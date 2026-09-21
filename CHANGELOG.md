@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-09-21
+### Changed
+- 일일 업무일지의 항목 추가·삭제·완료·고객사 설정·입력 자동저장을 UI 스레드 밖의 직렬 작업으로 변경.
+- 체크리스트 저장 중에는 진행 상태를 표시하고, 실패 시 앱을 종료하지 않고 입력을 유지한 채 화면과 로그에 오류를 표시.
+
+### Fixed
+- 할 일 추가 및 입력 자동저장 중 SQLite 작업이 UI 스레드를 점유해 `응답 없음`으로 표시되거나 강제 종료되던 문제.
+- 메모 전환과 체크리스트 뷰 해제에서 UI 컬렉션을 백그라운드 스레드가 동시에 열거하던 저장 경합.
+
 ## [0.10.2] - 2026-09-21
 ### Added
 - 테스트부터 단일 EXE 게시, 로컬 설치, 해시·버전 확인까지 한 번에 수행하는 `Install-Memoria.ps1` 추가.
@@ -86,7 +95,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 문서: README, 아키텍처, 주간보고 양식 규칙, 사용자 가이드(한글).
 - CI/CD: GitHub Actions(build+test, 태그 릴리스 단일 exe 자산 첨부).
 
-[Unreleased]: https://github.com/leesh0829/Memoria/compare/v0.10.2...HEAD
+[Unreleased]: https://github.com/leesh0829/Memoria/compare/v0.10.3...HEAD
+[0.10.3]: https://github.com/leesh0829/Memoria/compare/v0.10.2...v0.10.3
 [0.10.2]: https://github.com/leesh0829/Memoria/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/leesh0829/Memoria/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/leesh0829/Memoria/compare/v0.9.2...v0.10.0

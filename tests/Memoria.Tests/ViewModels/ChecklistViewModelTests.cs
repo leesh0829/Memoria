@@ -80,6 +80,21 @@ public class ChecklistViewModelTests
     }
 
     [Fact]
+    public async Task AddTaskCommand_persists_without_blocking_command_path()
+    {
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+
+        await sut.AddTaskCommand.ExecuteAsync(null);
+
+        sut.Items.Should().ContainSingle(i => i.Kind == ItemKind.Task);
+        _checklist.Items.Should().ContainSingle(i => i.NoteId == 1 && i.Kind == ItemKind.Task);
+        sut.IsBusy.Should().BeFalse();
+        sut.OperationError.Should().BeEmpty();
+    }
+
+    [Fact]
     public void AddIssue_creates_issue_item_without_checkbox()
     {
         var note = SeedNote();
@@ -213,6 +228,24 @@ public class ChecklistViewModelTests
         item.ClientId.Should().Be(6);
         item.IsDirty.Should().BeFalse();
         _checklist.Items.Single(i => i.Id == item.Id).ClientId.Should().Be(6);
+    }
+
+    [Fact]
+    public async Task FlushSavesAsync_persists_dirty_snapshot_and_clears_dirty()
+    {
+        _tagging.KeywordToClient["SLD"] = 6;
+        var note = SeedNote();
+        var sut = CreateSut();
+        sut.Load(note);
+        sut.AddTask();
+        var item = sut.Items[0];
+        item.Text = "SLD 점검";
+
+        await sut.FlushSavesAsync();
+
+        item.IsDirty.Should().BeFalse();
+        item.ClientId.Should().Be(6);
+        _checklist.Items.Single(i => i.Id == item.Id).Text.Should().Be("SLD 점검");
     }
 
     [Fact]

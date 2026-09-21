@@ -362,8 +362,12 @@ public partial class App : Application
     {
         if (_exitInProgress) return;
         _exitInProgress = true;
-        ((MainWindow)MainWindow!).AllowClose = true;
+        var mainWindow = (MainWindow)MainWindow!;
+        var checklist = mainWindow.ViewModel.CurrentEditor as ChecklistViewModel;
+        mainWindow.AllowClose = true;
         MainWindow.Hide();            // 사용자는 즉시 닫힌 것으로 느끼게 하고 저장은 백그라운드에서 마무리
+        if (checklist is not null)
+            await checklist.FlushSavesAsync();
         var autosave = _services?.GetService<IAutosaveService>();
         if (autosave is not null)
         {

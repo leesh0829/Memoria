@@ -18,10 +18,10 @@ public partial class ChecklistView : UserControl
     {
         InitializeComponent();
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(ResolveDebounceMs()) };
-        _debounce.Tick += (_, _) =>
+        _debounce.Tick += async (_, _) =>
         {
             _debounce.Stop();
-            (DataContext as ChecklistViewModel)?.FlushSaves();
+            await FlushSavesAsync();
         };
         // 텍스트 변경마다 디바운스 재시작: ItemsControl 내부 TextBox 변경을 가로채 타이머 리셋
         AddHandler(TextBox.TextChangedEvent, new TextChangedEventHandler(OnAnyTextChanged));
@@ -53,10 +53,10 @@ public partial class ChecklistView : UserControl
         }
     }
 
-    private void OnOwnerDeactivated(object? sender, EventArgs e)
+    private async void OnOwnerDeactivated(object? sender, EventArgs e)
     {
         _debounce.Stop();
-        (DataContext as ChecklistViewModel)?.FlushSaves();
+        await FlushSavesAsync();
     }
 
     private void OnAnyTextChanged(object sender, TextChangedEventArgs e)
@@ -78,7 +78,7 @@ public partial class ChecklistView : UserControl
             vm.CommitClientCommand.Execute(item);
     }
 
-    private void OnUnloaded(object sender, RoutedEventArgs e)
+    private async void OnUnloaded(object sender, RoutedEventArgs e)
     {
         _debounce.Stop();
         if (_ownerWindow is not null)
@@ -86,6 +86,12 @@ public partial class ChecklistView : UserControl
             _ownerWindow.Deactivated -= OnOwnerDeactivated;
             _ownerWindow = null;
         }
-        (DataContext as ChecklistViewModel)?.FlushSaves();   // 즉시 flush
+        await FlushSavesAsync();
+    }
+
+    private async System.Threading.Tasks.Task FlushSavesAsync()
+    {
+        if (DataContext is ChecklistViewModel vm)
+            await vm.FlushSavesAsync();
     }
 }
