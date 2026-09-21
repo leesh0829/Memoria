@@ -129,4 +129,18 @@ public class SingleInstanceServiceTests
 
         (await signal.WaitAsync(5000)).Should().BeTrue("the server must keep serving after a broken client");
     }
+
+    [Fact]
+    public void Signal_without_listening_server_is_prompt_and_does_not_throw()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        using var svc = new SingleInstanceService($"mtx-{id}", $"pipe-{id}");
+
+        var sw = Stopwatch.StartNew();
+        Action signal = () => svc.SignalExistingInstance(PipeCommand.Open);
+        signal.Should().NotThrow();
+        sw.Stop();
+
+        sw.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(1));
+    }
 }

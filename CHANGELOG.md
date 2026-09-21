@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-09-21
+### Added
+- 테스트부터 단일 EXE 게시, 로컬 설치, 해시·버전 확인까지 한 번에 수행하는 `Install-Memoria.ps1` 추가.
+
+### Fixed
+- 일일 업무일지의 WPF 컬렉션을 백그라운드 스레드에서 변경해 메모를 클릭해도 내용이 표시되지 않던 문제.
+- 비동기 메모 로딩 실패가 빈 편집기로만 보이고 진단 로그에 남지 않던 문제.
+
+## [0.10.1] - 2026-09-21
+### Changed
+- SQLite 읽기 연결 풀링, 읽기 전용 연결, 500ms busy timeout 및 비차단 PASSIVE 종료 체크포인트 적용.
+- 자동저장 타이머를 키 입력마다 재생성하지 않고 단일 스케줄러로 통합.
+- 체크리스트 저장·순서변경을 단일 트랜잭션으로 배치하고 주간보고의 체크리스트 N+1 조회 제거.
+- 메타데이터 변경에는 FTS 본문을 재생성하지 않도록 v4 데이터베이스 트리거 최적화.
+- 메모 열기·삭제·이동, 일일업무일지 이동, 주간보고 생성과 앱 종료 저장을 백그라운드 처리.
+- 250ms 이상 걸린 주요 작업을 `memoria.log`에 `[PERF]` 항목으로 기록하도록 진단 기능 추가.
+
+### Fixed
+- 반복 사용 후 거의 모든 입력과 화면 전환이 느려지고 시작·종료가 장시간 멈추던 문제.
+- 테스트용 의도적 예외가 실제 사용자 로그에 기록되던 문제와 클립보드 경합이 전역 오류창으로 번지던 문제.
+
+## [0.10.0] - 2026-09-21
+### Added
+- 앱 시작 단계와 일반 사용 중 메모·목록·검색·주간보고 로드에 공통 로딩 애니메이션 및 상태 메시지 추가.
+- 검색 결과 개수 표시와 검색 결과 닫기 기능 추가.
+
+### Changed
+- 시작 시 DB 점검·백업·복구, 메모 목록 조회, 검색 및 주간보고 생성을 백그라운드 작업으로 분리.
+- 긴 목록에 UI 가상화·컨테이너 재활용을 적용하고 메모 순서 저장을 단일 트랜잭션으로 변경.
+- 마크다운 렌더 요청을 병합하고 첨부 이미지 디코딩 크기를 제한해 화면 전환과 메모리 사용량 개선.
+
+## [0.9.2] - 2026-09-14
+### Changed
+- 크래시 복구 저널 기록을 UI 스레드의 키 입력 경로에서 분리하고, 최신 스냅샷만 백그라운드에서 원자적으로 기록하도록 개선.
+- 긴 메모의 실시간 제목 계산에서 본문 전체 문자열 분할을 제거.
+- 중복 실행 인스턴스의 파이프 연결 대기를 250ms로 제한하고 종료 경합 중 파이프 오류를 안전하게 처리.
+
+### Fixed
+- 메모 입력 중 동기 파일 기록 및 복구 파일 경합으로 앱이 자주 멈추거나 `응답 없음`으로 표시되던 문제.
+- 실행 중인 앱을 다시 열 때 최대 2초간 멈추거나 파이프 오류가 표시되던 문제.
+
 ## [0.1.1] - 2026-07-01
 ### Added
 - 툴바 "+ 그룹"(그룹 생성) 및 "⚙ 설정" 진입 버튼.
@@ -45,6 +86,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 문서: README, 아키텍처, 주간보고 양식 규칙, 사용자 가이드(한글).
 - CI/CD: GitHub Actions(build+test, 태그 릴리스 단일 exe 자산 첨부).
 
-[Unreleased]: https://github.com/leesh0829/Memoria/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/leesh0829/Memoria/compare/v0.10.2...HEAD
+[0.10.2]: https://github.com/leesh0829/Memoria/compare/v0.10.1...v0.10.2
+[0.10.1]: https://github.com/leesh0829/Memoria/compare/v0.10.0...v0.10.1
+[0.10.0]: https://github.com/leesh0829/Memoria/compare/v0.9.2...v0.10.0
+[0.9.2]: https://github.com/leesh0829/Memoria/compare/v0.9.1...v0.9.2
 [0.1.1]: https://github.com/leesh0829/Memoria/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/leesh0829/Memoria/releases/tag/v0.1.0

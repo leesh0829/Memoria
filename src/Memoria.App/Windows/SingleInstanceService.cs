@@ -82,18 +82,33 @@ public sealed class SingleInstanceService : ISingleInstanceService
 
     public void SignalExistingInstance(PipeCommand command)
     {
-        using var client = new NamedPipeClientStream(".", _pipeName, PipeDirection.Out);
-        client.Connect(2000);
-        using var writer = new StreamWriter(client) { AutoFlush = true };
-        writer.WriteLine(PipeMessage.Serialize(command));
+        // 두 번째 실행은 UI 시작 스레드에서 이 경로를 거친다. 기존 2초 동기 대기와
+        // 서버가 먼저 닫을 때의 Dispose 예외가 앱을 '응답 없음'처럼 보이게 했다.
+        // 전달은 best-effort이며 실패해도 두 번째 인스턴스는 조용히 종료하면 된다.
+        try
+        {
+            using var client = new NamedPipeClientStream(".", _pipeName, PipeDirection.Out);
+            client.Connect(250);
+            using var writer = new StreamWriter(client, System.Text.Encoding.UTF8, 1024, leaveOpen: true);
+            writer.WriteLine(PipeMessage.Serialize(command));
+            writer.Flush();
+        }
+        catch (TimeoutException)
+        {
+            // 기존 인스턴스가 종료 중이거나 아직 pipe를 열지 못한 짧은 경합.
+        }
+        catch (IOException)
+        {
+            // 서버가 명령을 받은 직후 pipe를 닫아도 사용자에게 오류를 노출하지 않는다.
+        }
     }
 
     public void Dispose()
     {
         try { _cts?.Cancel(); } catch { /* shutdown best-effort */ }
-        // Give the server loop a brief, bounded chance to observe cancellation and unwind
-        // so we don't return mid-teardown. Bounded wait avoids any chance of a deadlock.
-        try { _serverLoop?.Wait(TimeSpan.FromSeconds(1)); } catch { /* loop faulted/cancelled — best-effort */ }
+        // 종료 UI를 최대 1초간 붙잡지 않는다. 파이프는 cancellation 이후 자체 정리되며
+        // 50ms 안에 끝나지 않아도 프로세스 종료에 맡겨도 안전하다.
+        try { _serverLoop?.Wait(TimeSpan.FromMilliseconds(50)); } catch { /* best-effort */ }
         _cts?.Dispose();
         _mutex?.Dispose();
         _mutex = null;

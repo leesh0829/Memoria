@@ -14,7 +14,7 @@ public class MigrationV3Tests
         using var db = new TestDb();   // EnsureReady() 실행됨
         using var conn = db.Factory.Open();
 
-        conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(3);
+        conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(4);
         conn.ExecuteScalar<long>("SELECT COUNT(*) FROM clients WHERE name = 'SLD 자율형공장';").Should().Be(1);
         conn.ExecuteScalar<long>("SELECT COUNT(*) FROM clients WHERE name = '자율형 공장';").Should().Be(0);
     }
@@ -42,7 +42,7 @@ public class MigrationV3Tests
             {
                 new DatabaseInitializer(factory1).EnsureReady();   // v2 → v3
                 var c = factory1.Write;
-                c.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(3);
+                c.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(4);
                 c.ExecuteScalar<string>("SELECT name FROM clients WHERE id = 1;").Should().Be("SLD 자율형공장");
             }
             SqliteConnection.ClearAllPools();

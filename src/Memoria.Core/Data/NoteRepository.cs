@@ -102,6 +102,20 @@ public sealed class NoteRepository : INoteRepository
         }
     }
 
+    public void Touch(int id, DateTimeOffset updatedAt)
+    {
+        lock (_factory.WriteSync)
+            _factory.Write.Execute(
+                "UPDATE notes SET updated_at = @updatedAt WHERE id = @id;", new { id, updatedAt });
+    }
+
+    public void SetGroup(int id, int? groupId)
+    {
+        lock (_factory.WriteSync)
+            _factory.Write.Execute(
+                "UPDATE notes SET group_id = @groupId WHERE id = @id;", new { id, groupId });
+    }
+
     public void SetSortOrder(int id, int sortOrder)
     {
         // 순서변경은 메타 조작이므로 updated_at을 갱신하지 않는다(정렬/최근수정 의미 보존).
@@ -110,6 +124,22 @@ public sealed class NoteRepository : INoteRepository
             _factory.Write.Execute(
                 "UPDATE notes SET sort_order = @sortOrder WHERE id = @id;",
                 new { id, sortOrder });
+        }
+    }
+
+    public void SetSortOrders(IReadOnlyList<int> orderedNoteIds)
+    {
+        // 드래그 한 번에 항목 수만큼 개별 커밋하면 목록이 클수록 UI가 멈춘다.
+        // 쓰기 락과 트랜잭션을 한 번만 잡아 전체 순서를 원자적으로 반영한다.
+        lock (_factory.WriteSync)
+        {
+            var conn = _factory.Write;
+            using var tx = conn.BeginTransaction();
+            for (var i = 0; i < orderedNoteIds.Count; i++)
+                conn.Execute(
+                    "UPDATE notes SET sort_order = @i WHERE id = @id;",
+                    new { i, id = orderedNoteIds[i] }, tx);
+            tx.Commit();
         }
     }
 

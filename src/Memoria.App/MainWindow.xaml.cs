@@ -160,6 +160,12 @@ public partial class MainWindow : Window
             Hide(); // HWND 유지(파괴 금지) — 단축키·트레이 계속 동작
             return;
         }
+        if (!AllowClose && Application.Current is App app)
+        {
+            e.Cancel = true;
+            app.RequestExit();
+            return;
+        }
         base.OnClosing(e);
     }
 
@@ -236,7 +242,7 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel vm && SearchResultsList.SelectedItem is SearchHit hit)
         {
-            vm.OpenSearchHitCommand.Execute(hit);
+            vm.NavigateToSearchHitCommand.Execute(hit);
             SearchResultsList.SelectedItem = null;   // 다음 검색을 위해 선택 해제
         }
     }
@@ -313,7 +319,7 @@ public partial class MainWindow : Window
     private void OnDeleteNoteClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: NoteListItemViewModel note })
-            ViewModel.DeleteNoteCommand.Execute(note);
+            ViewModel.DeleteNoteWithLoadingCommand.Execute(note);
     }
 
     private void OnFolderClick(object sender, RoutedEventArgs e)
@@ -546,15 +552,14 @@ public partial class MainWindow : Window
     }
 
     /// 메모를 그룹으로 드롭: noteId/targetGroupId 추출 후 위임.
-    private void GroupNode_DropNote(object sender, DragEventArgs e)
+    private async void GroupNode_DropNote(object sender, DragEventArgs e)
     {
         ClearNoteDropTarget();   // 드롭 순간 강조 해제.
         if (!e.Data.GetDataPresent("noteId")) return;
         var noteId = (int)e.Data.GetData("noteId");
         if (((FrameworkElement)sender).DataContext is SidebarNodeViewModel node)
         {
-            GroupVm.MoveNoteToGroup(noteId, node.GroupId);
-            ViewModel.LoadNotes();   // #10 이동 즉시 반영(다른 그룹으로 옮기면 현재 목록에서 사라짐)
+            await ViewModel.MoveNoteToGroupAsync(noteId, node.GroupId);
         }
     }
 

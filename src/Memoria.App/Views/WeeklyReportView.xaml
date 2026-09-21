@@ -8,6 +8,7 @@
     <UserControl.Resources>
         <conv:DateOnlyConverter x:Key="DateOnlyConverter"/>
     </UserControl.Resources>
+    <Grid>
     <DockPanel Margin="12">
         <!-- 상단: 주차 선택 + 양식 토글 + 액션 (좁은 폭에서 잘리지 않도록 WrapPanel로 줄바꿈, #6) -->
         <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
@@ -26,8 +27,8 @@
             <RadioButton Content="양식 C" Margin="0,0,12,4" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.Foreground}"
                          IsChecked="{Binding SelectedFormat, Converter={x:Static conv:EnumMatchConverter.Instance}, ConverterParameter={x:Static models:ReportFormatKind.C}}"/>
-            <Button Content="생성" Command="{Binding GenerateCommand}" Margin="0,0,4,4" Padding="10,2"/>
-            <Button Content="다시 생성" Command="{Binding RegenerateCommand}" Margin="0,0,4,4" Padding="10,2"/>
+            <Button Content="생성" Command="{Binding GenerateInBackgroundCommand}" Margin="0,0,4,4" Padding="10,2"/>
+            <Button Content="다시 생성" Command="{Binding RegenerateInBackgroundCommand}" Margin="0,0,4,4" Padding="10,2"/>
             <Button Content="복사" Command="{Binding CopyCommand}" Margin="0,0,4,4" Padding="10,2"/>
             <Button Content="구글 시트에서 생성" Command="{Binding GenerateFromSheetCommand}"
                     Margin="0,0,4,4" Padding="10,2"/>
@@ -52,4 +53,13 @@
                  Foreground="{DynamicResource Brush.Foreground}"
                  BorderBrush="{DynamicResource Brush.Border}"/>
     </DockPanel>
+        <Border Panel.ZIndex="10" Background="#55000000"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressBar Width="180" Height="5" IsIndeterminate="True" />
+                <TextBlock Text="주간보고를 처리하는 중…" Margin="0,10,0,0"
+                           Foreground="White" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>

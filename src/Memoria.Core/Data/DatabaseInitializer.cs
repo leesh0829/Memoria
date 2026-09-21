@@ -4,7 +4,7 @@ namespace Memoria.Core.Data;
 
 public sealed class DatabaseInitializer : IDatabaseInitializer
 {
-    private const long TargetVersion = 3;
+    private const long TargetVersion = 4;
     private readonly SqliteConnectionFactory _factory;
 
     public DatabaseInitializer(SqliteConnectionFactory factory) => _factory = factory;
@@ -24,6 +24,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
             if (current < 1) ApplyV1(conn);
             if (current < 2) ApplyV2(conn);
             if (current < 3) ApplyV3(conn);
+            if (current < 4) ApplyV4(conn);
         }
     }
 
@@ -60,6 +61,37 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
             "INSERT INTO _migrations(version, applied_at) VALUES(3, strftime('%Y-%m-%dT%H:%M:%fZ','now'));",
             transaction: tx);
         conn.Execute("PRAGMA user_version = 3;", transaction: tx);
+        tx.Commit();
+    }
+
+    private static void ApplyV4(Microsoft.Data.Sqlite.SqliteConnection conn)
+    {
+        using var tx = conn.BeginTransaction();
+        var requiredTables = conn.ExecuteScalar<long>(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('notes', 'checklist_items');",
+            transaction: tx);
+        if (requiredTables == 2)
+        {
+            conn.Execute(@"
+DROP TRIGGER IF EXISTS notes_au;
+CREATE TRIGGER notes_au AFTER UPDATE OF title, body ON notes BEGIN
+  UPDATE notes_fts
+     SET title = COALESCE(new.title, ''), body = COALESCE(new.body, '')
+   WHERE rowid = new.id;
+END;
+
+DROP TRIGGER IF EXISTS items_au;
+CREATE TRIGGER items_au AFTER UPDATE OF text ON checklist_items BEGIN
+  UPDATE notes_fts
+     SET items = (SELECT COALESCE(GROUP_CONCAT(text, ' '), '')
+                    FROM checklist_items WHERE note_id = new.note_id)
+   WHERE rowid = new.note_id;
+END;", transaction: tx);
+        }
+        conn.Execute(
+            "INSERT INTO _migrations(version, applied_at) VALUES(4, strftime('%Y-%m-%dT%H:%M:%fZ','now'));",
+            transaction: tx);
+        conn.Execute("PRAGMA user_version = 4;", transaction: tx);
         tx.Commit();
     }
 

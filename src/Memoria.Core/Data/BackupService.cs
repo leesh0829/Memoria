@@ -61,7 +61,7 @@ public sealed class BackupService : IBackupService
         lock (_factory.WriteSync)
         {
             _factory.CloseForRestore();       // 영속 쓰기 연결 닫기(파일 잠금 해제)
-            SqliteConnection.ClearAllPools(); // 풀링된 읽기 연결도 해제
+            _factory.ClearPools();            // 이 DB 경로의 풀링된 읽기 연결도 해제
 
             var temp = _databasePath + ".restore-tmp";
             try

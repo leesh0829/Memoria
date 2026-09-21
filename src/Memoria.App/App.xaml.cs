@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
@@ -30,8 +31,9 @@ public partial class App : Application
     // ExitApplication()과 OnExit()가 모두 라이프사이클 서비스를 정리하므로,
     // 정확히 한 번만 Dispose되도록 보장하는 가드.
     private bool _lifecycleServicesDisposed;
+    private bool _exitInProgress;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -61,10 +63,17 @@ public partial class App : Application
         _singleInstance.CommandReceived += (_, cmd) =>
             Dispatcher.BeginInvoke(() =>
             {
-                if (MainWindow is null) return; // 아직 MainWindow 미생성 — 안전하게 무시
+                // 시작 로딩 창은 Application.MainWindow가 될 수 있으므로 타입까지 확인한다.
+                if (MainWindow is not Memoria.App.MainWindow) return;
                 if (cmd == PipeCommand.NewNote) NewNoteForeground();
                 else ShowMainWindow();
             });
+
+        // 메인 창이 준비되는 동안 즉시 피드백을 보여 준다. 이후 DB/백업 I/O는
+        // 백그라운드에서 수행해 이 애니메이션과 Windows 메시지 처리가 멈추지 않게 한다.
+        var loading = new LoadingWindow();
+        loading.Show();
+        await Dispatcher.Yield(DispatcherPriority.Loaded);
 
         // (3) M2 — DI 합성 + 서비스 로케이터 초기화. (M6/M7이 자기 서비스 등록을 이 블록에 추가)
         var sc = new ServiceCollection();
@@ -121,19 +130,25 @@ public partial class App : Application
         // (4) M2 + PASS A — DB 준비(파일/PRAGMA/마이그레이션/시드)를 예외로부터 보호한다.
         //     손상으로 EnsureReady가 실패하면 백업 복원(파일 수준) 후 1회 재시도하고,
         //     그래도 실패하면 손상 파일을 보존(.corrupt)한 채 새 DB로 계속한다.
-        PrepareDatabaseSafely();
+        loading.SetStatus("데이터베이스를 확인하고 있습니다…");
+        var databaseNotice = await Task.Run(PrepareDatabaseSafely);
+        if (databaseNotice is not null)
+            MessageBox.Show(loading, databaseNotice.Message, "Memoria 데이터 복구",
+                MessageBoxButton.OK, databaseNotice.Image);
 
         // (5) + (6) M9 — 무결성 점검 → (손상 시) 최신 백업 복원 → 일일 백업 (계약 §9.4 step5/6).
         {
             var safetySettings = _services.GetRequiredService<ISettingsRepository>();
             var retentionCount = int.Parse(safetySettings.GetOrDefault(SettingsKeys.BackupRetentionCount, "7"));
-            var safety = _services.GetRequiredService<IStartupSafetyCoordinator>().Run(retentionCount);
+            loading.SetStatus("데이터를 안전하게 백업하고 있습니다…");
+            var coordinator = _services.GetRequiredService<IStartupSafetyCoordinator>();
+            var safety = await Task.Run(() => coordinator.Run(retentionCount));
             if (!safety.DatabaseWasHealthy)
             {
                 var msg = safety.RestoreSucceeded
                     ? "데이터베이스 손상을 감지하여 최근 정상 백업에서 복원했습니다."
                     : "데이터베이스 손상을 감지했으나 복원할 백업이 없습니다. 손상 파일은 격리되었습니다.";
-                MessageBox.Show(msg, "Memoria 데이터 복구",
+                MessageBox.Show(loading, msg, "Memoria 데이터 복구",
                     MessageBoxButton.OK,
                     safety.RestoreSucceeded ? MessageBoxImage.Information : MessageBoxImage.Warning);
             }
@@ -141,23 +156,30 @@ public partial class App : Application
         // (7) M7 — 저장된 mode/preset/accent를 즉시 적용(시스템 모드 구독은 ThemeService 생성자가 수행).
         AppServices.Resolve<IThemeService>().Initialize();
 
+        loading.SetStatus("메모를 불러오고 있습니다…");
         var vm = _services.GetRequiredService<MainViewModel>();
-        vm.LoadGroups();
+        await Task.Run(() => vm.LoadGroups());
 
         // (8) M2 — 크래시 복구 저널 적용(§8.1): 보류 스냅샷이 있으면 사용자 확인 후 DB에 반영.
         var recovery = _services.GetRequiredService<IRecoveryJournal>();
-        var pending = recovery.DetectPending();
+        var pending = await Task.Run(recovery.DetectPending);
         if (pending.Count > 0)
         {
-            var answer = MessageBox.Show(
+            var answer = MessageBox.Show(loading,
                 $"비정상 종료로 저장되지 않은 메모 {pending.Count}건이 있습니다. 복구하시겠습니까?",
                 "Memoria 복구", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (answer == MessageBoxResult.Yes) vm.ApplyRecovery(pending);
-            else foreach (var s in pending) recovery.Clear(s.NoteId);
+            if (answer == MessageBoxResult.Yes)
+                await Task.Run(() => vm.ApplyRecovery(pending));
+            else
+                await Task.Run(() =>
+                {
+                    foreach (var s in pending) recovery.Clear(s.NoteId);
+                });
         }
 
         // (9) M5 — 시작 시 보존기간 만료된 휴지통 항목을 영구삭제 (계약 §9.4 step 9).
-        _services.GetRequiredService<TrashViewModel>().PurgeExpiredOnStartup();
+        var trash = _services.GetRequiredService<TrashViewModel>();
+        await Task.Run(trash.PurgeExpiredOnStartup);
 
         // (10) M6 — MainWindow 생성 + Tray/Hotkey/Autostart 배선.
         var window = _services.GetRequiredService<MainWindow>();
@@ -192,6 +214,7 @@ public partial class App : Application
 
         // (11) M6 — 표시. (closeToTray/autostart 정책에 따라 트레이 시작으로 분기 — 기본은 Show)
         window.Show();
+        loading.Close();
     }
 
     // -----------------------------------------------------------------
@@ -200,12 +223,14 @@ public partial class App : Application
 
     /// EnsureReady를 보호한다. 실패 시: 최신 정상 백업에서 파일 수준 복원 → 1회 재시도.
     /// 복원할 백업이 없으면 손상 파일을 .corrupt로 격리하고 새 DB로 계속한다(데이터 유실 안내).
-    private void PrepareDatabaseSafely()
+    private sealed record StartupNotice(string Message, MessageBoxImage Image);
+
+    private StartupNotice? PrepareDatabaseSafely()
     {
         try
         {
             _services!.GetRequiredService<IDatabaseInitializer>().EnsureReady();
-            return; // 정상 경로
+            return null; // 정상 경로
         }
         catch (Exception ex)
         {
@@ -230,19 +255,18 @@ public partial class App : Application
         try
         {
             _services!.GetRequiredService<IDatabaseInitializer>().EnsureReady();
-            MessageBox.Show(
+            return new StartupNotice(
                 restored
                     ? "데이터베이스 손상을 감지하여 최근 정상 백업에서 복원했습니다."
                     : "데이터베이스가 손상되어 복원할 백업이 없습니다. 손상 파일은 보존(.corrupt)되었고 새 데이터베이스로 시작합니다.",
-                "Memoria 데이터 복구", MessageBoxButton.OK,
                 restored ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
         catch (Exception ex)
         {
             AppLog.Error("Bootstrap.EnsureReady.Retry", ex);
-            MessageBox.Show(
+            return new StartupNotice(
                 "데이터베이스를 준비하지 못했습니다. 일부 기능이 정상 동작하지 않을 수 있습니다.",
-                "Memoria 오류", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBoxImage.Error);
         }
     }
 
@@ -291,9 +315,10 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         // 계약 §9.4 OnExit
-        _services?.GetService<IAutosaveService>()?.FlushAll();                         // (M2) 보류 저장 즉시 확정(§7.7)
+        if (!_exitInProgress)
+            _services?.GetService<IAutosaveService>()?.FlushAll();                     // OS 강제 종료 등 우회 경로
         (_services?.GetService<IThemeService>() as IDisposable)?.Dispose();            // (M7) SystemEvents 구독 해제
-        _services?.Dispose();                                                           // (M2/M9) SqliteConnectionFactory.Dispose가 PRAGMA wal_checkpoint(TRUNCATE) 후 연결 종료
+        _services?.Dispose();                                                           // SqliteConnectionFactory가 비차단 PASSIVE 체크포인트 후 연결 종료
         DisposeLifecycleServices();                                                     // (M6) Hotkey/Tray/SingleInstance — 정확히 한 번만
         base.OnExit(e);
     }
@@ -331,9 +356,20 @@ public partial class App : Application
             ShowMainWindow();
     }
 
-    private void ExitApplication()
+    internal void RequestExit() => ExitApplication();
+
+    private async void ExitApplication()
     {
+        if (_exitInProgress) return;
+        _exitInProgress = true;
         ((MainWindow)MainWindow!).AllowClose = true;
+        MainWindow.Hide();            // 사용자는 즉시 닫힌 것으로 느끼게 하고 저장은 백그라운드에서 마무리
+        var autosave = _services?.GetService<IAutosaveService>();
+        if (autosave is not null)
+        {
+            using var perf = AppLog.Measure("Shutdown.FlushAutosave");
+            await Task.Run(autosave.FlushAll);
+        }
         DisposeLifecycleServices();   // 여기서 한 번 정리 → 이후 Shutdown()이 부르는 OnExit에서는 가드로 재실행 안 함
         Shutdown();
     }

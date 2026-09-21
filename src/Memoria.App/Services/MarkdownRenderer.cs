@@ -85,8 +85,10 @@ public sealed class MarkdownRenderer : IMarkdownRenderer
             var bmp = new BitmapImage();
             bmp.BeginInit();
             bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.DecodePixelWidth = 1200; // 초고해상도 원본 전체를 메모리에 펼치지 않는다.
             bmp.UriSource = new Uri(abs);
             bmp.EndInit();
+            bmp.Freeze();
             var img = new System.Windows.Controls.Image
             {
                 Source = bmp,
@@ -229,8 +231,10 @@ public sealed class MarkdownRenderer : IMarkdownRenderer
             var bmp = new BitmapImage();
             bmp.BeginInit();
             bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.DecodePixelWidth = 1200;
             bmp.UriSource = new Uri(abs);
             bmp.EndInit();
+            bmp.Freeze();
             var img = new System.Windows.Controls.Image
             {
                 Source = bmp,

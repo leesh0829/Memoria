@@ -52,6 +52,14 @@ dotnet publish src\Memoria.App -c Release -r win-x64 --self-contained `
 
 > 주의: WPF는 트리밍을 지원하지 않으므로 `PublishTrimmed`를 절대 사용하지 않습니다. 콜드 스타트 비용 때문에 `EnableCompressionInSingleFile`도 사용하지 않습니다.
 
+### 로컬 테스트·설치 갱신
+
+관리자 PowerShell에서 다음 한 줄을 실행하면 테스트, 단일 EXE 게시, `Program Files (x86)` 설치, 해시·버전 확인, 시작프로그램 바로가기 갱신까지 자동으로 처리합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Install-Memoria.ps1
+```
+
 ## 단축키
 | 동작 | 단축키 |
 |---|---|

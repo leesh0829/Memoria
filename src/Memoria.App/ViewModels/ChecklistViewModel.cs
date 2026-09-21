@@ -75,6 +75,23 @@ public partial class ChecklistViewModel : ObservableObject
     }
 
     public void Load(Note note)
+        => ApplyLoad(note, ReadLoadSnapshot(note.Id));
+
+    /// 저장소 조회만 백그라운드에서 실행하고 WPF 컬렉션 반영은 호출한 UI 컨텍스트에서 수행한다.
+    /// ObservableCollection/ListCollectionView를 Task.Run 내부에서 변경하면 뷰가 비거나
+    /// 스레드 소유권 예외가 발생하므로 두 단계를 명시적으로 분리한다.
+    public async Task LoadAsync(Note note)
+    {
+        var snapshot = await Task.Run(() => ReadLoadSnapshot(note.Id));
+        ApplyLoad(note, snapshot);
+    }
+
+    private ChecklistLoadSnapshot ReadLoadSnapshot(int noteId)
+        => new(
+            _clients.GetAll(enabledOnly: true),
+            _checklist.GetByNote(noteId));
+
+    private void ApplyLoad(Note note, ChecklistLoadSnapshot snapshot)
     {
         _loading = true;
         try
@@ -83,11 +100,11 @@ public partial class ChecklistViewModel : ObservableObject
             LogDate = note.LogDate ?? DateOnly.FromDateTime(DateTime.Today);  // _loading 가드로 OnLogDateChanged 재영속화 방지
 
             AvailableClients.Clear();
-            foreach (var client in _clients.GetAll(enabledOnly: true))
+            foreach (var client in snapshot.Clients)
                 AvailableClients.Add(client);
 
             Items.Clear();
-            foreach (var item in _checklist.GetByNote(note.Id))
+            foreach (var item in snapshot.Items)
                 Items.Add(new ChecklistItemViewModel(item));
         }
         finally
@@ -95,6 +112,10 @@ public partial class ChecklistViewModel : ObservableObject
             _loading = false;
         }
     }
+
+    private sealed record ChecklistLoadSnapshot(
+        IReadOnlyList<Client> Clients,
+        IReadOnlyList<ChecklistItem> Items);
 
     /// 아직 노트가 없는 날짜의 빈 에디터. 첫 AddItem에서 실 노트를 생성(§lazy-create).
     public void LoadDraft(DateOnly date)
@@ -186,7 +207,7 @@ public partial class ChecklistViewModel : ObservableObject
         item.Done = !item.Done;
         item.DoneAt = item.Done ? DateTimeOffset.UtcNow : null;
         item.UpdatedAt = DateTimeOffset.UtcNow;
-        _checklist.UpdateItem(item.ToModel());
+        _checklist.UpdateItemMetadata(item.ToModel());
         TouchNote();
     }
 
@@ -205,14 +226,16 @@ public partial class ChecklistViewModel : ObservableObject
         var dirty = Items.Where(i => i.IsDirty).ToList();
         if (dirty.Count == 0) return;
 
+        var updates = new List<ChecklistItem>(dirty.Count);
         foreach (var item in dirty)
         {
             var tagged = _tagging.ApplyAutoTag(item.ToModel());
             item.ClientId = tagged.ClientId;
             item.UpdatedAt = DateTimeOffset.UtcNow;
-            _checklist.UpdateItem(item.ToModel());
+            updates.Add(item.ToModel());
             item.IsDirty = false;
         }
+        _checklist.UpdateItems(updates);
         TouchNote();
     }
 
@@ -225,7 +248,7 @@ public partial class ChecklistViewModel : ObservableObject
 
         item.IsManual = true;
         item.UpdatedAt = DateTimeOffset.UtcNow;
-        _checklist.UpdateItem(item.ToModel());
+        _checklist.UpdateItemMetadata(item.ToModel());
         TouchNote();
     }
 
@@ -272,14 +295,16 @@ public partial class ChecklistViewModel : ObservableObject
 
     private void Renumber()
     {
+        var updates = new List<ChecklistItem>();
         for (int i = 0; i < Items.Count; i++)
         {
             if (Items[i].SortOrder != i)
             {
                 Items[i].SortOrder = i;
-                _checklist.UpdateItem(Items[i].ToModel());   // UpdatedAt 보존(메타)
+                updates.Add(Items[i].ToModel());   // UpdatedAt 보존(메타)
             }
         }
+        _checklist.SetSortOrders(updates);
     }
 
     private int NextSortOrder() => Items.Count == 0 ? 0 : Items.Max(i => i.SortOrder) + 1;
@@ -289,6 +314,6 @@ public partial class ChecklistViewModel : ObservableObject
     {
         if (_note is null) return;
         _note.UpdatedAt = DateTimeOffset.UtcNow;
-        _notes.Update(_note);
+        _notes.Touch(_note.Id, _note.UpdatedAt);
     }
 }

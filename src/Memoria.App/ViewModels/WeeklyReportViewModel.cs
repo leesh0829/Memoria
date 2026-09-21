@@ -9,6 +9,7 @@ using Memoria.Core.Reporting;
 using Memoria.Core.Services;
 using Memoria.Core.Sheets;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Memoria.App.ViewModels;
 
@@ -28,6 +29,7 @@ public partial class WeeklyReportViewModel : ObservableObject
     private const string WeeklyReportGroupName = "주간보고";
 
     private int? _currentNoteId;
+    private int _generation;
 
     /// 저장 앵커. 양식 C는 표시 구간이 금~목이라 시작일을 그대로 저장하면 노트를 다시 열 때
     /// 구간이 한 주 밀린다. 그래서 A/B/C 모두 '선택 날짜가 속한 주의 월요일'을 키로 쓴다.
@@ -53,6 +55,9 @@ public partial class WeeklyReportViewModel : ObservableObject
 
     [ObservableProperty]
     private string _reportText = "";
+
+    [ObservableProperty]
+    private bool _isBusy;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasUnclassifiedWarning))]
@@ -158,6 +163,22 @@ public partial class WeeklyReportViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task GenerateInBackgroundAsync()
+    {
+        using var perf = AppLog.Measure("WeeklyReport.Generate");
+        var generation = ++_generation;
+        IsBusy = true;
+        try
+        {
+            await Task.Run(Generate);
+        }
+        finally
+        {
+            if (generation == _generation) IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
     private void Regenerate()
     {
         var existing = _noteRepository.FindWeeklyReport(_anchorMonday, SelectedFormat);
@@ -170,6 +191,32 @@ public partial class WeeklyReportViewModel : ObservableObject
         var text = RenderFresh(WeekStart, WeekEnd);
         ReportText = text;
         Persist(_anchorMonday, existing, text);
+    }
+
+    [RelayCommand]
+    private async Task RegenerateInBackgroundAsync()
+    {
+        using var perf = AppLog.Measure("WeeklyReport.Regenerate");
+        var existing = await Task.Run(() => _noteRepository.FindWeeklyReport(_anchorMonday, SelectedFormat));
+        if (existing is not null && !string.IsNullOrEmpty(existing.Body)
+            && !_dialogs.Confirm("기존에 편집한 주간보고 내용을 덮어씁니다. 계속할까요?"))
+            return;
+
+        var generation = ++_generation;
+        IsBusy = true;
+        try
+        {
+            await Task.Run(() =>
+            {
+                var text = RenderFresh(WeekStart, WeekEnd);
+                ReportText = text;
+                Persist(_anchorMonday, existing, text);
+            });
+        }
+        finally
+        {
+            if (generation == _generation) IsBusy = false;
+        }
     }
 
     private void Persist(DateOnly monday, Note? existing, string text)
@@ -207,7 +254,10 @@ public partial class WeeklyReportViewModel : ObservableObject
     partial void OnSelectedFormatChanged(ReportFormatKind value)
     {
         RecomputeWeek();
-        Generate();
+        if (Application.Current?.Dispatcher is { } dispatcher && dispatcher.CheckAccess())
+            GenerateInBackgroundCommand.Execute(null);
+        else
+            Generate();
     }
 
     [RelayCommand]
@@ -222,6 +272,7 @@ public partial class WeeklyReportViewModel : ObservableObject
             _dialogs.Confirm("구글 시트 ID가 설정되지 않았습니다. 설정 > 구글 연동에서 입력하세요.");
             return;
         }
+        IsBusy = true;
         try
         {
             var grid = await _sheetReader.ReadRowsAsync(sheetId, tabName);
@@ -242,6 +293,10 @@ public partial class WeeklyReportViewModel : ObservableObject
         catch (System.Exception ex)
         {
             _dialogs.Confirm($"구글 시트에서 가져오지 못했습니다: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 

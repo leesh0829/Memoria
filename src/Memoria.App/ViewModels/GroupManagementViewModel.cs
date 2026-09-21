@@ -11,6 +11,7 @@ public partial class GroupManagementViewModel : ObservableObject
 {
     private readonly IGroupRepository _groups;
     private readonly INoteRepository _notes;
+    private readonly Dictionary<int, Group> _groupById = new();
 
     public const string DefaultGroupColor = "#9E9E9E";
 
@@ -31,8 +32,12 @@ public partial class GroupManagementViewModel : ObservableObject
     public void Load()
     {
         Groups.Clear();
+        _groupById.Clear();
         foreach (var g in _groups.GetAll())
+        {
             Groups.Add(g);
+            _groupById[g.Id] = g;
+        }
     }
 
     private bool CanModifySelected() => SelectedGroup is { IsSystem: false };
@@ -94,7 +99,20 @@ public partial class GroupManagementViewModel : ObservableObject
         Load();
     }
 
-    public bool RepoIsDescendantOf(int nodeId, int ancestorId) => _groups.IsDescendantOf(nodeId, ancestorId);
+    public bool RepoIsDescendantOf(int nodeId, int ancestorId)
+    {
+        // DragOver는 초당 수십 번 호출된다. 여기서 매번 DB 전체 parent map을 읽으면
+        // 드래그만 해도 연결/파일 I/O가 폭주하므로 이미 로드된 그룹 스냅샷으로 판정한다.
+        var visited = new HashSet<int>();
+        var current = nodeId;
+        while (_groupById.TryGetValue(current, out var group) && group.ParentId is int parentId)
+        {
+            if (!visited.Add(current)) break;
+            if (parentId == ancestorId) return true;
+            current = parentId;
+        }
+        return false;
+    }
 
     public void MoveNoteToGroup(int noteId, int? targetGroupId)
     {
@@ -102,9 +120,8 @@ public partial class GroupManagementViewModel : ObservableObject
         if (note is null) return;
         if (note.GroupId == targetGroupId) return;
 
-        note.GroupId = targetGroupId;
         // §7.7: 그룹 이동은 메타 조작 → UpdatedAt을 갱신하지 않고 그대로 저장한다.
-        _notes.Update(note);
+        _notes.SetGroup(note.Id, targetGroupId);
     }
 
     public void MoveGroup(int groupId, int? newParentId, int siblingIndex)

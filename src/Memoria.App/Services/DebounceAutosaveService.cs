@@ -10,17 +10,19 @@ public sealed class DebounceAutosaveService : IAutosaveService, IDisposable
     private readonly TimeSpan _debounce;
     private readonly object _gate = new();
     private readonly Dictionary<int, Action<AutosaveSnapshot>> _saves = new();
-    private readonly Dictionary<int, ITimer> _timers = new();
+    private readonly ITimer _timer;
     // 보류 중인 노트별 최신 스냅샷(변경 시점에 캡처). 존재 여부가 곧 '보류 중'을 의미한다.
     private readonly Dictionary<int, AutosaveSnapshot> _pending = new();
-    // noteId 별 현재 예약된 타이머의 세대(generation). 리셋마다 증가시켜,
-    // 교체된(Dispose 됐지만 ThreadPool 에 이미 올라간) 타이머의 stale 콜백을 식별한다.
-    private readonly Dictionary<int, long> _generation = new();
+    private readonly Dictionary<int, DateTimeOffset> _dueAt = new();
+    private bool _disposed;
 
     public DebounceAutosaveService(TimeProvider timeProvider, int debounceMs)
     {
         _time = timeProvider;
         _debounce = TimeSpan.FromMilliseconds(debounceMs);
+        // 키 입력마다 Timer를 Dispose/Create하지 않고 모든 노트가 하나의 타이머를 공유한다.
+        // 이미 큐에 오른 콜백도 dueAt을 다시 검사하므로 디바운스 리셋을 깨뜨리지 않는다.
+        _timer = _time.CreateTimer(_ => FireDue(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
     public void Register(int noteId, Action<AutosaveSnapshot> saveAction)
@@ -32,9 +34,10 @@ public sealed class DebounceAutosaveService : IAutosaveService, IDisposable
     {
         lock (_gate)
         {
-            if (_timers.TryGetValue(noteId, out var t)) { t.Dispose(); _timers.Remove(noteId); }
             _saves.Remove(noteId);
             _pending.Remove(noteId);
+            _dueAt.Remove(noteId);
+            ScheduleNextLocked();
         }
     }
 
@@ -42,33 +45,44 @@ public sealed class DebounceAutosaveService : IAutosaveService, IDisposable
     {
         lock (_gate)
         {
+            if (_disposed) return;
             if (!_saves.ContainsKey(noteId)) return;
             _pending[noteId] = snapshot;   // 변경 시점 스냅샷 보관(노트 간 오염 방지)
-            if (_timers.TryGetValue(noteId, out var existing)) existing.Dispose();
-            var generation = _generation.TryGetValue(noteId, out var g) ? g + 1 : 1;
-            _generation[noteId] = generation;
-            _timers[noteId] = _time.CreateTimer(_ => Fire(noteId, generation), null, _debounce, Timeout.InfiniteTimeSpan);
+            _dueAt[noteId] = _time.GetUtcNow() + _debounce;
+            ScheduleNextLocked();
         }
     }
 
-    private void Fire(int noteId, long generation)
+    private void FireDue()
     {
-        Action<AutosaveSnapshot>? action = null;
-        AutosaveSnapshot? snapshot = null;
+        var toRun = new List<(Action<AutosaveSnapshot> Action, AutosaveSnapshot Snapshot)>();
         lock (_gate)
         {
-            // 현재 예약된 콜백만 진행. 리셋으로 교체된 타이머의 stale 콜백
-            // (Dispose 전 이미 큐에 올라가 뒤늦게 발화)은 여기서 무시되어
-            // 디바운스 리셋을 깨뜨리지 못한다.
-            if (!_generation.TryGetValue(noteId, out var current) || current != generation) return;
-            if (_timers.TryGetValue(noteId, out var t)) { t.Dispose(); _timers.Remove(noteId); }
-            if (_pending.Remove(noteId, out var snap) && _saves.TryGetValue(noteId, out var a))
+            if (_disposed) return;
+            var now = _time.GetUtcNow();
+            var dueIds = _dueAt.Where(kv => kv.Value <= now).Select(kv => kv.Key).ToList();
+            foreach (var noteId in dueIds)
             {
-                action = a;
-                snapshot = snap;
+                _dueAt.Remove(noteId);
+                if (_pending.Remove(noteId, out var snap) && _saves.TryGetValue(noteId, out var action))
+                    toRun.Add((action, snap));
             }
+            ScheduleNextLocked();
         }
-        Invoke(action, snapshot);
+        foreach (var (action, snapshot) in toRun) Invoke(action, snapshot);
+    }
+
+    private void ScheduleNextLocked()
+    {
+        if (_disposed) return;
+        if (_dueAt.Count == 0)
+        {
+            _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            return;
+        }
+        var delay = _dueAt.Values.Min() - _time.GetUtcNow();
+        if (delay < TimeSpan.Zero) delay = TimeSpan.Zero;
+        _timer.Change(delay, Timeout.InfiniteTimeSpan);
     }
 
     public void FlushAll()
@@ -76,11 +90,12 @@ public sealed class DebounceAutosaveService : IAutosaveService, IDisposable
         var toRun = new List<(Action<AutosaveSnapshot> Action, AutosaveSnapshot Snapshot)>();
         lock (_gate)
         {
-            foreach (var kv in _timers) kv.Value.Dispose();
-            _timers.Clear();
+            if (_disposed) return;
+            _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             foreach (var kv in _pending)
                 if (_saves.TryGetValue(kv.Key, out var a)) toRun.Add((a, kv.Value));
             _pending.Clear();
+            _dueAt.Clear();
         }
         foreach (var (action, snapshot) in toRun) Invoke(action, snapshot);
     }
@@ -94,5 +109,12 @@ public sealed class DebounceAutosaveService : IAutosaveService, IDisposable
         catch (Exception ex) { AppLog.Error("Autosave", ex); }
     }
 
-    public void Dispose() => FlushAll();
+    public void Dispose()
+    {
+        lock (_gate)
+            if (_disposed) return;
+        FlushAll();
+        lock (_gate) _disposed = true;
+        _timer.Dispose();
+    }
 }

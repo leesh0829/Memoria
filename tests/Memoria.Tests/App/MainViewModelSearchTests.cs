@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Memoria.App.ViewModels;
 using Memoria.Core.Data;
@@ -32,6 +33,33 @@ public class MainViewModelSearchTests
 
         search.LastQuery.Should().Be("조각");
         vm.SearchResults.Should().ContainSingle().Which.NoteId.Should().Be(5);
+    }
+
+    [Fact]
+    public void ClearSearch_clears_query_and_results()
+    {
+        var (vm, _, _, search) = MainViewModelEditorHostTests.Build();
+        search.Result.Add(new SearchHit(5, "제목", "조각"));
+        vm.SearchText = "조각";
+        vm.SearchCommand.Execute(null);
+
+        vm.ClearSearchCommand.Execute(null);
+
+        vm.SearchText.Should().BeEmpty();
+        vm.SearchResults.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RunSearch_uses_busy_state_and_populates_results()
+    {
+        var (vm, _, _, search) = MainViewModelEditorHostTests.Build();
+        search.Result.Add(new SearchHit(7, "비동기 검색", "결과"));
+        vm.SearchText = "결과";
+
+        await vm.RunSearchCommand.ExecuteAsync(null);
+
+        vm.IsBusy.Should().BeFalse();
+        vm.SearchResults.Should().ContainSingle().Which.NoteId.Should().Be(7);
     }
 
     [Fact]

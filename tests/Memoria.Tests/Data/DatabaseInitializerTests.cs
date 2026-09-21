@@ -23,7 +23,7 @@ public class DatabaseInitializerTests
             File.Exists(path).Should().BeTrue();
 
             using var conn = factory.Open();
-            conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(3);   // v3: 자율형 공장 → SLD 자율형공장 개명 후
+            conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(4);   // v4: 변경 컬럼 한정 FTS 트리거
             conn.ExecuteScalar<string>("PRAGMA journal_mode;").Should().Be("wal");
 
             conn.ExecuteScalar<long>("SELECT COUNT(*) FROM clients;").Should().Be(6);
@@ -40,6 +40,11 @@ public class DatabaseInitializerTests
             var sldPriority = conn.ExecuteScalar<long>(
                 "SELECT priority FROM client_rules WHERE keyword = 'SLD';");
             autoPriority.Should().BeLessThan(sldPriority);
+
+            conn.ExecuteScalar<string>("SELECT sql FROM sqlite_master WHERE type='trigger' AND name='notes_au';")
+                .Should().Contain("UPDATE OF title, body");
+            conn.ExecuteScalar<string>("SELECT sql FROM sqlite_master WHERE type='trigger' AND name='items_au';")
+                .Should().Contain("UPDATE OF text");
         }
         finally
         {

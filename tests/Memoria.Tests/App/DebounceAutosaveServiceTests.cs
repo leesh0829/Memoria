@@ -150,9 +150,8 @@ public class DebounceAutosaveServiceTests
         saves.Should().Be(1);                           // 정확히 1회만 (중복/유령 발화 없음)
     }
 
-    // FakeTimeProvider 는 Dispose 된 타이머를 즉시 제거하므로 ThreadPool 경합을
-    // 재현하지 못한다. 리셋으로 교체된(Dispose 된) 타이머의 콜백이 이미 큐에
-    // 올라가 발화하는 상황을 ManualTimeProvider 로 결정론적으로 재현한다.
+    // 공유 타이머의 이전 예약 콜백이 리셋 뒤 이미 실행 큐에 올라온 상황을
+    // ManualTimeProvider 로 결정론적으로 재현한다.
     [Fact]
     public void Stale_inflight_timer_callback_after_reset_does_not_fire_save_early()
     {
@@ -161,22 +160,30 @@ public class DebounceAutosaveServiceTests
         var saves = 0;
         svc.Register(1, _ => saves++);
 
-        svc.NotifyChanged(1, Snap);   // 타이머 A 생성 (Timers[0])
-        svc.NotifyChanged(1, Snap);   // 리셋: A Dispose, 타이머 B 생성 (Timers[1])
+        svc.NotifyChanged(1, Snap);                       // t=0, 첫 예약은 t=500
+        time.Advance(TimeSpan.FromMilliseconds(400));
+        svc.NotifyChanged(1, Snap);                       // t=400, 새 만료는 t=900
 
-        // A 의 콜백이 Dispose 직전 이미 ThreadPool 에 올라가 뒤늦게 발화하는 경우.
-        // 가드가 stale 콜백을 무시해야 한다.
-        time.Timers[0].FireCallback();
+        time.Advance(TimeSpan.FromMilliseconds(100));     // t=500
+        // 첫 예약에서 이미 큐에 오른 콜백이 뒤늦게 실행돼도 새 만료 전에는 저장 금지.
+        time.Timers.Single().FireCallback();
         saves.Should().Be(0);
 
-        // 현재(마지막) 타이머 B 가 정상 발화 → 정확히 1회 저장.
-        time.Timers[1].FireCallback();
+        time.Advance(TimeSpan.FromMilliseconds(400));     // t=900
+        time.Timers.Single().FireCallback();
         saves.Should().Be(1);
+        time.Timers.Should().ContainSingle();             // 키 입력마다 타이머를 만들지 않음
     }
 
     private sealed class ManualTimeProvider : TimeProvider
     {
+        private DateTimeOffset _now = DateTimeOffset.UnixEpoch;
+
         public List<ManualTimer> Timers { get; } = new();
+
+        public override DateTimeOffset GetUtcNow() => _now;
+
+        public void Advance(TimeSpan amount) => _now += amount;
 
         public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
         {

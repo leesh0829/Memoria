@@ -17,9 +17,14 @@ internal sealed class FakeChecklistRepo : IChecklistRepository
     public List<ChecklistItem> Items { get; } = new();
     public int AddItem(ChecklistItem item) { item.Id = Items.Count + 1; Items.Add(item); return item.Id; }
     public void UpdateItem(ChecklistItem item) { }
+    public void UpdateItems(IReadOnlyList<ChecklistItem> items) { }
+    public void UpdateItemMetadata(ChecklistItem item) { }
+    public void SetSortOrders(IReadOnlyList<ChecklistItem> items) { }
     public void DeleteItem(int id) => Items.RemoveAll(i => i.Id == id);
     public IReadOnlyList<ChecklistItem> GetByNote(int noteId) =>
         Items.FindAll(i => i.NoteId == noteId);
+    public IReadOnlyList<ChecklistItem> GetByNotes(IReadOnlyList<int> noteIds) =>
+        Items.FindAll(i => noteIds.Contains(i.NoteId));
 }
 
 internal sealed class FakeClientRepo : IClientRepository

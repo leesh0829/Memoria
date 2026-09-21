@@ -89,6 +89,43 @@ public class NoteRepositoryTests
     }
 
     [Fact]
+    public void SetSortOrders_UpdatesWholeOrder_WithoutChangingUpdatedAt()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var first = sut.Create(new Note { Type = NoteType.Plain, Title = "first" });
+        var second = sut.Create(new Note { Type = NoteType.Plain, Title = "second" });
+        var firstUpdatedAt = sut.Get(first)!.UpdatedAt;
+        var secondUpdatedAt = sut.Get(second)!.UpdatedAt;
+
+        sut.SetSortOrders(new[] { second, first });
+
+        sut.Get(second)!.SortOrder.Should().Be(0);
+        sut.Get(first)!.SortOrder.Should().Be(1);
+        sut.Get(first)!.UpdatedAt.Should().Be(firstUpdatedAt);
+        sut.Get(second)!.UpdatedAt.Should().Be(secondUpdatedAt);
+    }
+
+    [Fact]
+    public void Touch_and_SetGroup_update_only_requested_metadata()
+    {
+        using var db = new TestDb();
+        var sut = new NoteRepository(db.Factory);
+        var groupId = new GroupRepository(db.Factory).Create(new Group { Name = "target" });
+        var id = sut.Create(new Note { Type = NoteType.Plain, Title = "title", Body = "body" });
+        var stamp = new DateTimeOffset(2026, 9, 21, 0, 0, 0, TimeSpan.Zero);
+
+        sut.Touch(id, stamp);
+        sut.SetGroup(id, groupId);
+
+        var note = sut.Get(id)!;
+        note.Title.Should().Be("title");
+        note.Body.Should().Be("body");
+        note.GroupId.Should().Be(groupId);
+        note.UpdatedAt.Should().Be(stamp);
+    }
+
+    [Fact]
     public void SoftDelete_Restore_Purge_Work()
     {
         using var db = new TestDb();

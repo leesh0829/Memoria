@@ -44,9 +44,12 @@ public sealed class WeeklyReportService : IWeeklyReportService
         var tasks = new List<ReportTask>();
         var issues = new List<ReportIssue>();
 
-        foreach (var note in _notes.GetChecklistsInWeek(monday, friday))
+        var notes = _notes.GetChecklistsInWeek(monday, friday);
+        var itemsByNote = _checklist.GetByNotes(notes.Select(n => n.Id).ToArray())
+            .ToLookup(i => i.NoteId);
+        foreach (var note in notes)
         {
-            foreach (var item in _checklist.GetByNote(note.Id))
+            foreach (var item in itemsByNote[note.Id])
             {
                 if (item.Kind == ItemKind.Task)
                 {

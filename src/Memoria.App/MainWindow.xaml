@@ -5,6 +5,8 @@
         xmlns:views="clr-namespace:Memoria.App.Views"
         xmlns:beh="clr-namespace:Memoria.App.Behaviors"
         Title="Memoria" Height="640" Width="980"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
         Background="{DynamicResource Brush.WindowBackground}"
         Foreground="{DynamicResource Brush.Foreground}">
     <Grid>
@@ -20,18 +22,18 @@
             <Button Content="+ 새 메모"    Command="{Binding NewPlainNoteCommand}"      Margin="0,6,4,6" Padding="10,4" />
             <Button Content="+ 그룹"       Click="OnNewGroupClick"                     Margin="0,6,4,6" Padding="10,4" />
             <Button Content="+ 체크리스트" Command="{Binding NewChecklistCommand}"      Margin="0,6,4,6" Padding="10,4" />
-            <Button Content="📋 주간보고"  Command="{Binding OpenWeeklyReportCommand}"  Margin="0,6,4,6" Padding="10,4" />
+            <Button Content="📋 주간보고"  Command="{Binding LoadWeeklyReportCommand}"  Margin="0,6,4,6" Padding="10,4" />
             <!-- M5: 휴지통 진입점 -->
             <Button Content="휴지통"       Click="OnShowTrashClick"                    Margin="0,6,4,6" Padding="10,4" />
             <Button Content="⚙ 설정"      Command="{Binding OpenSettingsCommand}"     Margin="0,6,12,6" Padding="10,4" />
-            <Button DockPanel.Dock="Right" Content="🔍" Command="{Binding SearchCommand}" Margin="4,6,8,6" Padding="8,4" />
+            <Button DockPanel.Dock="Right" Content="🔍" Command="{Binding RunSearchCommand}" Margin="4,6,8,6" Padding="8,4" />
             <TextBox DockPanel.Dock="Right" Width="220" Margin="0,6,0,6" VerticalContentAlignment="Center"
                      Background="{DynamicResource Brush.Surface}"
                      Foreground="{DynamicResource Brush.Foreground}"
                      BorderBrush="{DynamicResource Brush.Border}"
                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
                 <TextBox.InputBindings>
-                    <KeyBinding Key="Return" Command="{Binding SearchCommand}" />
+                    <KeyBinding Key="Return" Command="{Binding RunSearchCommand}" />
                 </TextBox.InputBindings>
             </TextBox>
             <TextBlock /> <!-- LastChild filler -->
@@ -65,6 +67,9 @@
                     <TreeView x:Name="GroupTree" Grid.Row="0"
                               Background="Transparent" BorderThickness="0"
                               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              ScrollViewer.IsDeferredScrollingEnabled="True"
                               ItemsSource="{Binding SidebarNodes}"
                               SelectedItemChanged="GroupTree_SelectedItemChanged"
                               AllowDrop="True"
@@ -135,6 +140,8 @@
                     <ListBox x:Name="SystemListBox" Grid.Row="2"
                              Background="Transparent"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
                              ItemsSource="{Binding SystemNodes}"
                              SelectionChanged="SystemListBox_SelectionChanged"
                              PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown"
@@ -200,6 +207,9 @@
                 <ListBox x:Name="NoteListBox" Grid.Row="2"
                          Background="{DynamicResource Brush.Surface}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         ScrollViewer.IsDeferredScrollingEnabled="True"
                          ItemsSource="{Binding Notes}"
                          SelectedItem="{Binding SelectedNote, Mode=TwoWay}"
                          AllowDrop="True"
@@ -233,21 +243,37 @@
                         Background="{DynamicResource Brush.Surface}"
                         BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
                         Visibility="{Binding SearchResults.Count, Converter={StaticResource CountToVisibility}}">
-                    <ListBox x:Name="SearchResultsList" MaxHeight="200"
-                             ItemsSource="{Binding SearchResults}"
-                             Background="Transparent"
-                             SelectionChanged="SearchResultsList_SelectionChanged">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="2">
-                                    <TextBlock Text="{Binding TitlePreview}" FontWeight="SemiBold"
-                                               Style="{StaticResource ListItemText}" />
-                                    <TextBlock Text="{Binding Snippet}" TextTrimming="CharacterEllipsis"
-                                               Style="{StaticResource ListItemSubText}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <DockPanel Margin="8,4,4,2">
+                            <Button DockPanel.Dock="Right" Content="닫기" Padding="6,2"
+                                    Command="{Binding ClearSearchCommand}" />
+                            <TextBlock VerticalAlignment="Center"
+                                       Foreground="{DynamicResource Brush.SecondaryForeground}"
+                                       Text="{Binding SearchResults.Count, StringFormat='검색 결과 {0}개'}" />
+                        </DockPanel>
+                        <ListBox x:Name="SearchResultsList" Grid.Row="1" MaxHeight="200"
+                                 ItemsSource="{Binding SearchResults}"
+                                 Background="Transparent"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 VirtualizingPanel.VirtualizationMode="Recycling"
+                                 ScrollViewer.IsDeferredScrollingEnabled="True"
+                                 SelectionChanged="SearchResultsList_SelectionChanged">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="2">
+                                        <TextBlock Text="{Binding TitlePreview}" FontWeight="SemiBold"
+                                                   Style="{StaticResource ListItemText}" />
+                                        <TextBlock Text="{Binding Snippet}" TextTrimming="CharacterEllipsis"
+                                                   Style="{StaticResource ListItemSubText}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
                 </Border>
             </Grid>
             </Border>
@@ -389,5 +415,52 @@
                 </StackPanel>
             </Border>
         </Grid>
+
+        <!-- 앱 사용 중 DB 조회·검색·보고서 생성에 공통으로 쓰는 로딩 오버레이. -->
+        <Border Grid.RowSpan="2" Panel.ZIndex="1000"
+                Background="#66000000"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
+            <Border Width="220" Padding="24,20" CornerRadius="10"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{DynamicResource Brush.Surface}"
+                    BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+                <StackPanel>
+                    <Grid Width="42" Height="42" HorizontalAlignment="Center">
+                        <Ellipse Stroke="{DynamicResource Brush.Border}" StrokeThickness="4" />
+                        <Ellipse Stroke="{DynamicResource Brush.Accent}" StrokeThickness="4"
+                                 StrokeDashArray="1,2.4" StrokeStartLineCap="Round"
+                                 RenderTransformOrigin="0.5,0.5">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform />
+                            </Ellipse.RenderTransform>
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                            <DataTrigger.EnterActions>
+                                                <BeginStoryboard x:Name="BusySpinStoryboard">
+                                                    <Storyboard>
+                                                        <DoubleAnimation
+                                                            Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                            From="0" To="360" Duration="0:0:0.8"
+                                                            RepeatBehavior="Forever" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.EnterActions>
+                                            <DataTrigger.ExitActions>
+                                                <RemoveStoryboard BeginStoryboardName="BusySpinStoryboard" />
+                                            </DataTrigger.ExitActions>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                    </Grid>
+                    <TextBlock Text="{Binding LoadingMessage}" Margin="0,14,0,0"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               Foreground="{DynamicResource Brush.Foreground}" />
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </Window>

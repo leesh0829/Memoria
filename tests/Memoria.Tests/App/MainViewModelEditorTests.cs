@@ -125,12 +125,27 @@ public class MainViewModelEditorTests
     {
         private readonly System.Collections.Generic.Dictionary<int, Action<AutosaveSnapshot>> _actions = new();
         private readonly System.Collections.Generic.Dictionary<int, AutosaveSnapshot> _pending = new();
+        private readonly System.Collections.Generic.Dictionary<int, (Action<AutosaveSnapshot> Action, AutosaveSnapshot Snapshot)> _inflight = new();
 
         public void Register(int noteId, Action<AutosaveSnapshot> saveAction) => _actions[noteId] = saveAction;
-        public void Unregister(int noteId) { _actions.Remove(noteId); _pending.Remove(noteId); }
+        public void Unregister(int noteId)
+        {
+            // 실제 서비스처럼 잠금 밖에서 실행을 기다리는 콜백은 등록 해제 뒤에도
+            // 이미 캡처한 action/snapshot으로 완료될 수 있다.
+            if (_actions.TryGetValue(noteId, out var action) && _pending.TryGetValue(noteId, out var snapshot))
+                _inflight[noteId] = (action, snapshot);
+            _actions.Remove(noteId);
+            _pending.Remove(noteId);
+        }
         public void NotifyChanged(int noteId, AutosaveSnapshot snapshot) => _pending[noteId] = snapshot;
         public void FlushAll() { /* 의도적으로 비움 — 보류 저장을 즉시 확정하지 않는다 */ }
 
-        public void FirePending(int noteId) => _actions[noteId](_pending[noteId]);
+        public void FirePending(int noteId)
+        {
+            if (_inflight.Remove(noteId, out var callback))
+                callback.Action(callback.Snapshot);
+            else
+                _actions[noteId](_pending[noteId]);
+        }
     }
 }

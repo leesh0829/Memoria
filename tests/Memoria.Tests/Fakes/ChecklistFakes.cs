@@ -26,6 +26,17 @@ internal sealed class FakeChecklistRepository : IChecklistRepository
         if (idx >= 0) Items[idx] = Clone(item);
     }
 
+    public void UpdateItems(IReadOnlyList<ChecklistItem> items)
+    {
+        foreach (var item in items) UpdateItem(item);
+    }
+
+    public void UpdateItemMetadata(ChecklistItem item) => UpdateItem(item);
+    public void SetSortOrders(IReadOnlyList<ChecklistItem> items)
+    {
+        foreach (var item in items) UpdateItem(item);
+    }
+
     public void DeleteItem(int id) => Items.RemoveAll(i => i.Id == id);
 
     public IReadOnlyList<ChecklistItem> GetByNote(int noteId) =>
@@ -33,6 +44,11 @@ internal sealed class FakeChecklistRepository : IChecklistRepository
              .OrderBy(i => i.SortOrder)
              .Select(Clone)
              .ToList();
+
+    public IReadOnlyList<ChecklistItem> GetByNotes(IReadOnlyList<int> noteIds) =>
+        Items.Where(i => noteIds.Contains(i.NoteId))
+             .OrderBy(i => i.NoteId).ThenBy(i => i.SortOrder)
+             .Select(Clone).ToList();
 
     private static ChecklistItem Clone(ChecklistItem i) => new()
     {

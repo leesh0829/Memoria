@@ -20,10 +20,28 @@ internal sealed class FakeNoteRepository : INoteRepository
         UpdatedIds.Add(note.Id);
     }
 
+    public void Touch(int id, DateTimeOffset updatedAt)
+    {
+        var note = Items.FirstOrDefault(n => n.Id == id);
+        if (note is not null) note.UpdatedAt = updatedAt;
+    }
+
+    public void SetGroup(int id, int? groupId)
+    {
+        var note = Items.FirstOrDefault(n => n.Id == id);
+        if (note is not null) note.GroupId = groupId;
+    }
+
     public void SetSortOrder(int id, int sortOrder)
     {
         var n = Items.FirstOrDefault(x => x.Id == id);
         if (n != null) n.SortOrder = sortOrder; // updated_at 불변(메타 조작 미러)
+    }
+
+    public void SetSortOrders(IReadOnlyList<int> orderedNoteIds)
+    {
+        for (var i = 0; i < orderedNoteIds.Count; i++)
+            SetSortOrder(orderedNoteIds[i], i);
     }
 
     public void SoftDelete(int id)

@@ -32,7 +32,8 @@ public sealed class SearchService : ISearchService
             "JOIN notes n ON n.id = notes_fts.rowid " +
             "WHERE notes_fts MATCH @q " +
             "  AND n.deleted_at IS NULL " +
-            "ORDER BY rank;",
+            // 결과가 매우 많아도 UI에 수천 개의 행을 한꺼번에 만들지 않는다.
+            "ORDER BY rank LIMIT 100;",
             new { q = ftsQuery })
             .Select(r => new SearchHit((int)r.NoteId, r.TitlePreview, r.Snippet ?? ""))
             .ToList();
