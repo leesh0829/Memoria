@@ -1,6 +1,7 @@
 // src/Memoria.App/Theming/WpfThemeApplier.cs
 using System;
 using System.Windows;
+using Memoria.App.Services;
 
 namespace Memoria.App.Theming;
 
@@ -11,7 +12,18 @@ public sealed class WpfThemeApplier : IThemeApplier
 
     public void ApplyPalette(Uri paletteUri)
     {
-        var dictionaries = Application.Current.Resources.MergedDictionaries;
+        var application = Application.Current;
+        if (application is null) return;
+
+        var dispatcher = application.Dispatcher;
+        if (!dispatcher.CheckAccess())
+        {
+            dispatcher.BeginInvoke(() => ApplyPalette(paletteUri));
+            return;
+        }
+
+        using var perf = AppLog.Measure("Theme.ApplyPalette", 100);
+        var dictionaries = application.Resources.MergedDictionaries;
         var palette = new ResourceDictionary { Source = paletteUri };
 
         if (dictionaries.Count > PaletteSlotIndex)

@@ -133,6 +133,15 @@ public partial class ChecklistViewModel : ObservableObject
 
     /// 아직 노트가 없는 날짜의 빈 에디터. 첫 AddItem에서 실 노트를 생성(§lazy-create).
     public void LoadDraft(DateOnly date)
+        => ApplyDraft(date, _clients.GetAll(enabledOnly: true));
+
+    public async Task LoadDraftAsync(DateOnly date)
+    {
+        var clients = await Task.Run(() => _clients.GetAll(enabledOnly: true));
+        ApplyDraft(date, clients);
+    }
+
+    private void ApplyDraft(DateOnly date, IReadOnlyList<Client> clients)
     {
         _loading = true;
         try
@@ -140,7 +149,7 @@ public partial class ChecklistViewModel : ObservableObject
             _note = null;
             LogDate = date;                       // _loading 가드로 이벤트 억제
             AvailableClients.Clear();
-            foreach (var client in _clients.GetAll(enabledOnly: true))
+            foreach (var client in clients)
                 AvailableClients.Add(client);
             Items.Clear();
         }
@@ -163,30 +172,28 @@ public partial class ChecklistViewModel : ObservableObject
     private void SetWriteMode() => IsReadMode = false;
 
     [RelayCommand]
-    private void SetReadMode() => IsReadMode = true;
+    private async Task SetReadModeAsync()
+    {
+        var rendered = await RunBusyAsync("Checklist.BuildOutputs", "출력 내용을 만드는 중…", async () =>
+        {
+            await FlushSavesAsync();
+            var clients = CanOffloadPersistence()
+                ? await Task.Run(() => _clients.GetAll())
+                : _clients.GetAll();
+            var clientNames = clients.ToDictionary(c => c.Id, c => c.Name);
+            var tasks = Items.Where(i => i.IsTask).Select(i => (i.Text, i.ClientId)).ToList();
+            var issues = Items.Where(i => !i.IsTask).Select(i => i.Text).ToList();
+            TaskOutput = DailyLogRenderer.RenderTasks(tasks, clientNames);
+            IssueOutput = DailyLogRenderer.RenderIssues(issues);
+        });
+        if (rendered) IsReadMode = true;
+    }
 
     [RelayCommand]
     private void CopyTaskOutput() => _clipboard.SetText(TaskOutput ?? "");
 
     [RelayCommand]
     private void CopyIssueOutput() => _clipboard.SetText(IssueOutput ?? "");
-
-    partial void OnIsReadModeChanged(bool value)
-    {
-        if (value) BuildOutputs();
-    }
-
-    /// Read 탭 진입 시 최신 상태로 렌더. 보류 저장(dirty)을 먼저 확정해 최신 텍스트+자동태깅을 반영한다.
-    /// Items(정렬된 원본)를 Kind로 필터해 렌더러에 전달(필터 뷰 아님). 고객사명은 전체(비활성 포함)에서 해석.
-    private void BuildOutputs()
-    {
-        FlushSaves();
-        var clientNames = _clients.GetAll().ToDictionary(c => c.Id, c => c.Name);
-        var tasks = Items.Where(i => i.IsTask).Select(i => (i.Text, i.ClientId)).ToList();
-        var issues = Items.Where(i => !i.IsTask).Select(i => i.Text).ToList();
-        TaskOutput = DailyLogRenderer.RenderTasks(tasks, clientNames);
-        IssueOutput = DailyLogRenderer.RenderIssues(issues);
-    }
 
     private ChecklistItemViewModel AddItem(ItemKind kind)
     {
@@ -219,6 +226,7 @@ public partial class ChecklistViewModel : ObservableObject
 
     private async Task AddItemAsync(ItemKind kind)
     {
+        AppLog.Action("UI.ChecklistAdd", $"kind={kind} note_id={_note?.Id.ToString() ?? "draft"} item_count={Items.Count}");
         var currentNote = _note;
         var logDate = LogDate;
         var sortOrder = NextSortOrder();
@@ -279,6 +287,7 @@ public partial class ChecklistViewModel : ObservableObject
     private async Task ToggleDoneAsync(ChecklistItemViewModel? item)
     {
         if (item is null || !item.IsTask) return;
+        AppLog.Action("UI.ChecklistToggle", $"item_id={item.Id} note_id={_note?.Id.ToString() ?? "draft"}");
 
         var previousDone = item.Done;
         var previousDoneAt = item.DoneAt;
@@ -313,6 +322,7 @@ public partial class ChecklistViewModel : ObservableObject
     private async Task RemoveItemAsync(ChecklistItemViewModel? item)
     {
         if (item is null) return;
+        AppLog.Action("UI.ChecklistRemove", $"item_id={item.Id} note_id={_note?.Id.ToString() ?? "draft"}");
         var note = _note;
         var now = DateTimeOffset.UtcNow;
 
@@ -355,7 +365,13 @@ public partial class ChecklistViewModel : ObservableObject
     /// 디바운스에서 다시 저장한다.
     public async Task FlushSavesAsync()
     {
-        await _flushGate.WaitAsync();
+        using (AppLog.Measure("Checklist.Flush.Wait", 100))
+            if (!await _flushGate.WaitAsync(TimeSpan.FromSeconds(3)))
+            {
+                OperationError = "이전 저장 작업이 지연되고 있습니다. 입력 내용은 복구용 임시 저장에 유지됩니다.";
+                AppLog.Warn("Checklist.Flush gate timeout after 3000ms");
+                return;
+            }
         try
         {
             var pending = Items
@@ -417,6 +433,7 @@ public partial class ChecklistViewModel : ObservableObject
     private async Task CommitClientAsync(ChecklistItemViewModel? item)
     {
         if (item is null || !item.IsTask) return;
+        AppLog.Action("UI.ChecklistClient", $"item_id={item.Id} client_id={item.ClientId?.ToString() ?? "null"}");
         var note = _note;
         var now = DateTimeOffset.UtcNow;
         item.IsManual = true;
@@ -525,9 +542,12 @@ public partial class ChecklistViewModel : ObservableObject
 
     private async Task RunPersistenceAsync(Action action)
     {
-        await _persistenceGate.WaitAsync();
+        using (AppLog.Measure("Checklist.PersistenceGate.Wait", 100))
+            if (!await _persistenceGate.WaitAsync(TimeSpan.FromSeconds(3)))
+                throw new TimeoutException("체크리스트 저장 대기 시간이 3초를 초과했습니다.");
         try
         {
+            using var perf = AppLog.Measure("Checklist.Persistence", 100);
             if (CanOffloadPersistence()) await Task.Run(action);
             else action();
         }
@@ -536,9 +556,12 @@ public partial class ChecklistViewModel : ObservableObject
 
     private async Task<T> RunPersistenceAsync<T>(Func<T> action)
     {
-        await _persistenceGate.WaitAsync();
+        using (AppLog.Measure("Checklist.PersistenceGate.Wait", 100))
+            if (!await _persistenceGate.WaitAsync(TimeSpan.FromSeconds(3)))
+                throw new TimeoutException("체크리스트 저장 대기 시간이 3초를 초과했습니다.");
         try
         {
+            using var perf = AppLog.Measure("Checklist.Persistence", 100);
             return CanOffloadPersistence() ? await Task.Run(action) : action();
         }
         finally { _persistenceGate.Release(); }

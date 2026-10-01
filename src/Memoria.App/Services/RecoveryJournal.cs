@@ -46,6 +46,7 @@ public sealed class RecoveryJournal : IRecoveryJournal, IDisposable
 
     private void FlushPending()
     {
+        using var perf = AppLog.Measure("RecoveryJournal.FlushPending", 100);
         // Timer, DetectPending, Dispose가 동시에 들어와도 같은 배치를 중복 기록하지 않는다.
         lock (_flushGate)
         {
@@ -65,6 +66,7 @@ public sealed class RecoveryJournal : IRecoveryJournal, IDisposable
     private void WriteLatest(PendingWrite write)
     {
         var noteId = write.Snapshot.NoteId;
+        using var perf = AppLog.Measure($"RecoveryJournal.Write note_id={noteId}", 100);
         var tempPath = Path.Combine(_dir, $".{noteId}.{write.Version}.tmp");
         try
         {
@@ -93,6 +95,7 @@ public sealed class RecoveryJournal : IRecoveryJournal, IDisposable
 
     public void Clear(int noteId)
     {
+        using var perf = AppLog.Measure($"RecoveryJournal.Clear note_id={noteId}", 100);
         try
         {
             lock (_gate)
@@ -112,6 +115,7 @@ public sealed class RecoveryJournal : IRecoveryJournal, IDisposable
 
     public IReadOnlyList<RecoverySnapshot> DetectPending()
     {
+        using var perf = AppLog.Measure("RecoveryJournal.DetectPending", 100);
         // 테스트뿐 아니라 향후 같은 프로세스에서 호출될 때도 아직 디바운스 중인 최신값을 포함한다.
         FlushPending();
         if (!Directory.Exists(_dir)) return Array.Empty<RecoverySnapshot>();

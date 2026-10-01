@@ -10,6 +10,7 @@ public sealed class SettingsRepository : ISettingsRepository
 
     public string? Get(string key)
     {
+        using var perf = DatabaseDiagnostics.Measure("Settings.Get");
         using var conn = _factory.Open();
         return conn.ExecuteScalar<string?>(
             "SELECT value FROM settings WHERE key = @key;", new { key });
@@ -19,7 +20,7 @@ public sealed class SettingsRepository : ISettingsRepository
 
     public void Set(string key, string value)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Settings.Set"))
         {
             _factory.Write.Execute(
                 "INSERT INTO settings(key, value) VALUES(@key, @value) " +
@@ -28,8 +29,25 @@ public sealed class SettingsRepository : ISettingsRepository
         }
     }
 
+    public void SetMany(IReadOnlyDictionary<string, string> values)
+    {
+        if (values.Count == 0) return;
+
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Settings.SetMany"))
+        {
+            using var transaction = _factory.Write.BeginTransaction();
+            _factory.Write.Execute(
+                "INSERT INTO settings(key, value) VALUES(@Key, @Value) " +
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value;",
+                values.Select(pair => new { pair.Key, pair.Value }),
+                transaction);
+            transaction.Commit();
+        }
+    }
+
     public IReadOnlyDictionary<string, string> GetAll()
     {
+        using var perf = DatabaseDiagnostics.Measure("Settings.GetAll");
         using var conn = _factory.Open();
         var rows = conn.Query<(string Key, string Value)>("SELECT key AS Key, value AS Value FROM settings;");
         return rows.ToDictionary(r => r.Key, r => r.Value);

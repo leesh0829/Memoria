@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Memoria.App.Services;
 using Memoria.App.ViewModels;
 using Memoria.App.Views;
 using Memoria.App.Windows;
@@ -63,10 +64,22 @@ public partial class MainWindow : Window
         InitializeComponent();
         GroupVm = AppServices.Resolve<GroupManagementViewModel>();
         TrashVm = AppServices.Resolve<TrashViewModel>();
-        GroupVm.Load();
 
         DataContextChanged += OnDataContextChanged;
-        Loaded += (_, _) => RestoreColumnWidths();
+        Loaded += OnLoaded;
+    }
+
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        RestoreColumnWidths();
+        try
+        {
+            await GroupVm.LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Group.Load", ex);
+        }
     }
 
     // -----------------------------------------------------------------
@@ -282,37 +295,33 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnAddGroupMenuItemClick(object sender, RoutedEventArgs e)
+    private async void OnAddGroupMenuItemClick(object sender, RoutedEventArgs e)
     {
         var name = AskInput("새 그룹 이름", "새 그룹");
         if (name is null) return;
-        GroupVm.AddGroup(name);
-        ViewModel.LoadGroups();
+        await RunGroupOperationAsync(() => GroupVm.AddGroupAsync(name));
     }
 
-    private void OnAddSubGroupMenuItemClick(object sender, RoutedEventArgs e)
+    private async void OnAddSubGroupMenuItemClick(object sender, RoutedEventArgs e)
     {
         if (GroupVm.SelectedGroup is not { } g || g.IsSystem) return;
         var name = AskInput("새 하위 그룹 이름", "새 그룹");
         if (string.IsNullOrWhiteSpace(name)) return;
-        GroupVm.AddSubGroup(g.Id, name.Trim());
-        ViewModel.LoadGroups();
+        await RunGroupOperationAsync(() => GroupVm.AddSubGroupAsync(g.Id, name.Trim()));
     }
 
-    private void OnMoveToRootMenuItemClick(object sender, RoutedEventArgs e)
+    private async void OnMoveToRootMenuItemClick(object sender, RoutedEventArgs e)
     {
         if (GroupVm.SelectedGroup is not { } g || g.IsSystem || g.ParentId is null) return;
-        GroupVm.MoveGroup(g.Id, null, int.MaxValue);
-        ViewModel.LoadGroups();
+        await RunGroupOperationAsync(() => GroupVm.MoveGroupAsync(g.Id, null, int.MaxValue));
     }
 
     // #1 툴바 "+ 그룹" — 보이는 그룹 생성 버튼.
-    private void OnNewGroupClick(object sender, RoutedEventArgs e)
+    private async void OnNewGroupClick(object sender, RoutedEventArgs e)
     {
         var name = AskInput("새 그룹 이름", "새 그룹");
         if (string.IsNullOrWhiteSpace(name)) return;
-        GroupVm.AddGroup(name.Trim());
-        ViewModel.LoadGroups();
+        await RunGroupOperationAsync(() => GroupVm.AddGroupAsync(name.Trim()));
     }
 
     // #2 메모 삭제 → 휴지통. 코드비하인드에서 sender의 DataContext(노트)를 직접 읽어 VM 명령 실행.
@@ -340,53 +349,72 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnRenameGroupMenuItemClick(object sender, RoutedEventArgs e)
+    private async void OnRenameGroupMenuItemClick(object sender, RoutedEventArgs e)
     {
         if (GroupVm.SelectedGroup is null) return;
         var name = AskInput("그룹 이름 변경", GroupVm.SelectedGroup.Name);
         if (name is null) return;
-        GroupVm.RenameGroup(name);
-        ViewModel.LoadGroups();
+        await RunGroupOperationAsync(() => GroupVm.RenameSelectedGroupAsync(name));
     }
 
-    private void OnSetColorMenuItemClick(object sender, RoutedEventArgs e)
+    private async void OnSetColorMenuItemClick(object sender, RoutedEventArgs e)
     {
         if (GroupVm.SelectedGroup is null) return;
         var color = AskInput("색상 (#RRGGBB)", GroupVm.SelectedGroup.Color ?? "#9E9E9E");
         if (color is null) return;
-        GroupVm.SetGroupColor(color);
-        ViewModel.LoadGroups();
+        await RunGroupOperationAsync(() => GroupVm.SetSelectedGroupColorAsync(color));
     }
 
-    private void OnDeleteGroupMenuItemClick(object sender, RoutedEventArgs e)
+    private async void OnDeleteGroupMenuItemClick(object sender, RoutedEventArgs e)
     {
         if (GroupVm.SelectedGroup is null || !GroupVm.DeleteGroupCommand.CanExecute(null)) return;
         var parentId = GroupVm.SelectedGroup?.ParentId;
-        GroupVm.DeleteGroupCommand.Execute(null);
-        ViewModel.LoadGroups(parentId);
-        ViewModel.LoadNotes();
+        await RunGroupOperationAsync(GroupVm.DeleteSelectedGroupAsync, parentId);
+    }
+
+    private async System.Threading.Tasks.Task RunGroupOperationAsync(
+        Func<System.Threading.Tasks.Task> operation,
+        int? removedGroupParentId = null)
+    {
+        try
+        {
+            using var perf = AppLog.Measure("Group.Operation");
+            await operation();
+            await ViewModel.LoadGroupsAsync(removedGroupParentId);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Group.Operation", ex);
+        }
     }
 
     // -----------------------------------------------------------------
     // 휴지통 뷰 — 별도 창으로 열기
     // -----------------------------------------------------------------
 
-    private void OnShowTrashClick(object sender, RoutedEventArgs e)
+    private async void OnShowTrashClick(object sender, RoutedEventArgs e)
     {
-        TrashVm.Load();
-        var trashWindow = new Window
+        try
         {
-            Title = "휴지통",
-            Width = 600,
-            Height = 400,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Owner = this
-        };
-        trashWindow.SetResourceReference(BackgroundProperty, "Brush.WindowBackground");
-        trashWindow.SetResourceReference(ForegroundProperty, "Brush.Foreground");
-        trashWindow.Content = new TrashView { DataContext = TrashVm };
-        trashWindow.ShowDialog();
-        ViewModel.LoadNotes(); // 복원/영구삭제 후 메모 목록 갱신
+            await TrashVm.LoadAsync();
+            var trashWindow = new Window
+            {
+                Title = "휴지통",
+                Width = 600,
+                Height = 400,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this
+            };
+            trashWindow.SetResourceReference(BackgroundProperty, "Brush.WindowBackground");
+            trashWindow.SetResourceReference(ForegroundProperty, "Brush.Foreground");
+            trashWindow.Content = new TrashView { DataContext = TrashVm };
+            trashWindow.ShowDialog();
+            await ViewModel.ReloadNotesAsync(); // 복원/영구삭제 후 메모 목록 갱신
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Trash.Window", ex);
+        }
     }
 
     // -----------------------------------------------------------------
@@ -513,7 +541,7 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void GroupTree_Drop(object sender, DragEventArgs e)
+    private async void GroupTree_Drop(object sender, DragEventArgs e)
     {
         // N7.2: Remove adorners before processing drop (cleanup even if drop fails).
         _dragAdorner?.Remove();   _dragAdorner   = null;
@@ -522,8 +550,7 @@ public partial class MainWindow : Window
         if (!e.Data.GetDataPresent("groupId")) return;
         if (!ResolveGroupDrop(e, out var newParentId, out var index)) return;
         var groupId = (int)e.Data.GetData("groupId");
-        GroupVm.MoveGroup(groupId, newParentId, index);
-        ViewModel.LoadGroups();
+        await RunGroupOperationAsync(() => GroupVm.MoveGroupAsync(groupId, newParentId, index));
     }
 
     // 포인터 아래 TreeViewItem → 3존 → (parentId, index). 무효면 false.
@@ -649,7 +676,7 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void NoteList_Drop(object sender, DragEventArgs e)
+    private async void NoteList_Drop(object sender, DragEventArgs e)
     {
         _noteDropIndicator?.Remove();
         _noteDropIndicator = null;
@@ -678,7 +705,7 @@ public partial class MainWindow : Window
             insertIndex = notes.Count - 1;   // 빈 공간에 드롭 → 맨 끝.
         }
 
-        ViewModel.ReorderNote(noteId, insertIndex);
+        await ViewModel.ReorderNoteAsync(noteId, insertIndex);
         e.Handled = true;
     }
 
@@ -790,6 +817,7 @@ public partial class MainWindow : Window
 
     private void OnMdToolbarClick(object sender, RoutedEventArgs e)
     {
+        if (!ViewModel.MarkdownEnabled) return;
         if (sender is not System.Windows.Controls.Button { Tag: string tag }) return;
         if (FindBodyEditor() is not System.Windows.Controls.TextBox tb) return;
         WrapOrInsert(tb, tag);
@@ -797,6 +825,7 @@ public partial class MainWindow : Window
 
     private void OnInsertImageClick(object sender, RoutedEventArgs e)
     {
+        if (!ViewModel.MarkdownEnabled) return;
         if (ViewModel.CurrentNoteId is not int noteId) return;
         if (FindBodyEditor() is not TextBox tb) return;
         var dlg = new Microsoft.Win32.OpenFileDialog
@@ -815,6 +844,7 @@ public partial class MainWindow : Window
 
     private void BodyEditor_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (!ViewModel.MarkdownEnabled) return;
         // Ctrl+V 이고 클립보드에 이미지가 있으면 가로채 첨부로 저장 후 마크다운 참조 삽입.
         bool ctrlV = e.Key == Key.V
                      && (Keyboard.Modifiers & ModifierKeys.Control) != 0;

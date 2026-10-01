@@ -11,7 +11,7 @@ public sealed class ClientRepository : IClientRepository
 
     public int Create(Client client)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Client.Create"))
         {
             var conn = _factory.Write;
             conn.Execute(
@@ -23,7 +23,7 @@ public sealed class ClientRepository : IClientRepository
 
     public void Update(Client client)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Client.Update"))
         {
             _factory.Write.Execute(
                 "UPDATE clients SET name = @Name, sort_order = @SortOrder, enabled = @Enabled WHERE id = @Id;",
@@ -33,7 +33,7 @@ public sealed class ClientRepository : IClientRepository
 
     public void Delete(int id)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Client.Delete"))
         {
             _factory.Write.Execute("DELETE FROM clients WHERE id = @id;", new { id });
         }
@@ -41,6 +41,7 @@ public sealed class ClientRepository : IClientRepository
 
     public IReadOnlyList<Client> GetAll(bool enabledOnly = false)
     {
+        using var perf = DatabaseDiagnostics.Measure("Client.GetAll");
         using var conn = _factory.Open();
         var where = enabledOnly ? "WHERE enabled = 1 " : "";
         return conn.Query<Client>(
@@ -50,6 +51,7 @@ public sealed class ClientRepository : IClientRepository
 
     public IReadOnlyList<ClientRule> GetRules()
     {
+        using var perf = DatabaseDiagnostics.Measure("Client.GetRules");
         using var conn = _factory.Open();
         return conn.Query<ClientRule>(
             "SELECT id AS Id, client_id AS ClientId, keyword AS Keyword, priority AS Priority " +
@@ -58,7 +60,7 @@ public sealed class ClientRepository : IClientRepository
 
     public void ReplaceRules(int clientId, IEnumerable<ClientRule> rules)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Client.ReplaceRules"))
         {
             var conn = _factory.Write;
             using var tx = conn.BeginTransaction();

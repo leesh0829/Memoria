@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Memoria.App.Services;
 using Memoria.Core;
 using Memoria.Core.Attachments;
 using Memoria.Core.Data;
@@ -33,6 +34,9 @@ public partial class TrashViewModel : ObservableObject
 
     [ObservableProperty]
     private string? _undoMessage;
+
+    [ObservableProperty]
+    private bool _isBusy;
 
     private int _lastDeletedNoteId;
 
@@ -71,6 +75,54 @@ public partial class TrashViewModel : ObservableObject
         Load();
     }
 
+    [RelayCommand]
+    private async Task RestoreWithLoadingAsync(int noteId)
+    {
+        if (IsBusy) return;
+        AppLog.Action("UI.TrashRestore", $"note_id={noteId}");
+        using var perf = AppLog.Measure("Trash.Restore");
+        IsBusy = true;
+        try
+        {
+            await Task.Run(() => _notes.Restore(noteId));
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Trash.Restore", ex);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task PurgeWithLoadingAsync(int noteId)
+    {
+        if (IsBusy) return;
+        AppLog.Action("UI.TrashPurge", $"note_id={noteId}");
+        using var perf = AppLog.Measure("Trash.Purge");
+        IsBusy = true;
+        try
+        {
+            await Task.Run(() =>
+            {
+                _notes.Purge(noteId);
+                _attachments.DeleteForNote(noteId);
+            });
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Trash.Purge", ex);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     public void PurgeExpiredOnStartup()
     {
         // 스펙 §4.5: PurgeExpiredTrash로 자동 만료되는 노트의 첨부 파일 정리는 후속 범위(고아 정리 태스크)로 연기됨.
@@ -81,8 +133,25 @@ public partial class TrashViewModel : ObservableObject
     {
         var now = _clock.GetUtcNow();
         var days = RetentionDays;
+        ApplyItems(_notes.GetTrash(), days, now);
+    }
+
+    public async Task LoadAsync()
+    {
+        using var perf = AppLog.Measure("Trash.Load");
+        var snapshot = await Task.Run(() =>
+        {
+            var now = _clock.GetUtcNow();
+            var days = RetentionDays;
+            return (_notes.GetTrash(), days, now);
+        });
+        ApplyItems(snapshot.Item1, snapshot.days, snapshot.now);
+    }
+
+    private void ApplyItems(IReadOnlyList<Memoria.Core.Models.Note> notes, int days, DateTimeOffset now)
+    {
         Items.Clear();
-        foreach (var n in _notes.GetTrash())
+        foreach (var n in notes)
             Items.Add(new TrashItemViewModel(n, days, now));
     }
 }

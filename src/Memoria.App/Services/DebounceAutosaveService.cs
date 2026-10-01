@@ -55,6 +55,7 @@ public sealed class DebounceAutosaveService : IAutosaveService, IDisposable
 
     private void FireDue()
     {
+        using var perf = AppLog.Measure("Autosave.FireDue", 100);
         var toRun = new List<(Action<AutosaveSnapshot> Action, AutosaveSnapshot Snapshot)>();
         lock (_gate)
         {
@@ -87,6 +88,7 @@ public sealed class DebounceAutosaveService : IAutosaveService, IDisposable
 
     public void FlushAll()
     {
+        using var perf = AppLog.Measure("Autosave.FlushAll", 100);
         var toRun = new List<(Action<AutosaveSnapshot> Action, AutosaveSnapshot Snapshot)>();
         lock (_gate)
         {

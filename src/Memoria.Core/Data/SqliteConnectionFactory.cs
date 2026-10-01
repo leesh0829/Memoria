@@ -72,7 +72,7 @@ public sealed class SqliteConnectionFactory : IDisposable
 
     public void Dispose()
     {
-        lock (WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(WriteSync, "Database.Dispose"))
         {
             // PASSIVE는 활성 reader를 기다리지 않아 종료 UI가 멎지 않는다. 남은 WAL은
             // 다음 시작에 SQLite가 안전하게 재사용/체크포인트한다.

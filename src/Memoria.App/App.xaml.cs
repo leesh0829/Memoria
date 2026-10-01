@@ -1,9 +1,12 @@
 using System;
 using System.Globalization;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Memoria.App.Services;
 using Memoria.App.Theming;
@@ -27,47 +30,103 @@ public partial class App : Application
     private IGlobalHotkeyService _hotkey = null!;
     private ITrayService _tray = null!;
     private IAutostartService _autostart = null!;
+    private UiResponsivenessMonitor? _uiResponsiveness;
+    private SystemLifecycleDiagnostics? _systemDiagnostics;
 
     // ExitApplication()과 OnExit()가 모두 라이프사이클 서비스를 정리하므로,
     // 정확히 한 번만 Dispose되도록 보장하는 가드.
     private bool _lifecycleServicesDisposed;
     private bool _exitInProgress;
+    private bool _startupCompleted;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        // 현장 로그에서 WPF Render 콜백 하나가 48초간 UI와 창 이동을 막았다.
+        // 이 앱은 GPU가 필요한 화면이 없으므로 드라이버/DWM 정체를 공유하지 않는
+        // 소프트웨어 렌더링을 사용해 절전·로그온 복귀 후의 그래픽 교착을 차단한다.
+        RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
         base.OnStartup(e);
 
         // (0) PASS A — 전역 예외 핸들러(마지막 방어선). 부트스트랩보다 먼저 등록해
         //     이후 모든 단계의 미처리 예외를 로깅하고, 가능하면 계속 실행한다.
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+        try
+        {
 
         // (1) M2 — 데이터 디렉터리 보장.
         AppPaths.EnsureDirectories();
+        var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "unknown";
+        AppLog.Info($"Startup version={version} pid={Environment.ProcessId}" +
+                    $" runtime={Environment.Version} os={Environment.OSVersion}" +
+                    $" cpu_count={Environment.ProcessorCount} 64bit={Environment.Is64BitProcess}" +
+                    $" render_mode={RenderOptions.ProcessRenderMode}");
+        AppLog.Action("App.Startup", $"version={version} pid={Environment.ProcessId}");
+        DatabaseDiagnostics.OperationCompleted = AppLog.Database;
+        _uiResponsiveness = new UiResponsivenessMonitor(Dispatcher);
+        try { _systemDiagnostics = new SystemLifecycleDiagnostics(); }
+        catch (Exception ex) { AppLog.Error("SystemLifecycleDiagnostics.Start", ex); }
 
         // (2) M6 — SingleInstance: 두 번째 인스턴스면 pipe로 인자 전송 후 Shutdown.
         _singleInstance = new SingleInstanceService();
         if (!_singleInstance.TryAcquire())
         {
+            AppLog.Warn("Startup existing instance detected; forwarding command");
             ForegroundHelper.AllowAny(); // 첫 인스턴스가 SetForegroundWindow 가능하도록
-            _singleInstance.SignalExistingInstance(PipeCommand.NewNote);
+            var existingResponded = _singleInstance.SignalExistingInstance(PipeCommand.NewNote);
             _singleInstance.Dispose();
-            Shutdown();
-            return;
+            if (existingResponded)
+            {
+                Shutdown();
+                return;
+            }
+
+            AppLog.Warn("Startup existing instance did not acknowledge UI command");
+            var recover = MessageBox.Show(
+                "기존 Memoria 프로세스가 실행 중이지만 화면이 응답하지 않습니다.\n\n" +
+                "기존 프로세스를 강제 종료하고 새로 시작할까요?\n" +
+                "최근 입력은 복구 저널에서 다시 불러올 수 있습니다.",
+                "Memoria 응답 없음 복구", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (recover != MessageBoxResult.Yes || !TryTerminateOtherInstances())
+            {
+                MessageBox.Show(
+                    "기존 프로세스를 종료하지 못했습니다. 관리자 PowerShell에서 설치 스크립트를 실행하거나 Windows를 다시 시작해 주세요.",
+                    "Memoria 시작 오류", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown();
+                return;
+            }
+
+            _singleInstance = new SingleInstanceService();
+            var acquiredAfterRecovery = false;
+            for (var attempt = 0; attempt < 20 && !acquiredAfterRecovery; attempt++)
+            {
+                acquiredAfterRecovery = _singleInstance.TryAcquire();
+                if (!acquiredAfterRecovery) Thread.Sleep(100);
+            }
+            if (!acquiredAfterRecovery)
+                throw new InvalidOperationException("응답 없는 기존 인스턴스를 종료했지만 단일 인스턴스 잠금을 확보하지 못했습니다.");
         }
+        AppLog.Info("Startup stage=SingleInstanceAcquired");
 
         // 단일 인스턴스 IPC 수신 구독을 '즉시' 연결한다(서버 루프는 TryAcquire에서 이미 시작됨).
         // DI 빌드/DB 초기화 등 나머지 부트스트랩 중에 두 번째 인스턴스가 보내는 신호를 놓치지 않기 위함.
         // BeginInvoke로 디스패처 큐에 넣어, 시작이 끝나 MainWindow가 준비된 뒤 안전하게 실행되도록 한다.
         // (시작 초기에 신호가 와도 MainWindow가 아직 없으면 throw하지 않고 무시한다.)
         _singleInstance.CommandReceived += (_, cmd) =>
-            Dispatcher.BeginInvoke(() =>
+        {
+            var operation = Dispatcher.InvokeAsync(() =>
             {
                 // 시작 로딩 창은 Application.MainWindow가 될 수 있으므로 타입까지 확인한다.
                 if (MainWindow is not Memoria.App.MainWindow) return;
                 if (cmd == PipeCommand.NewNote) NewNoteForeground();
                 else ShowMainWindow();
             });
+            if (!operation.Task.Wait(TimeSpan.FromSeconds(2)))
+                throw new TimeoutException("기존 Memoria UI가 2초 안에 포그라운드 명령에 응답하지 않았습니다.");
+            operation.Task.GetAwaiter().GetResult();
+        };
 
         // 메인 창이 준비되는 동안 즉시 피드백을 보여 준다. 이후 DB/백업 I/O는
         // 백그라운드에서 수행해 이 애니메이션과 Windows 메시지 처리가 멈추지 않게 한다.
@@ -132,6 +191,7 @@ public partial class App : Application
         //     그래도 실패하면 손상 파일을 보존(.corrupt)한 채 새 DB로 계속한다.
         loading.SetStatus("데이터베이스를 확인하고 있습니다…");
         var databaseNotice = await Task.Run(PrepareDatabaseSafely);
+        AppLog.Info("Startup stage=DatabaseReady");
         if (databaseNotice is not null)
             MessageBox.Show(loading, databaseNotice.Message, "Memoria 데이터 복구",
                 MessageBoxButton.OK, databaseNotice.Image);
@@ -158,7 +218,10 @@ public partial class App : Application
 
         loading.SetStatus("메모를 불러오고 있습니다…");
         var vm = _services.GetRequiredService<MainViewModel>();
-        await Task.Run(() => vm.LoadGroups());
+        var markdownSetting = await Task.Run(() => _services.GetRequiredService<ISettingsRepository>()
+            .GetOrDefault(SettingsKeys.MarkdownEnabled, "true"));
+        vm.MarkdownEnabled = !bool.TryParse(markdownSetting, out var markdownEnabled) || markdownEnabled;
+        await vm.LoadGroupsAsync();
 
         // (8) M2 — 크래시 복구 저널 적용(§8.1): 보류 스냅샷이 있으면 사용자 확인 후 DB에 반영.
         var recovery = _services.GetRequiredService<IRecoveryJournal>();
@@ -215,6 +278,21 @@ public partial class App : Application
         // (11) M6 — 표시. (closeToTray/autostart 정책에 따라 트레이 시작으로 분기 — 기본은 Show)
         window.Show();
         loading.Close();
+        _startupCompleted = true;
+        AppLog.Info("Startup stage=MainWindowShown");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Startup.Fatal", ex);
+            try
+            {
+                MessageBox.Show(
+                    $"Memoria를 시작하지 못했습니다.\n\n{ex.Message}\n\n로그: {AppPaths.DataDirectory}",
+                    "Memoria 시작 오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch { /* 오류 안내 실패는 무시 */ }
+            Shutdown();
+        }
     }
 
     // -----------------------------------------------------------------
@@ -293,6 +371,13 @@ public partial class App : Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         AppLog.Error("DispatcherUnhandledException", e.Exception);
+        AppLog.Warn($"DispatcherUnhandledException context {AppLog.CaptureActivitySnapshot()}");
+        if (!_startupCompleted)
+        {
+            e.Handled = true;
+            Dispatcher.BeginInvoke(new Action(Shutdown));
+            return;
+        }
         try
         {
             MessageBox.Show(
@@ -310,17 +395,47 @@ public partial class App : Application
     {
         if (e.ExceptionObject is Exception ex) AppLog.Error("AppDomain.UnhandledException", ex);
         else AppLog.Warn("AppDomain.UnhandledException (non-Exception object)");
+        AppLog.Warn($"AppDomain.UnhandledException context {AppLog.CaptureActivitySnapshot()}");
+    }
+
+    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        AppLog.Error("TaskScheduler.UnobservedTaskException", e.Exception);
+        e.SetObserved();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         // 계약 §9.4 OnExit
-        if (!_exitInProgress)
-            _services?.GetService<IAutosaveService>()?.FlushAll();                     // OS 강제 종료 등 우회 경로
-        (_services?.GetService<IThemeService>() as IDisposable)?.Dispose();            // (M7) SystemEvents 구독 해제
-        _services?.Dispose();                                                           // SqliteConnectionFactory가 비차단 PASSIVE 체크포인트 후 연결 종료
-        DisposeLifecycleServices();                                                     // (M6) Hotkey/Tray/SingleInstance — 정확히 한 번만
-        base.OnExit(e);
+        _uiResponsiveness?.Dispose();
+        _systemDiagnostics?.Dispose();
+        try
+        {
+            // 종료 중 DB 쓰기 락이나 파일 시스템이 멎어도 WPF Dispatcher를 무기한
+            // 붙잡지 않는다. 정리가 제한 시간을 넘기면 OS 프로세스 종료에 맡긴다.
+            var cleanup = Task.Run(() =>
+            {
+                if (!_exitInProgress)
+                    _services?.GetService<IAutosaveService>()?.FlushAll();             // OS 강제 종료 등 우회 경로
+                (_services?.GetService<IThemeService>() as IDisposable)?.Dispose();    // SystemEvents 구독 해제
+                _services?.Dispose();                                                   // PASSIVE 체크포인트 후 연결 종료
+            });
+            if (!cleanup.Wait(TimeSpan.FromSeconds(2)))
+                AppLog.Warn("Shutdown cleanup exceeded 2000ms; process exit will release remaining handles");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Shutdown.Dispose", ex);
+        }
+        finally
+        {
+            DisposeLifecycleServices();                                                 // mutex/pipe는 실패와 무관하게 해제
+            DatabaseDiagnostics.OperationCompleted = null;
+            TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+            AppLog.Info("Shutdown stage=OnExitComplete");
+            AppLog.Flush(TimeSpan.FromMilliseconds(500));
+            base.OnExit(e);
+        }
     }
 
     // -----------------------------------------------------------------
@@ -329,9 +444,10 @@ public partial class App : Application
 
     private void NewNoteForeground()
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.BeginInvoke(() =>
         {
-            ((MainWindow)MainWindow!).ViewModel.NewPlainNoteCommand.Execute(null); // 계약 §9.3
+            if (MainWindow is not Memoria.App.MainWindow mainWindow) return;
+            mainWindow.ViewModel.NewPlainNoteWithLoadingCommand.Execute(null);
             ShowMainWindow();
         });
     }
@@ -362,20 +478,49 @@ public partial class App : Application
     {
         if (_exitInProgress) return;
         _exitInProgress = true;
-        var mainWindow = (MainWindow)MainWindow!;
-        var checklist = mainWindow.ViewModel.CurrentEditor as ChecklistViewModel;
-        mainWindow.AllowClose = true;
-        MainWindow.Hide();            // 사용자는 즉시 닫힌 것으로 느끼게 하고 저장은 백그라운드에서 마무리
-        if (checklist is not null)
-            await checklist.FlushSavesAsync();
-        var autosave = _services?.GetService<IAutosaveService>();
-        if (autosave is not null)
+        try
         {
-            using var perf = AppLog.Measure("Shutdown.FlushAutosave");
-            await Task.Run(autosave.FlushAll);
+            var mainWindow = MainWindow as Memoria.App.MainWindow;
+            var checklist = mainWindow?.ViewModel.CurrentEditor as ChecklistViewModel;
+            if (mainWindow is not null)
+            {
+                mainWindow.AllowClose = true;
+                mainWindow.Hide();    // 즉시 닫힌 것으로 보이고 저장은 백그라운드에서 마무리
+            }
+            if (checklist is not null)
+            {
+                try
+                {
+                    await checklist.FlushSavesAsync().WaitAsync(TimeSpan.FromSeconds(2));
+                }
+                catch (TimeoutException)
+                {
+                    AppLog.Warn("Shutdown checklist flush exceeded 2000ms; recovery journal remains available");
+                }
+            }
+            var autosave = _services?.GetService<IAutosaveService>();
+            if (autosave is not null)
+            {
+                using var perf = AppLog.Measure("Shutdown.FlushAutosave");
+                try
+                {
+                    await Task.Run(autosave.FlushAll).WaitAsync(TimeSpan.FromSeconds(2));
+                }
+                catch (TimeoutException)
+                {
+                    AppLog.Warn("Shutdown autosave flush exceeded 2000ms; recovery journal remains available");
+                }
+            }
         }
-        DisposeLifecycleServices();   // 여기서 한 번 정리 → 이후 Shutdown()이 부르는 OnExit에서는 가드로 재실행 안 함
-        Shutdown();
+        catch (Exception ex)
+        {
+            AppLog.Error("Shutdown.Flush", ex);
+        }
+        finally
+        {
+            DisposeLifecycleServices();
+            Shutdown();
+        }
     }
 
     /// Hotkey/Tray/SingleInstance를 정확히 한 번만 Dispose한다.
@@ -387,5 +532,30 @@ public partial class App : Application
         _hotkey?.Dispose();         // (M6) 전역 단축키 해제
         _tray?.Dispose();           // (M6) 트레이 아이콘 제거
         _singleInstance?.Dispose(); // (M6) Mutex/pipe 해제
+    }
+
+    private static bool TryTerminateOtherInstances()
+    {
+        var current = Process.GetCurrentProcess();
+        var allStopped = true;
+        foreach (var process in Process.GetProcessesByName(current.ProcessName))
+        {
+            using (process)
+            {
+                if (process.Id == current.Id) continue;
+                try
+                {
+                    AppLog.Warn($"Startup terminating unresponsive instance pid={process.Id}");
+                    process.Kill(entireProcessTree: true);
+                    if (!process.WaitForExit(3000)) allStopped = false;
+                }
+                catch (Exception ex)
+                {
+                    AppLog.Error($"Startup.TerminateExisting pid={process.Id}", ex);
+                    allStopped = false;
+                }
+            }
+        }
+        return allStopped;
     }
 }

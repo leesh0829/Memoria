@@ -20,6 +20,7 @@ public static class SettingsKeys
     public const string HotkeyNewNote = "hotkey.newNote";
     public const string Autostart = "app.autostart";
     public const string CloseToTray = "app.closeToTray";
+    public const string MarkdownEnabled = "app.markdownEnabled";
     public const string BackupRetentionCount = "backup.retentionCount";
     public const string TrashRetentionDays = "trash.retentionDays";
     public const string AutosaveDebounceMs = "autosave.debounceMs";

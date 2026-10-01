@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Memoria.App.Services;
 using Memoria.App.Theming;
 using Memoria.App.Windows;
 using Memoria.Core;
@@ -76,6 +78,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _hotkeyNewNote = "Ctrl+Alt+N";
     [ObservableProperty] private bool _autostartEnabled = true;   // backing: Autostart
     [ObservableProperty] private bool _closeToTray = true;
+    [ObservableProperty] private bool _markdownEnabled = true;
 
     [ObservableProperty] private int _backupRetentionCount = 7;
     [ObservableProperty] private int _trashRetentionDays = 30;
@@ -103,45 +106,50 @@ public sealed partial class SettingsViewModel : ObservableObject
     private void Load()
     {
         _loading = true;
+        var all = _settings.GetAll();
+        string Read(string key, string fallback)
+            => all.TryGetValue(key, out var value) ? value : fallback;
 
         Mode = _theme.Mode;
         Preset = _theme.Preset;
 
-        ReporterName = _settings.GetOrDefault(SettingsKeys.ReporterName, "이승현");
-        TaskHeaderA = _settings.GetOrDefault(SettingsKeys.FormatATaskHeader, "[업무 내용]");
-        IssueHeaderA = _settings.GetOrDefault(SettingsKeys.FormatAIssueHeader, "[이슈]");
-        TitleWordB = _settings.GetOrDefault(SettingsKeys.FormatBTitleWord, "주간 보고");
-        IssueHeaderB = _settings.GetOrDefault(SettingsKeys.FormatBIssueHeader, "* 이슈사항:");
+        ReporterName = Read(SettingsKeys.ReporterName, "이승현");
+        TaskHeaderA = Read(SettingsKeys.FormatATaskHeader, "[업무 내용]");
+        IssueHeaderA = Read(SettingsKeys.FormatAIssueHeader, "[이슈]");
+        TitleWordB = Read(SettingsKeys.FormatBTitleWord, "주간 보고");
+        IssueHeaderB = Read(SettingsKeys.FormatBIssueHeader, "* 이슈사항:");
         StartDayC = ReportDayOfWeek.Parse(
-            _settings.GetOrDefault(SettingsKeys.FormatCStartDay, nameof(DayOfWeek.Friday)), DayOfWeek.Friday);
+            Read(SettingsKeys.FormatCStartDay, nameof(DayOfWeek.Friday)), DayOfWeek.Friday);
         EndDayC = ReportDayOfWeek.Parse(
-            _settings.GetOrDefault(SettingsKeys.FormatCEndDay, nameof(DayOfWeek.Thursday)), DayOfWeek.Thursday);
-        TitleHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCTitleHeader, "[ 주간 실적 ]");
-        PlanHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCPlanHeader, "[ 차주 계획 ]");
-        DetailMarkerC = _settings.GetOrDefault(SettingsKeys.FormatCDetailMarker, "o");
-        LoadFormatCClients();
-        ReportIndent = _settings.GetOrDefault(SettingsKeys.ReportIndent, "\t");
-        IncludeDoneOnly = bool.Parse(_settings.GetOrDefault(SettingsKeys.IncludeDoneOnly, "false"));
+            Read(SettingsKeys.FormatCEndDay, nameof(DayOfWeek.Thursday)), DayOfWeek.Thursday);
+        TitleHeaderC = Read(SettingsKeys.FormatCTitleHeader, "[ 주간 실적 ]");
+        PlanHeaderC = Read(SettingsKeys.FormatCPlanHeader, "[ 차주 계획 ]");
+        DetailMarkerC = Read(SettingsKeys.FormatCDetailMarker, "o");
+        LoadFormatCClients(all);
+        ReportIndent = Read(SettingsKeys.ReportIndent, "\t");
+        IncludeDoneOnly = bool.Parse(Read(SettingsKeys.IncludeDoneOnly, "false"));
 
-        ServiceAccountJsonPath = _settings.GetOrDefault(SettingsKeys.GoogleServiceAccountJsonPath, "");
-        SheetId = _settings.GetOrDefault(SettingsKeys.GoogleSheetId, "");
-        SheetTabName = _settings.GetOrDefault(SettingsKeys.GoogleSheetTabName, "일자 작업내역");
+        ServiceAccountJsonPath = Read(SettingsKeys.GoogleServiceAccountJsonPath, "");
+        SheetId = Read(SettingsKeys.GoogleSheetId, "");
+        SheetTabName = Read(SettingsKeys.GoogleSheetTabName, "일자 작업내역");
 
-        HotkeyNewNote = _settings.GetOrDefault(SettingsKeys.HotkeyNewNote, "Ctrl+Alt+N");
-        AutostartEnabled = bool.Parse(_settings.GetOrDefault(SettingsKeys.Autostart, "true"));
-        CloseToTray = bool.Parse(_settings.GetOrDefault(SettingsKeys.CloseToTray, "true"));
+        HotkeyNewNote = Read(SettingsKeys.HotkeyNewNote, "Ctrl+Alt+N");
+        AutostartEnabled = bool.Parse(Read(SettingsKeys.Autostart, "true"));
+        CloseToTray = bool.Parse(Read(SettingsKeys.CloseToTray, "true"));
+        MarkdownEnabled = !bool.TryParse(Read(SettingsKeys.MarkdownEnabled, "true"), out var markdownEnabled)
+            || markdownEnabled;
 
-        BackupRetentionCount = int.Parse(_settings.GetOrDefault(SettingsKeys.BackupRetentionCount, "7"), CultureInfo.InvariantCulture);
-        TrashRetentionDays = int.Parse(_settings.GetOrDefault(SettingsKeys.TrashRetentionDays, "30"), CultureInfo.InvariantCulture);
+        BackupRetentionCount = int.Parse(Read(SettingsKeys.BackupRetentionCount, "7"), CultureInfo.InvariantCulture);
+        TrashRetentionDays = int.Parse(Read(SettingsKeys.TrashRetentionDays, "30"), CultureInfo.InvariantCulture);
 
         _loading = false;
     }
 
-    private void LoadFormatCClients()
+    private void LoadFormatCClients(IReadOnlyDictionary<string, string> settings)
     {
         var clients = _clients.GetAll();   // 이미 sort_order 정렬
         var selected = Memoria.Core.Reporting.FormatCClients
-            .Resolve(_settings.Get(SettingsKeys.FormatCClientIds), clients);
+            .Resolve(settings.TryGetValue(SettingsKeys.FormatCClientIds, out var ids) ? ids : null, clients);
 
         FormatCClientOptions.Clear();
         foreach (var c in clients)
@@ -177,35 +185,60 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!CanSave)
             return;
 
-        _settings.Set(SettingsKeys.ReporterName, ReporterName);
-        _settings.Set(SettingsKeys.FormatATaskHeader, TaskHeaderA);
-        _settings.Set(SettingsKeys.FormatAIssueHeader, IssueHeaderA);
-        _settings.Set(SettingsKeys.FormatBTitleWord, TitleWordB);
-        _settings.Set(SettingsKeys.FormatBIssueHeader, IssueHeaderB);
-        _settings.Set(SettingsKeys.FormatCStartDay, StartDayC.ToString());
-        _settings.Set(SettingsKeys.FormatCEndDay, EndDayC.ToString());
-        _settings.Set(SettingsKeys.FormatCTitleHeader, TitleHeaderC);
-        _settings.Set(SettingsKeys.FormatCPlanHeader, PlanHeaderC);
-        _settings.Set(SettingsKeys.FormatCDetailMarker, DetailMarkerC);
-        _settings.Set(
-            SettingsKeys.FormatCClientIds,
-            Memoria.Core.Reporting.FormatCClients.Format(
-                FormatCClientOptions.Where(c => c.IsSelected).Select(c => c.Id)));
-        _settings.Set(SettingsKeys.ReportIndent, ReportIndent);
-        _settings.Set(SettingsKeys.IncludeDoneOnly, IncludeDoneOnly ? "true" : "false");
+        var values = CaptureSettings();
+        SaveCaptured(values, AutostartEnabled);
+    }
 
-        _settings.Set(SettingsKeys.GoogleServiceAccountJsonPath, ServiceAccountJsonPath ?? "");
-        _settings.Set(SettingsKeys.GoogleSheetId, SheetId ?? "");
-        _settings.Set(SettingsKeys.GoogleSheetTabName, string.IsNullOrWhiteSpace(SheetTabName) ? "일자 작업내역" : SheetTabName);
+    public async Task SaveAsync()
+    {
+        if (!CanSave)
+            return;
 
-        _settings.Set(SettingsKeys.HotkeyNewNote, HotkeyNewNote);
-        _settings.Set(SettingsKeys.Autostart, AutostartEnabled ? "true" : "false");
-        _settings.Set(SettingsKeys.CloseToTray, CloseToTray ? "true" : "false");
+        AppLog.Action("UI.SettingsSave");
+        using var perf = AppLog.Measure("Settings.Save");
 
-        _settings.Set(SettingsKeys.BackupRetentionCount, BackupRetentionCount.ToString(CultureInfo.InvariantCulture));
-        _settings.Set(SettingsKeys.TrashRetentionDays, TrashRetentionDays.ToString(CultureInfo.InvariantCulture));
+        // WPF 바인딩 값을 UI 스레드에서 먼저 스냅샷하고, SQLite/레지스트리 I/O만
+        // 작업 스레드에서 수행해 설정 창을 닫을 때 전체 앱이 멎지 않게 한다.
+        var values = CaptureSettings();
+        var autostartEnabled = AutostartEnabled;
+        await Task.Run(() => SaveCaptured(values, autostartEnabled));
+    }
 
-        if (AutostartEnabled)
+    private IReadOnlyDictionary<string, string> CaptureSettings()
+    {
+        return new Dictionary<string, string>
+        {
+            [SettingsKeys.ReporterName] = ReporterName,
+            [SettingsKeys.FormatATaskHeader] = TaskHeaderA,
+            [SettingsKeys.FormatAIssueHeader] = IssueHeaderA,
+            [SettingsKeys.FormatBTitleWord] = TitleWordB,
+            [SettingsKeys.FormatBIssueHeader] = IssueHeaderB,
+            [SettingsKeys.FormatCStartDay] = StartDayC.ToString(),
+            [SettingsKeys.FormatCEndDay] = EndDayC.ToString(),
+            [SettingsKeys.FormatCTitleHeader] = TitleHeaderC,
+            [SettingsKeys.FormatCPlanHeader] = PlanHeaderC,
+            [SettingsKeys.FormatCDetailMarker] = DetailMarkerC,
+            [SettingsKeys.FormatCClientIds] = Memoria.Core.Reporting.FormatCClients.Format(
+                FormatCClientOptions.Where(c => c.IsSelected).Select(c => c.Id)),
+            [SettingsKeys.ReportIndent] = ReportIndent,
+            [SettingsKeys.IncludeDoneOnly] = IncludeDoneOnly ? "true" : "false",
+            [SettingsKeys.GoogleServiceAccountJsonPath] = ServiceAccountJsonPath ?? "",
+            [SettingsKeys.GoogleSheetId] = SheetId ?? "",
+            [SettingsKeys.GoogleSheetTabName] = string.IsNullOrWhiteSpace(SheetTabName) ? "일자 작업내역" : SheetTabName,
+            [SettingsKeys.HotkeyNewNote] = HotkeyNewNote,
+            [SettingsKeys.Autostart] = AutostartEnabled ? "true" : "false",
+            [SettingsKeys.CloseToTray] = CloseToTray ? "true" : "false",
+            [SettingsKeys.MarkdownEnabled] = MarkdownEnabled ? "true" : "false",
+            [SettingsKeys.BackupRetentionCount] = BackupRetentionCount.ToString(CultureInfo.InvariantCulture),
+            [SettingsKeys.TrashRetentionDays] = TrashRetentionDays.ToString(CultureInfo.InvariantCulture),
+        };
+    }
+
+    private void SaveCaptured(IReadOnlyDictionary<string, string> values, bool autostartEnabled)
+    {
+        _settings.SetMany(values);
+
+        if (autostartEnabled)
             _autostart.Enable();
         else
             _autostart.Disable();

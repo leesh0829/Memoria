@@ -19,9 +19,9 @@
         <DockPanel Grid.Row="0" Background="{DynamicResource Brush.ToolbarBackground}" LastChildFill="True">
             <Button Content="☰" Click="OnToggleSidebarClick" Padding="8,2" Margin="8,6,4,6"
                     ToolTip="사이드바 접기/펴기"/>
-            <Button Content="+ 새 메모"    Command="{Binding NewPlainNoteCommand}"      Margin="0,6,4,6" Padding="10,4" />
+            <Button Content="+ 새 메모"    Command="{Binding NewPlainNoteWithLoadingCommand}" Margin="0,6,4,6" Padding="10,4" />
             <Button Content="+ 그룹"       Click="OnNewGroupClick"                     Margin="0,6,4,6" Padding="10,4" />
-            <Button Content="+ 체크리스트" Command="{Binding NewChecklistCommand}"      Margin="0,6,4,6" Padding="10,4" />
+            <Button Content="+ 체크리스트" Command="{Binding NewChecklistWithLoadingCommand}" Margin="0,6,4,6" Padding="10,4" />
             <Button Content="📋 주간보고"  Command="{Binding LoadWeeklyReportCommand}"  Margin="0,6,4,6" Padding="10,4" />
             <!-- M5: 휴지통 진입점 -->
             <Button Content="휴지통"       Click="OnShowTrashClick"                    Margin="0,6,4,6" Padding="10,4" />
@@ -318,9 +318,9 @@
                                             <Button Content="마크다운" Command="{Binding SetRenderedModeCommand}" Padding="8,2"/>
                                         </StackPanel>
                                         <!-- plain 노트: 마크다운으로 전환 -->
-                                        <Button Content="마크다운으로 전환" Command="{Binding ConvertToMarkdownCommand}"
+                                        <Button Content="마크다운으로 전환" Command="{Binding ConvertToMarkdownWithLoadingCommand}"
                                                 Padding="8,2"
-                                                Visibility="{Binding IsMarkdown, Converter={StaticResource InverseBoolToVis}}" />
+                                                Visibility="{Binding ShowMarkdownConversion, Converter={StaticResource BoolToVis}}" />
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -411,7 +411,7 @@
                     <TextBlock Text="{Binding UndoMessage}"
                                Foreground="{DynamicResource Brush.Foreground}"
                                VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <Button Content="실행취소" Command="{Binding UndoDeleteCommand}"/>
+                    <Button Content="실행취소" Command="{Binding UndoDeleteWithLoadingCommand}"/>
                 </StackPanel>
             </Border>
         </Grid>

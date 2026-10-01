@@ -20,6 +20,7 @@ public sealed class BackupService : IBackupService
 
     public bool BackupIfDue(int retentionCount)
     {
+        using var perf = DatabaseDiagnostics.Measure("Backup.BackupIfDue");
         Directory.CreateDirectory(_backupDirectory);
         var today = DateTimeOffset.Now.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
         var target = Path.Combine(_backupDirectory, $"memoria-{today}.db");
@@ -28,7 +29,7 @@ public sealed class BackupService : IBackupService
         // VACUUM INTO 는 바인딩 파라미터를 받지 않으므로 경로를 문자열 리터럴로 이스케이프해 주입.
         var literal = target.Replace("'", "''");
         // 스냅샷(VACUUM INTO)과 로테이션을 모두 쓰기 락 안에서 직렬화한다(계약 §8).
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Backup.Create"))
         {
             _factory.Write.Execute($"VACUUM INTO '{literal}';");
             RotateBackups(retentionCount);
@@ -39,6 +40,7 @@ public sealed class BackupService : IBackupService
 
     public bool IsDatabaseHealthy()
     {
+        using var perf = DatabaseDiagnostics.Measure("Backup.IntegrityCheck");
         try
         {
             using var conn = _factory.Open();
@@ -53,12 +55,13 @@ public sealed class BackupService : IBackupService
 
     public bool TryRestoreFromLatestBackup()
     {
+        using var perf = DatabaseDiagnostics.Measure("Backup.Restore");
         // 최신→과거 순으로 순회하며 PRAGMA integrity_check 를 통과하는 첫 백업을 고른다.
         // 손상된 백업으로는 복원하지 않는다(정상 백업이 없으면 false).
         var validBackup = EnumerateBackupsNewestFirst().FirstOrDefault(IsBackupHealthy);
         if (validBackup is null) return false;
 
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Backup.RestoreWrite"))
         {
             _factory.CloseForRestore();       // 영속 쓰기 연결 닫기(파일 잠금 해제)
             _factory.ClearPools();            // 이 DB 경로의 풀링된 읽기 연결도 해제

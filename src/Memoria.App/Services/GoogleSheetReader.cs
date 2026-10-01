@@ -21,12 +21,17 @@ public sealed class GoogleSheetReader : ISpreadsheetReader
     public async Task<IReadOnlyList<IReadOnlyList<string>>> ReadRowsAsync(
         string sheetId, string tabName, CancellationToken ct = default)
     {
-        var jsonPath = _settings.GetOrDefault(SettingsKeys.GoogleServiceAccountJsonPath, "");
-        if (string.IsNullOrWhiteSpace(jsonPath) || !File.Exists(jsonPath))
-            throw new InvalidOperationException("서비스 계정 JSON 키 경로가 설정되지 않았거나 파일이 없습니다.");
+        // 설정 DB 조회와 자격 증명 JSON 파싱은 네트워크 await 전에 실행되므로 그대로 두면
+        // 호출자의 UI 스레드를 점유한다. 인증 준비까지 작업 스레드에서 끝낸다.
+        var credential = await Task.Run(() =>
+        {
+            var jsonPath = _settings.GetOrDefault(SettingsKeys.GoogleServiceAccountJsonPath, "");
+            if (string.IsNullOrWhiteSpace(jsonPath) || !File.Exists(jsonPath))
+                throw new InvalidOperationException("서비스 계정 JSON 키 경로가 설정되지 않았거나 파일이 없습니다.");
 
-        var credential = GoogleCredential.FromFile(jsonPath)
-            .CreateScoped(SheetsService.Scope.SpreadsheetsReadonly);
+            return GoogleCredential.FromFile(jsonPath)
+                .CreateScoped(SheetsService.Scope.SpreadsheetsReadonly);
+        }, ct).ConfigureAwait(false);
 
         using var service = new SheetsService(new BaseClientService.Initializer
         {

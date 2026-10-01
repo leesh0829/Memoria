@@ -36,7 +36,7 @@ public class SingleInstanceServiceTests
 
         using var second = new SingleInstanceService($"mtx-{id}", $"pipe-{id}");
         second.TryAcquire().Should().BeFalse();
-        second.SignalExistingInstance(PipeCommand.NewNote);
+        second.SignalExistingInstance(PipeCommand.NewNote).Should().BeTrue();
 
         var winner = await Task.WhenAny(tcs.Task, Task.Delay(5000));
         winner.Should().Be(tcs.Task);

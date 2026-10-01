@@ -110,15 +110,15 @@
                              Background="{DynamicResource Brush.Surface}" />
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                         <Button Content="▲"
-                                Command="{Binding MoveUpCommand}"
+                                Command="{Binding MoveUpWithLoadingCommand}"
                                 CommandParameter="{Binding SelectedClient}"
                                 Width="32" />
                         <Button Content="▼"
-                                Command="{Binding MoveDownCommand}"
+                                Command="{Binding MoveDownWithLoadingCommand}"
                                 CommandParameter="{Binding SelectedClient}"
                                 Width="32" Margin="4,0,0,0" />
                         <Button Content="삭제"
-                                Command="{Binding DeleteClientCommand}"
+                                Command="{Binding DeleteClientWithLoadingCommand}"
                                 CommandParameter="{Binding SelectedClient}"
                                 Margin="4,0,0,0" />
                     </StackPanel>
@@ -136,7 +136,7 @@
                     </DataGrid>
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                         <Button Content="규칙 추가" Command="{Binding AddRuleCommand}" />
-                        <Button Content="규칙 저장" Command="{Binding SaveRulesCommand}" Margin="4,0,0,0" />
+                        <Button Content="규칙 저장" Command="{Binding SaveRulesWithLoadingCommand}" Margin="4,0,0,0" />
                     </StackPanel>
                 </StackPanel>
             </Grid>
@@ -154,6 +154,12 @@
                 <CheckBox Content="닫기(X) 시 트레이로 숨김"
                           IsChecked="{Binding CloseToTray}"
                           Margin="0,4,0,0" />
+                <CheckBox Content="Markdown 기능 사용"
+                          IsChecked="{Binding MarkdownEnabled}"
+                          Margin="0,12,0,0" />
+                <TextBlock Text="끄면 Markdown 버튼·미리보기·이미지 삽입을 사용하지 않습니다. 기존 메모는 원문으로 편집하며, 내용과 서식 정보는 보존됩니다. 설정 창을 닫으면 적용됩니다."
+                           TextWrapping="Wrap" Margin="0,4,0,0"
+                           Foreground="{DynamicResource Brush.SecondaryForeground}" />
                 <TextBlock Text="백업 보존 개수" Margin="0,8,0,0" />
                 <TextBox Text="{Binding BackupRetentionCount}" Width="80" HorizontalAlignment="Left" />
                 <TextBlock Text="휴지통 보존 일수" Margin="0,8,0,0" />
@@ -195,6 +201,11 @@
                     <Hyperlink NavigateUri="https://github.com/leesh0829/Memoria"
                                RequestNavigate="OnOpenLinkClick">github.com/leesh0829/Memoria</Hyperlink>
                 </TextBlock>
+                <Button Content="진단 로그 폴더 열기" Margin="0,18,0,0" Padding="12,6"
+                        HorizontalAlignment="Left" Click="OnOpenLogsClick" />
+                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                           Foreground="{DynamicResource Brush.SecondaryForeground}"
+                           Text="문제가 생기면 memoria.log와 memoria-performance.log를 보내주세요. 메모 본문은 기록하지 않습니다." />
             </StackPanel>
         </TabItem>
     </TabControl>

@@ -10,6 +10,7 @@ public sealed class SearchService : ISearchService
 
     public IReadOnlyList<SearchHit> Search(string query)
     {
+        using var perf = DatabaseDiagnostics.Measure("Search.Query");
         var trimmed = query?.Trim() ?? "";
         if (trimmed.Length == 0) return [];
 

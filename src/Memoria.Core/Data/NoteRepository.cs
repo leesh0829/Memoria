@@ -43,7 +43,7 @@ public sealed class NoteRepository : INoteRepository
         var now = DateTimeOffset.UtcNow;
         note.CreatedAt = now;
         note.UpdatedAt = now;
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Note.Create"))
         {
             var conn = _factory.Write;
             conn.Execute(
@@ -74,7 +74,7 @@ public sealed class NoteRepository : INoteRepository
 
     public void Update(Note note)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Note.Update"))
         {
             _factory.Write.Execute(
                 "UPDATE notes SET group_id = @GroupId, type = @Type, title = @Title, body = @Body, " +
@@ -104,14 +104,14 @@ public sealed class NoteRepository : INoteRepository
 
     public void Touch(int id, DateTimeOffset updatedAt)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Note.Touch"))
             _factory.Write.Execute(
                 "UPDATE notes SET updated_at = @updatedAt WHERE id = @id;", new { id, updatedAt });
     }
 
     public void SetGroup(int id, int? groupId)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Note.SetGroup"))
             _factory.Write.Execute(
                 "UPDATE notes SET group_id = @groupId WHERE id = @id;", new { id, groupId });
     }
@@ -119,7 +119,7 @@ public sealed class NoteRepository : INoteRepository
     public void SetSortOrder(int id, int sortOrder)
     {
         // 순서변경은 메타 조작이므로 updated_at을 갱신하지 않는다(정렬/최근수정 의미 보존).
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Note.SetSortOrder"))
         {
             _factory.Write.Execute(
                 "UPDATE notes SET sort_order = @sortOrder WHERE id = @id;",
@@ -131,7 +131,7 @@ public sealed class NoteRepository : INoteRepository
     {
         // 드래그 한 번에 항목 수만큼 개별 커밋하면 목록이 클수록 UI가 멈춘다.
         // 쓰기 락과 트랜잭션을 한 번만 잡아 전체 순서를 원자적으로 반영한다.
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Note.SetSortOrders"))
         {
             var conn = _factory.Write;
             using var tx = conn.BeginTransaction();
@@ -145,7 +145,7 @@ public sealed class NoteRepository : INoteRepository
 
     public void SoftDelete(int id)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Note.SoftDelete"))
         {
             _factory.Write.Execute("UPDATE notes SET deleted_at = @now WHERE id = @id;",
                 new { id, now = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture) });
@@ -154,7 +154,7 @@ public sealed class NoteRepository : INoteRepository
 
     public void Restore(int id)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Note.Restore"))
         {
             _factory.Write.Execute("UPDATE notes SET deleted_at = NULL WHERE id = @id;", new { id });
         }
@@ -162,7 +162,7 @@ public sealed class NoteRepository : INoteRepository
 
     public void Purge(int id)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Note.Purge"))
         {
             _factory.Write.Execute("DELETE FROM notes WHERE id = @id;", new { id });
         }
@@ -171,7 +171,7 @@ public sealed class NoteRepository : INoteRepository
     public void PurgeExpiredTrash(int retentionDays)
     {
         var cutoff = DateTimeOffset.UtcNow.AddDays(-retentionDays).ToString("O", CultureInfo.InvariantCulture);
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Note.PurgeExpiredTrash"))
         {
             _factory.Write.Execute(
                 "DELETE FROM notes WHERE deleted_at IS NOT NULL AND deleted_at < @cutoff;", new { cutoff });
@@ -180,6 +180,7 @@ public sealed class NoteRepository : INoteRepository
 
     public Note? Get(int id)
     {
+        using var perf = DatabaseDiagnostics.Measure("Note.Get");
         using var conn = _factory.Open();
         return conn.QuerySingleOrDefault<Note>(
             $"SELECT {SelectColumns} FROM notes WHERE id = @id;", new { id });
@@ -187,6 +188,7 @@ public sealed class NoteRepository : INoteRepository
 
     public IReadOnlyList<Note> GetByGroup(int? groupId)
     {
+        using var perf = DatabaseDiagnostics.Measure("Note.GetByGroup");
         using var conn = _factory.Open();
         var where = groupId is null ? "group_id IS NULL" : "group_id = @groupId";
         return conn.Query<Note>(
@@ -196,6 +198,7 @@ public sealed class NoteRepository : INoteRepository
 
     public IReadOnlyList<Note> GetTrash()
     {
+        using var perf = DatabaseDiagnostics.Measure("Note.GetTrash");
         using var conn = _factory.Open();
         return conn.Query<Note>(
             $"SELECT {SelectColumns} FROM notes WHERE deleted_at IS NOT NULL " +
@@ -204,6 +207,7 @@ public sealed class NoteRepository : INoteRepository
 
     public IReadOnlyList<Note> GetChecklistsInWeek(DateOnly monday, DateOnly friday)
     {
+        using var perf = DatabaseDiagnostics.Measure("Note.GetChecklistsInWeek");
         using var conn = _factory.Open();
         return conn.Query<Note>(
             $"SELECT {SelectColumns} FROM notes " +
@@ -219,6 +223,7 @@ public sealed class NoteRepository : INoteRepository
 
     public Note? FindChecklistForDate(DateOnly date)
     {
+        using var perf = DatabaseDiagnostics.Measure("Note.FindChecklistForDate");
         using var conn = _factory.Open();
         return conn.QuerySingleOrDefault<Note>(
             $"SELECT {SelectColumns} FROM notes " +
@@ -229,6 +234,7 @@ public sealed class NoteRepository : INoteRepository
 
     public Note? FindWeeklyReport(DateOnly weekStart, ReportFormatKind format)
     {
+        using var perf = DatabaseDiagnostics.Measure("Note.FindWeeklyReport");
         using var conn = _factory.Open();
         return conn.QuerySingleOrDefault<Note>(
             $"SELECT {SelectColumns} FROM notes " +

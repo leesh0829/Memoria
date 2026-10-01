@@ -16,7 +16,7 @@ public sealed class GroupRepository : IGroupRepository
     public int Create(Group group)
     {
         group.CreatedAt = DateTimeOffset.UtcNow;
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Group.Create"))
         {
             var conn = _factory.Write;
             conn.Execute(
@@ -29,7 +29,7 @@ public sealed class GroupRepository : IGroupRepository
 
     public void Update(Group group)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Group.Update"))
         {
             _factory.Write.Execute(
                 "UPDATE groups SET name = @Name, parent_id = @ParentId, is_system = @IsSystem, " +
@@ -42,7 +42,7 @@ public sealed class GroupRepository : IGroupRepository
         var target = Get(id);
         if (target is null) return;
         var newParent = target.ParentId;   // 승격 목적지(조부모 또는 null=루트)
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Group.Delete"))
         {
             var conn = _factory.Write;
             using var tx = conn.BeginTransaction();
@@ -65,6 +65,7 @@ public sealed class GroupRepository : IGroupRepository
 
     public Group? Get(int id)
     {
+        using var perf = DatabaseDiagnostics.Measure("Group.Get");
         using var conn = _factory.Open();
         return conn.QuerySingleOrDefault<Group>(
             $"SELECT {SelectColumns} FROM groups WHERE id = @id;", new { id });
@@ -72,6 +73,7 @@ public sealed class GroupRepository : IGroupRepository
 
     public IReadOnlyList<Group> GetAll()
     {
+        using var perf = DatabaseDiagnostics.Measure("Group.GetAll");
         using var conn = _factory.Open();
         return conn.Query<Group>(
             $"SELECT {SelectColumns} FROM groups ORDER BY sort_order, id;").ToList();
@@ -106,7 +108,7 @@ public sealed class GroupRepository : IGroupRepository
 
         var oldParentId = self.ParentId;   // 이동 전 소스 부모를 캡처
 
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Group.SetParent"))
         {
             var conn = _factory.Write;
             using var tx = conn.BeginTransaction();
@@ -147,7 +149,7 @@ public sealed class GroupRepository : IGroupRepository
             if (parentGroup is null || parentGroup.IsSystem) return;
         }
 
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Group.ReorderSiblings"))
         {
             var conn = _factory.Write;
             using var tx = conn.BeginTransaction();
@@ -169,6 +171,7 @@ public sealed class GroupRepository : IGroupRepository
     // 모든 그룹의 id -> parent_id 맵(한 번 조회).
     private Dictionary<int, int?> ParentMap()
     {
+        using var perf = DatabaseDiagnostics.Measure("Group.ParentMap");
         using var conn = _factory.Open();
         var rows = conn.Query<(int Id, int? ParentId)>("SELECT id AS Id, parent_id AS ParentId FROM groups;");
         var map = new Dictionary<int, int?>();

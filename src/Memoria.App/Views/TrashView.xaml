@@ -40,12 +40,12 @@
 
                         <!-- 복원 버튼 -->
                         <Button Grid.Column="2" Content="복원" Margin="4,0"
-                                Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                Command="{Binding DataContext.RestoreWithLoadingCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                 CommandParameter="{Binding Id}"/>
 
                         <!-- 영구삭제 버튼 -->
                         <Button Grid.Column="3" Content="영구삭제"
-                                Command="{Binding DataContext.PurgeCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                Command="{Binding DataContext.PurgeWithLoadingCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                 CommandParameter="{Binding Id}"/>
                     </Grid>
                 </DataTemplate>

@@ -41,6 +41,22 @@ public class SettingsRepositoryTests
     }
 
     [Fact]
+    public void SetMany_InsertsAndUpdatesAllValues()
+    {
+        using var db = new TestDb();
+        var sut = new SettingsRepository(db.Factory);
+
+        sut.SetMany(new Dictionary<string, string>
+        {
+            [SettingsKeys.ReporterName] = "김철수",
+            ["custom.batch"] = "saved",
+        });
+
+        sut.Get(SettingsKeys.ReporterName).Should().Be("김철수");
+        sut.Get("custom.batch").Should().Be("saved");
+    }
+
+    [Fact]
     public void GetAll_ContainsSeededKeys()
     {
         using var db = new TestDb();

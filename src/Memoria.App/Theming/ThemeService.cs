@@ -11,6 +11,7 @@ public sealed class ThemeService : IThemeService, IDisposable
     private readonly ISettingsRepository _settings;
     private readonly IThemeApplier _applier;
     private readonly ISystemThemeSource _systemTheme;
+    private Uri? _appliedPalette;
 
     public ThemeMode Mode { get; private set; } = ThemeMode.System;
     public string Preset { get; private set; } = "default";
@@ -42,15 +43,22 @@ public sealed class ThemeService : IThemeService, IDisposable
         Preset = preset;
 
         var uri = ThemeResolver.ResolvePaletteUri(mode, preset, _systemTheme.IsLight());
-        _applier.ApplyPalette(uri);
+        if (!Equals(_appliedPalette, uri))
+        {
+            _applier.ApplyPalette(uri);
+            _appliedPalette = uri;
+            ThemeChanged?.Invoke(this, EventArgs.Empty);
+        }
 
         if (persist)
         {
-            _settings.Set(SettingsKeys.ThemeMode, ModeToString(mode));
-            _settings.Set(SettingsKeys.ThemePreset, preset);
+            _settings.SetMany(new Dictionary<string, string>
+            {
+                [SettingsKeys.ThemeMode] = ModeToString(mode),
+                [SettingsKeys.ThemePreset] = preset,
+            });
         }
 
-        ThemeChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnSystemThemeChanged(object? sender, EventArgs e)

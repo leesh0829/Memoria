@@ -31,6 +31,7 @@ public partial class MainViewModel : ObservableObject
     private int _notesLoadGeneration;
     private int _editorLoadGeneration;
     private int _searchGeneration;
+    private bool _suppressSelectedNodeLoad;
 
     public ObservableCollection<SidebarNodeViewModel> SidebarNodes { get; } = new();   // 사용자 그룹 + (미분류)
     public ObservableCollection<SidebarNodeViewModel> SystemNodes { get; } = new();    // #5 시스템 그룹(하단 고정)
@@ -65,8 +66,15 @@ public partial class MainViewModel : ObservableObject
     // RM6: 마크다운 에디터 상태
     [ObservableProperty] private MarkdownViewMode viewMode = MarkdownViewMode.Read;
     [ObservableProperty] private string bodyFormat = "plain";
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SetReadModeCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SetRenderedModeCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ConvertToMarkdownCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ConvertToMarkdownWithLoadingCommand))]
+    private bool markdownEnabled = true;
 
-    public bool IsMarkdown  => BodyFormat == "markdown";
+    public bool IsMarkdown  => MarkdownEnabled && BodyFormat == "markdown";
+    public bool ShowMarkdownConversion => MarkdownEnabled && BodyFormat != "markdown";
     public bool ShowRead     => IsMarkdown && ViewMode == MarkdownViewMode.Read;
     public bool ShowRendered => IsMarkdown && ViewMode == MarkdownViewMode.Rendered;
     public bool ShowEdit     => !IsMarkdown || ViewMode == MarkdownViewMode.Edit;   // plain은 항상 편집
@@ -86,20 +94,38 @@ public partial class MainViewModel : ObservableObject
     partial void OnBodyFormatChanged(string value)
     {
         OnPropertyChanged(nameof(IsMarkdown));
+        OnPropertyChanged(nameof(ShowMarkdownConversion));
         OnPropertyChanged(nameof(ShowRead));
         OnPropertyChanged(nameof(ShowRendered));
         OnPropertyChanged(nameof(ShowEdit));
         OnPropertyChanged(nameof(ShowToolbar));
     }
 
-    [RelayCommand] private void SetReadMode()     => ViewMode = MarkdownViewMode.Read;
-    [RelayCommand] private void SetEditMode()     => ViewMode = MarkdownViewMode.Edit;
-    [RelayCommand] private void SetRenderedMode() => ViewMode = MarkdownViewMode.Rendered;
+    partial void OnMarkdownEnabledChanged(bool value)
+    {
+        // 표시만 변경하고 기존 메모의 BodyFormat과 본문은 보존한다.
+        OnBodyFormatChanged(BodyFormat);
+        if (!value) ViewMode = MarkdownViewMode.Edit;
+    }
 
-    [RelayCommand]
+    private bool CanUseMarkdown() => MarkdownEnabled;
+
+    [RelayCommand(CanExecute = nameof(CanUseMarkdown))]
+    private void SetReadMode()
+    {
+        if (MarkdownEnabled) ViewMode = MarkdownViewMode.Read;
+    }
+    [RelayCommand] private void SetEditMode()     => ViewMode = MarkdownViewMode.Edit;
+    [RelayCommand(CanExecute = nameof(CanUseMarkdown))]
+    private void SetRenderedMode()
+    {
+        if (MarkdownEnabled) ViewMode = MarkdownViewMode.Rendered;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUseMarkdown))]
     private void ConvertToMarkdown()
     {
-        if (_current is null || _current.BodyFormat == "markdown") return;
+        if (!MarkdownEnabled || _current is null || _current.BodyFormat == "markdown") return;
 
         // 보류 중인 자동저장을 먼저 확정(라이브 편집 보존). _current는 '열 때' 값이라 그대로 쓰면 유실된다.
         _autosave.FlushAll();
@@ -115,12 +141,49 @@ public partial class MainViewModel : ObservableObject
         UpdateListItemTitle(_current.Id, ResolveLiveTitle());
     }
 
+    [RelayCommand(CanExecute = nameof(CanUseMarkdown))]
+    private async Task ConvertToMarkdownWithLoadingAsync()
+    {
+        if (!MarkdownEnabled || _current is null || _current.BodyFormat == "markdown") return;
+        var noteId = _current.Id;
+        BeginBusy("마크다운으로 전환하는 중…");
+        try
+        {
+            var note = await Task.Run(() =>
+            {
+                using var perf = AppLog.Measure("ConvertToMarkdown.Persist", 100);
+                _autosave.FlushAll();
+                var latest = _noteRepo.Get(noteId);
+                if (latest is null) return null;
+                latest.BodyFormat = "markdown";
+                latest.UpdatedAt = _time.GetUtcNow();
+                _noteRepo.Update(latest);
+                return latest;
+            });
+            if (note is null || _current?.Id != noteId) return;
+
+            _current = note;
+            ViewMode = MarkdownViewMode.Edit;
+            BodyFormat = "markdown";
+            UpdateListItemTitle(note.Id, ResolveLiveTitle());
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("ConvertToMarkdown", ex);
+        }
+        finally
+        {
+            EndBusy();
+        }
+    }
+
     // #3 자동저장 상태 표시("저장 중…" → "저장됨 HH:mm:ss"). 저장 없이 자동 영속됨을 사용자에게 보장.
     [ObservableProperty] private string saveStatus = "";
 
     // #4 삭제(휴지통)/실행취소 — MainViewModel이 직접 소유(열린 노트 삭제 시 에디터까지 정리).
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UndoDeleteCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UndoDeleteWithLoadingCommand))]
     private bool isUndoAvailable;
 
     [ObservableProperty] private string undoMessage = "";
@@ -152,10 +215,28 @@ public partial class MainViewModel : ObservableObject
         var expanded = CollectExpanded(SidebarNodes);
         var prevGroupId = SelectedNode?.GroupId;
         var prevKind = SelectedNode?.Kind;
+        ApplyGroupSnapshot(_groupRepo.GetAll(), expanded, prevGroupId, prevKind, removedGroupParentId);
+    }
+
+    public async Task LoadGroupsAsync(int? removedGroupParentId = null)
+    {
+        var expanded = CollectExpanded(SidebarNodes);
+        var prevGroupId = SelectedNode?.GroupId;
+        var prevKind = SelectedNode?.Kind;
+        var groups = await Task.Run(() => _groupRepo.GetAll());
+        ApplyGroupSnapshot(groups, expanded, prevGroupId, prevKind, removedGroupParentId);
+    }
+
+    private void ApplyGroupSnapshot(
+        IReadOnlyList<Group> groups,
+        HashSet<int> expanded,
+        int? prevGroupId,
+        SidebarNodeKind? prevKind,
+        int? removedGroupParentId)
+    {
 
         SidebarNodes.Clear();
         SystemNodes.Clear();
-        var groups = _groupRepo.GetAll();
 
         // 사용자 그룹 트리 구성(parent_id → children), 형제 sort_order 순.
         var userGroups = groups.Where(g => !g.IsSystem).OrderBy(g => g.SortOrder).ThenBy(g => g.Id).ToList();
@@ -225,15 +306,20 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedNodeChanged(SidebarNodeViewModel? value)
     {
+        AppLog.Action("UI.SelectGroup", value is null
+            ? "none"
+            : $"kind={value.Kind} group_id={value.GroupId?.ToString() ?? "null"}");
         IsUndoAvailable = false;   // 그룹 이동 등 다른 동작 시 휴지통 Undo 토스트 자동 해제
         BuildFolders();
         BuildBreadcrumb();
+        if (_suppressSelectedNodeLoad) return;
         if (CanUseAsyncUi()) _ = LoadNotesAsync(value);
         else LoadNotes();
     }
 
     partial void OnSelectedNoteChanged(NoteListItemViewModel? value)
     {
+        AppLog.Action("UI.SelectNote", value is null ? "none" : $"note_id={value.Id}");
         if (value is null)
         {
             _editorLoadGeneration++;
@@ -269,15 +355,22 @@ public partial class MainViewModel : ObservableObject
         try
         {
             if (previousChecklist is not null)
+            {
+                using var flushChecklist = AppLog.Measure("OpenNote.FlushChecklist", 100);
                 await previousChecklist.FlushSavesAsync();
+            }
             var note = await Task.Run(() =>
             {
-                _autosave.FlushAll();
-                return _noteRepo.Get(value.Id);
+                using (AppLog.Measure("OpenNote.FlushAutosave", 100))
+                    _autosave.FlushAll();
+                using (AppLog.Measure("OpenNote.ReadNote", 100))
+                    return _noteRepo.Get(value.Id);
             });
             if (generation != _editorLoadGeneration || SelectedNote?.Id != value.Id || note is null) return;
 
-            var editor = await BuildEditorForAsync(note);
+            object? editor;
+            using (AppLog.Measure("OpenNote.BuildEditor", 100))
+                editor = await BuildEditorForAsync(note);
             if (generation != _editorLoadGeneration || SelectedNote?.Id != value.Id) return;
             CurrentNoteType = note.Type;
             _currentEditorNoteId = note.Id;
@@ -356,13 +449,13 @@ public partial class MainViewModel : ObservableObject
                 return checklist;
             case NoteType.WeeklyReport:
                 var weekly = _weeklyReportEditorFactory();
-                await Task.Run(() =>
-                {
-                    if (note.ReportWeekStart is DateOnly ws) weekly.SelectedDate = ws;
-                    if (note.ReportFormat is ReportFormatKind fmt && weekly.SelectedFormat != fmt)
-                        weekly.SelectedFormat = fmt;
-                    else weekly.GenerateCommand.Execute(null);
-                });
+                // ViewModel 속성 변경은 WPF UI 스레드에 남겨 둔다. 이전 구현은
+                // Task.Run 안에서 PropertyChanged를 발생시켜 간헐적인 교차 스레드 오류를 냈다.
+                if (note.ReportWeekStart is DateOnly ws) weekly.SelectedDate = ws;
+                if (note.ReportFormat is ReportFormatKind fmt && weekly.SelectedFormat != fmt)
+                    weekly.SelectedFormat = fmt;
+                else
+                    await weekly.GenerateInBackgroundCommand.ExecuteAsync(null);
                 return weekly;
             default:
                 return null;
@@ -409,14 +502,21 @@ public partial class MainViewModel : ObservableObject
             if (generation != _notesLoadGeneration || !ReferenceEquals(SelectedNode, node)) return;
             foreach (var item in items) Notes.Add(item);
         }
+        catch (Exception ex)
+        {
+            AppLog.Error("LoadNotes", ex);
+        }
         finally
         {
             EndBusy();
         }
     }
 
+    public Task ReloadNotesAsync() => LoadNotesAsync(SelectedNode);
+
     public async Task MoveNoteToGroupAsync(int noteId, int? groupId)
     {
+        AppLog.Action("UI.MoveNote", $"note_id={noteId} target_group_id={groupId?.ToString() ?? "null"}");
         using var perf = AppLog.Measure("MoveNoteToGroup");
         BeginBusy("메모를 이동하는 중…");
         try
@@ -428,6 +528,10 @@ public partial class MainViewModel : ObservableObject
                 _noteRepo.SetGroup(note.Id, groupId);
             });
             await LoadNotesAsync(SelectedNode);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("MoveNoteToGroup", ex);
         }
         finally
         {
@@ -455,6 +559,28 @@ public partial class MainViewModel : ObservableObject
         _noteRepo.SetSortOrders(Notes.Select(n => n.Id).ToArray());
     }
 
+    public async Task ReorderNoteAsync(int noteId, int newIndex)
+    {
+        AppLog.Action("UI.ReorderNote", $"note_id={noteId} target_index={newIndex} count={Notes.Count}");
+        var oldIndex = Notes.ToList().FindIndex(n => n.Id == noteId);
+        if (oldIndex < 0) return;
+        newIndex = Math.Clamp(newIndex, 0, Notes.Count - 1);
+        if (oldIndex == newIndex) return;
+
+        Notes.Move(oldIndex, newIndex);
+        var orderedIds = Notes.Select(n => n.Id).ToArray();
+        try
+        {
+            using var perf = AppLog.Measure("ReorderNote");
+            await Task.Run(() => _noteRepo.SetSortOrders(orderedIds));
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("ReorderNote", ex);
+            await LoadNotesAsync(SelectedNode);
+        }
+    }
+
     [RelayCommand]
     private void NewPlainNote()
     {
@@ -467,12 +593,49 @@ public partial class MainViewModel : ObservableObject
             GroupId = SelectedNode is { Kind: SidebarNodeKind.Group } ? SelectedNode.GroupId : null,
             Title = null,
             Body = "",
-            BodyFormat = "markdown",
+            BodyFormat = MarkdownEnabled ? "markdown" : "plain",
             CreatedAt = now,
             UpdatedAt = now,
         };
         var id = _noteRepo.Create(note);
         NavigateToNote(id, note.GroupId);   // #3 새 메모를 즉시 선택 → 우측 편집창 표시
+    }
+
+    [RelayCommand]
+    private async Task NewPlainNoteWithLoadingAsync()
+    {
+        AppLog.Action("UI.NewPlainNote", $"group_id={SelectedNode?.GroupId?.ToString() ?? "null"}");
+        IsUndoAvailable = false;
+        BeginBusy("새 메모를 만드는 중…");
+        try
+        {
+            var groupId = SelectedNode is { Kind: SidebarNodeKind.Group } ? SelectedNode.GroupId : null;
+            var now = _time.GetUtcNow();
+            var newBodyFormat = MarkdownEnabled ? "markdown" : "plain";
+            var id = await Task.Run(() =>
+            {
+                using var perf = AppLog.Measure("NewPlainNote.Persist", 100);
+                return _noteRepo.Create(new Note
+                {
+                    Type = NoteType.Plain,
+                    GroupId = groupId,
+                    Title = null,
+                    Body = "",
+                    BodyFormat = newBodyFormat,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+            });
+            await NavigateToNoteAsync(id, groupId);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("NewPlainNote", ex);
+        }
+        finally
+        {
+            EndBusy();
+        }
     }
 
     [RelayCommand]
@@ -499,6 +662,46 @@ public partial class MainViewModel : ObservableObject
         NavigateToNote(id, group?.Id);
     }
 
+    [RelayCommand]
+    private async Task NewChecklistWithLoadingAsync()
+    {
+        AppLog.Action("UI.NewChecklist");
+        IsUndoAvailable = false;
+        BeginBusy("오늘의 업무일지를 불러오는 중…");
+        try
+        {
+            var today = DateOnly.FromDateTime(_time.GetUtcNow().LocalDateTime.Date);
+            var destination = await Task.Run(() =>
+            {
+                using var perf = AppLog.Measure("NewChecklist.Resolve", 100);
+                var existing = _noteRepo.FindChecklistForDate(today);
+                if (existing is not null) return (existing.Id, existing.GroupId);
+
+                var group = _groupRepo.GetAll()
+                    .FirstOrDefault(g => g.IsSystem && g.Name == ChecklistViewModel.DailyLogGroupName);
+                var now = _time.GetUtcNow();
+                var note = new Note
+                {
+                    Type = NoteType.Checklist,
+                    GroupId = group?.Id,
+                    LogDate = today,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+                return (_noteRepo.Create(note), group?.Id);
+            });
+            await NavigateToNoteAsync(destination.Item1, destination.Item2);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("NewChecklist", ex);
+        }
+        finally
+        {
+            EndBusy();
+        }
+    }
+
     // 사이드바 노드 선택 → 목록 재로드 → 해당 노트 선택(에디터 호스팅 트리거).
     public void NavigateToNote(int noteId, int? groupId)
     {
@@ -508,6 +711,23 @@ public partial class MainViewModel : ObservableObject
         if (node is not null) SelectedNode = node;
 
         LoadNotes();   // SelectedNode가 이미 동일하면 OnSelectedNodeChanged가 안 울리므로 명시 재로드
+        SelectedNote = Notes.FirstOrDefault(n => n.Id == noteId);
+    }
+
+    private async Task NavigateToNoteAsync(int noteId, int? groupId)
+    {
+        var node = (groupId is int gid ? FindNode(SidebarNodes, gid, SidebarNodeKind.Group) : null)
+                   ?? SystemNodes.FirstOrDefault(n => n.GroupId == groupId)
+                   ?? SidebarNodes.FirstOrDefault(n => n.Kind == SidebarNodeKind.Unclassified);
+
+        if (node is not null && !ReferenceEquals(SelectedNode, node))
+        {
+            _suppressSelectedNodeLoad = true;
+            try { SelectedNode = node; }
+            finally { _suppressSelectedNodeLoad = false; }
+        }
+
+        await LoadNotesAsync(SelectedNode);
         SelectedNote = Notes.FirstOrDefault(n => n.Id == noteId);
     }
 
@@ -524,14 +744,20 @@ public partial class MainViewModel : ObservableObject
 
     private async void OpenChecklistForDateWithLoading(DateOnly date)
     {
+        AppLog.Action("UI.NavigateChecklistDate", $"date={date:yyyy-MM-dd}");
+        using var perf = AppLog.Measure("Checklist.NavigateDate");
         var checklist = CurrentEditor as ChecklistViewModel;
         BeginBusy("일일업무일지를 불러오는 중…");
         try
         {
             if (checklist is not null) await checklist.FlushSavesAsync();
             var found = await Task.Run(() => _noteRepo.FindChecklistForDate(date));
-            if (found is not null) NavigateToNote(found.Id, found.GroupId);
-            else LoadChecklistDraft(date);
+            if (found is not null) await NavigateToNoteAsync(found.Id, found.GroupId);
+            else await LoadChecklistDraftAsync(date);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Checklist.NavigateDate", ex);
         }
         finally
         {
@@ -552,6 +778,19 @@ public partial class MainViewModel : ObservableObject
         CurrentEditor = draft;
         IsEditorVisible = true;
         _currentEditorNoteId = null;               // 아직 실 노트 없음
+    }
+
+    private async Task LoadChecklistDraftAsync(DateOnly date)
+    {
+        SelectedNote = null;
+        var draft = _checklistEditorFactory();
+        draft.NavigateToDateRequested += OpenChecklistForDateWithLoading;
+        draft.NoteMaterialized += OnChecklistMaterialized;
+        await draft.LoadDraftAsync(date);
+        CurrentNoteType = NoteType.Checklist;
+        CurrentEditor = draft;
+        IsEditorVisible = true;
+        _currentEditorNoteId = null;
     }
 
     // draft에서 첫 항목 추가로 실 노트가 생겼을 때: 목록 갱신 + 새 row 강조(에디터는 유지).
@@ -625,6 +864,7 @@ public partial class MainViewModel : ObservableObject
     private async Task DeleteNoteWithLoadingAsync(NoteListItemViewModel? item)
     {
         if (item is null) return;
+        AppLog.Action("UI.DeleteNote", $"note_id={item.Id}");
         using var perf = AppLog.Measure("DeleteNote");
         var wasOpen = _currentEditorNoteId == item.Id || _current?.Id == item.Id || SelectedNote?.Id == item.Id;
         var checklist = wasOpen ? CurrentEditor as ChecklistViewModel : null;
@@ -657,6 +897,10 @@ public partial class MainViewModel : ObservableObject
             IsUndoAvailable = true;
             UndoMessage = "메모를 휴지통으로 옮겼습니다.";
         }
+        catch (Exception ex)
+        {
+            AppLog.Error("DeleteNote", ex);
+        }
         finally
         {
             EndBusy();
@@ -677,6 +921,35 @@ public partial class MainViewModel : ObservableObject
         var restored = _noteRepo.Get(_lastDeletedNoteId);
         if (restored is not null) NavigateToNote(restored.Id, restored.GroupId);
         else LoadNotes();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUndoDelete))]
+    private async Task UndoDeleteWithLoadingAsync()
+    {
+        if (!IsUndoAvailable) return;
+        var noteId = _lastDeletedNoteId;
+        AppLog.Action("UI.UndoDelete", $"note_id={noteId}");
+        BeginBusy("메모를 복원하는 중…");
+        try
+        {
+            var restored = await Task.Run(() =>
+            {
+                _noteRepo.Restore(noteId);
+                return _noteRepo.Get(noteId);
+            });
+            IsUndoAvailable = false;
+            UndoMessage = "";
+            if (restored is not null) await NavigateToNoteAsync(restored.Id, restored.GroupId);
+            else await LoadNotesAsync(SelectedNode);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("UndoDelete", ex);
+        }
+        finally
+        {
+            EndBusy();
+        }
     }
 
     [RelayCommand]
@@ -704,13 +977,14 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadWeeklyReportAsync()
     {
+        AppLog.Action("UI.OpenWeeklyReport");
         using var perf = AppLog.Measure("LoadWeeklyReport");
         IsUndoAvailable = false;
         BeginBusy("주간보고를 생성하는 중…");
         try
         {
             var weekly = _weeklyReportEditorFactory();
-            await Task.Run(() => weekly.GenerateCommand.Execute(null));
+            await weekly.GenerateInBackgroundCommand.ExecuteAsync(null);
 
             if (weekly.CurrentNoteId is int id)
             {
@@ -722,6 +996,10 @@ public partial class MainViewModel : ObservableObject
             CurrentNoteType = NoteType.WeeklyReport;
             CurrentEditor = weekly;
             _currentEditorNoteId = weekly.CurrentNoteId;
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("LoadWeeklyReport", ex);
         }
         finally
         {
@@ -746,6 +1024,7 @@ public partial class MainViewModel : ObservableObject
     {
         using var perf = AppLog.Measure("Search");
         var query = SearchText.Trim();
+        AppLog.Action("UI.Search", $"length={query.Length}");
         var generation = ++_searchGeneration;
         SearchResults.Clear();
         if (query.Length == 0) return;
@@ -756,6 +1035,10 @@ public partial class MainViewModel : ObservableObject
             var results = await Task.Run(() => _search.Search(query));
             if (generation != _searchGeneration || !string.Equals(query, SearchText.Trim(), StringComparison.Ordinal)) return;
             foreach (var hit in results) SearchResults.Add(hit);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Search", ex);
         }
         finally
         {
@@ -788,7 +1071,11 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var note = await Task.Run(() => _noteRepo.Get(hit.NoteId));
-            if (note is not null) NavigateToNote(hit.NoteId, note.GroupId);
+            if (note is not null) await NavigateToNoteAsync(hit.NoteId, note.GroupId);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Search.Navigate", ex);
         }
         finally
         {
@@ -822,7 +1109,7 @@ public partial class MainViewModel : ObservableObject
 
         BodyFormat = note.BodyFormat;
         // 새/빈 본문 → 편집 모드, 내용 있으면 읽기 모드(markdown 노트만 읽기/편집 구분 의미 있음).
-        ViewMode = note.BodyFormat == "markdown" && !string.IsNullOrEmpty(note.Body)
+        ViewMode = MarkdownEnabled && note.BodyFormat == "markdown" && !string.IsNullOrEmpty(note.Body)
             ? MarkdownViewMode.Read : MarkdownViewMode.Edit;
 
         SaveStatus = "";   // 노트 전환 시 저장 표시 초기화
@@ -872,7 +1159,7 @@ public partial class MainViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(EditorTitle)) return EditorTitle.Trim();
         if (!string.IsNullOrEmpty(EditorBody))
         {
-            var isMarkdown = _current?.BodyFormat == "markdown";
+            var isMarkdown = MarkdownEnabled && _current?.BodyFormat == "markdown";
             // 본문 전체를 Split하면 키 입력마다 문자열 배열과 모든 줄을 새로 할당한다.
             // 제목에 필요한 첫 비어있지 않은 줄까지만 span으로 훑는다.
             var body = EditorBody.AsSpan();
@@ -906,13 +1193,14 @@ public partial class MainViewModel : ObservableObject
     {
         var dispatcher = Application.Current?.Dispatcher;
         if (dispatcher is null || dispatcher.CheckAccess()) action();
-        else dispatcher.Invoke(action);
+        else if (!dispatcher.HasShutdownStarted) dispatcher.BeginInvoke(action);
     }
 
     // 자동저장 콜백(백그라운드 스레드). 변경 시점 스냅샷만 사용하고 라이브 에디터 상태나
     // ObservableCollection은 건드리지 않는다.
     private void SaveCurrent(int noteId, AutosaveSnapshot snapshot)
     {
+        using var perf = AppLog.Measure("Autosave.SaveCurrent", 100);
         var note = _noteRepo.Get(noteId);
         if (note is null) return;
 

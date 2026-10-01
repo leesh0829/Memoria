@@ -81,6 +81,18 @@ public class ThemeServiceTests
     }
 
     [Fact]
+    public void System_notification_with_unchanged_effective_palette_does_not_reapply_resources()
+    {
+        var (svc, applier, sys, _) = Create(systemLight: true);
+        svc.Apply(ThemeMode.System, "default");
+        var countAfterApply = applier.PaletteApplyCount;
+
+        sys.RaiseChanged();
+
+        applier.PaletteApplyCount.Should().Be(countAfterApply);
+    }
+
+    [Fact]
     public void System_change_is_ignored_for_fixed_mode()
     {
         var (svc, applier, sys, _) = Create(systemLight: true);

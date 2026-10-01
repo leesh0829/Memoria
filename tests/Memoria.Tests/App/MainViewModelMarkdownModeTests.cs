@@ -21,6 +21,57 @@ public class MainViewModelMarkdownModeTests
     }
 
     [Fact]
+    public void DisabledMarkdown_opens_source_and_preserves_existing_format_and_body()
+    {
+        var notes = new FakeNoteRepository();
+        var now = DateTimeOffset.UtcNow;
+        var id = notes.Create(new Note { Type = NoteType.Plain, Body = "**원문**", BodyFormat = "markdown", CreatedAt = now, UpdatedAt = now });
+        var vm = NewVm(new FakeGroupRepository(), notes);
+        vm.MarkdownEnabled = false;
+
+        vm.OpenNote(id);
+
+        vm.ShowRead.Should().BeFalse();
+        vm.ShowRendered.Should().BeFalse();
+        vm.ShowToolbar.Should().BeFalse();
+        vm.ShowEdit.Should().BeTrue();
+        vm.ShowMarkdownConversion.Should().BeFalse();
+        vm.EditorBody.Should().Be("**원문**");
+        notes.Get(id)!.BodyFormat.Should().Be("markdown");
+        vm.SetReadModeCommand.CanExecute(null).Should().BeFalse();
+        vm.SetRenderedModeCommand.CanExecute(null).Should().BeFalse();
+
+        vm.MarkdownEnabled = true;
+        vm.SetReadModeCommand.Execute(null);
+        vm.ShowRead.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DisablingMarkdown_closes_active_preview_and_blocks_conversion()
+    {
+        var notes = new FakeNoteRepository();
+        var now = DateTimeOffset.UtcNow;
+        var id = notes.Create(new Note { Type = NoteType.Plain, Body = "메모", BodyFormat = "markdown", CreatedAt = now, UpdatedAt = now });
+        var vm = NewVm(new FakeGroupRepository(), notes);
+        vm.OpenNote(id);
+        vm.ShowRead.Should().BeTrue();
+
+        vm.MarkdownEnabled = false;
+
+        vm.ShowRead.Should().BeFalse();
+        vm.ShowEdit.Should().BeTrue();
+        vm.ConvertToMarkdownCommand.CanExecute(null).Should().BeFalse();
+        vm.ConvertToMarkdownWithLoadingCommand.CanExecute(null).Should().BeFalse();
+        vm.NewPlainNoteCommand.Execute(null);
+        // 이 테스트는 사이드바를 초기화하지 않으므로 화면 선택 상태 대신
+        // 실제 저장된 새 메모를 검사한다. 기존 Markdown 서식도 보존돼야 한다.
+        notes.Items.Should().HaveCount(2);
+        notes.Items.Should().ContainSingle(note => note.Id != id)
+            .Which.BodyFormat.Should().Be("plain");
+        notes.Get(id)!.BodyFormat.Should().Be("markdown");
+    }
+
+    [Fact]
     public void OpenNote_MarkdownWithContent_OpensInRead()
     {
         var notes = new FakeNoteRepository();

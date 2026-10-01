@@ -101,54 +101,64 @@ public partial class WeeklyReportViewModel : ObservableObject
         _anchorMonday = monday;
 
         // 양식 C는 월~금이 아니라 설정된 요일 구간(기본 전주 금 ~ 해당 주 목)을 집계한다.
-        var (start, end) = SelectedFormat == ReportFormatKind.C
-            ? _weekCalculator.GetCustomRange(SelectedDate, FormatCStartDay(), FormatCEndDay())
-            : (monday, friday);
+        var (start, end) = (monday, friday);
+        if (SelectedFormat == ReportFormatKind.C)
+        {
+            var settings = _settings.GetAll();
+            var startDay = ReportDayOfWeek.Parse(
+                Read(settings, SettingsKeys.FormatCStartDay, nameof(DayOfWeek.Friday)), DayOfWeek.Friday);
+            var endDay = ReportDayOfWeek.Parse(
+                Read(settings, SettingsKeys.FormatCEndDay, nameof(DayOfWeek.Thursday)), DayOfWeek.Thursday);
+            (start, end) = _weekCalculator.GetCustomRange(SelectedDate, startDay, endDay);
+        }
 
         WeekStart = start;
         WeekEnd = end;
         WeekRangeLabel = $"{start.ToString("MM/dd", System.Globalization.CultureInfo.InvariantCulture)} ~ {end.ToString("MM/dd", System.Globalization.CultureInfo.InvariantCulture)}";
     }
 
-    private DayOfWeek FormatCStartDay() => ReportDayOfWeek.Parse(
-        _settings.GetOrDefault(SettingsKeys.FormatCStartDay, nameof(DayOfWeek.Friday)), DayOfWeek.Friday);
-
-    private DayOfWeek FormatCEndDay() => ReportDayOfWeek.Parse(
-        _settings.GetOrDefault(SettingsKeys.FormatCEndDay, nameof(DayOfWeek.Thursday)), DayOfWeek.Thursday);
-
     private ReportRenderOptions BuildOptions(DateOnly monday, DateOnly friday)
     {
+        var settings = _settings.GetAll();
         var includeDoneOnly =
-            bool.TryParse(_settings.GetOrDefault(SettingsKeys.IncludeDoneOnly, "false"), out var b) && b;
+            bool.TryParse(Read(settings, SettingsKeys.IncludeDoneOnly, "false"), out var b) && b;
 
         var clients = _clientRepository.GetAll(enabledOnly: true);
 
         return new ReportRenderOptions
         {
-            ReporterName = _settings.GetOrDefault(SettingsKeys.ReporterName, "이승현"),
+            ReporterName = Read(settings, SettingsKeys.ReporterName, "이승현"),
             WeekStart = monday,
             WeekEnd = friday,
-            TaskHeaderA = _settings.GetOrDefault(SettingsKeys.FormatATaskHeader, "[업무 내용]"),
-            IssueHeaderA = _settings.GetOrDefault(SettingsKeys.FormatAIssueHeader, "[이슈]"),
-            TitleWordB = _settings.GetOrDefault(SettingsKeys.FormatBTitleWord, "주간 보고"),
-            IssueHeaderB = _settings.GetOrDefault(SettingsKeys.FormatBIssueHeader, "* 이슈사항:"),
-            TitleHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCTitleHeader, "[ 주간 실적 ]"),
-            PlanHeaderC = _settings.GetOrDefault(SettingsKeys.FormatCPlanHeader, "[ 차주 계획 ]"),
-            DetailMarkerC = _settings.GetOrDefault(SettingsKeys.FormatCDetailMarker, "o"),
-            ClientIdsC = FormatCClients.Resolve(_settings.Get(SettingsKeys.FormatCClientIds), clients),
-            Indent = _settings.GetOrDefault(SettingsKeys.ReportIndent, "\t"),
+            TaskHeaderA = Read(settings, SettingsKeys.FormatATaskHeader, "[업무 내용]"),
+            IssueHeaderA = Read(settings, SettingsKeys.FormatAIssueHeader, "[이슈]"),
+            TitleWordB = Read(settings, SettingsKeys.FormatBTitleWord, "주간 보고"),
+            IssueHeaderB = Read(settings, SettingsKeys.FormatBIssueHeader, "* 이슈사항:"),
+            TitleHeaderC = Read(settings, SettingsKeys.FormatCTitleHeader, "[ 주간 실적 ]"),
+            PlanHeaderC = Read(settings, SettingsKeys.FormatCPlanHeader, "[ 차주 계획 ]"),
+            DetailMarkerC = Read(settings, SettingsKeys.FormatCDetailMarker, "o"),
+            ClientIdsC = FormatCClients.Resolve(
+                settings.TryGetValue(SettingsKeys.FormatCClientIds, out var clientIds) ? clientIds : null,
+                clients),
+            Indent = Read(settings, SettingsKeys.ReportIndent, "\t"),
             IncludeDoneOnly = includeDoneOnly,
             Clients = clients,
             UnclassifiedLabel = "미분류",
         };
     }
 
-    private string RenderFresh(DateOnly start, DateOnly end)
+    private static string Read(IReadOnlyDictionary<string, string> settings, string key, string fallback)
+        => settings.TryGetValue(key, out var value) ? value : fallback;
+
+    private sealed record RenderResult(string Text, int UnclassifiedTaskCount);
+
+    private RenderResult RenderFresh(DateOnly start, DateOnly end, ReportFormatKind format)
     {
         var options = BuildOptions(start, end);
         var build = _reportService.BuildRange(start, end, options);
-        UnclassifiedTaskCount = build.UnclassifiedTaskCount;
-        return _reportService.Render(SelectedFormat, build.Data, options);
+        return new RenderResult(
+            _reportService.Render(format, build.Data, options),
+            build.UnclassifiedTaskCount);
     }
 
     [RelayCommand]
@@ -156,21 +166,38 @@ public partial class WeeklyReportViewModel : ObservableObject
     {
         // #4 항상 현재 체크리스트(일일 업무일지)에서 새로 렌더 → 체크리스트 수정이 열 때마다 즉시 반영된다.
         //    (이전엔 저장된 옛 본문을 재사용해 '다시 생성'을 눌러야만 최신화됐다.)
-        var existing = _noteRepository.FindWeeklyReport(_anchorMonday, SelectedFormat);
-        var text = RenderFresh(WeekStart, WeekEnd);   // RecomputeWeek가 SelectedDate·양식에 맞춰 이미 채움
-        ReportText = text;
-        Persist(_anchorMonday, existing, text);
+        var format = SelectedFormat;
+        var existing = _noteRepository.FindWeeklyReport(_anchorMonday, format);
+        var rendered = RenderFresh(WeekStart, WeekEnd, format);   // RecomputeWeek가 SelectedDate·양식에 맞춰 이미 채움
+        UnclassifiedTaskCount = rendered.UnclassifiedTaskCount;
+        ReportText = rendered.Text;
+        _currentNoteId = Persist(_anchorMonday, format, existing, rendered.Text);
     }
 
     [RelayCommand]
     private async Task GenerateInBackgroundAsync()
     {
+        AppLog.Action("UI.WeeklyReportGenerate", $"format={SelectedFormat} date={SelectedDate:yyyy-MM-dd}");
         using var perf = AppLog.Measure("WeeklyReport.Generate");
         var generation = ++_generation;
+        var monday = _anchorMonday;
+        var start = WeekStart;
+        var end = WeekEnd;
+        var format = SelectedFormat;
         IsBusy = true;
         try
         {
-            await Task.Run(Generate);
+            var result = await Task.Run(() =>
+            {
+                var existing = _noteRepository.FindWeeklyReport(monday, format);
+                var rendered = RenderFresh(start, end, format);
+                var noteId = Persist(monday, format, existing, rendered.Text);
+                return (rendered, noteId);
+            });
+            if (generation != _generation) return;
+            UnclassifiedTaskCount = result.rendered.UnclassifiedTaskCount;
+            ReportText = result.rendered.Text;
+            _currentNoteId = result.noteId;
         }
         finally
         {
@@ -181,23 +208,30 @@ public partial class WeeklyReportViewModel : ObservableObject
     [RelayCommand]
     private void Regenerate()
     {
-        var existing = _noteRepository.FindWeeklyReport(_anchorMonday, SelectedFormat);
+        var format = SelectedFormat;
+        var existing = _noteRepository.FindWeeklyReport(_anchorMonday, format);
         if (existing is not null && !string.IsNullOrEmpty(existing.Body))
         {
             if (!_dialogs.Confirm("기존에 편집한 주간보고 내용을 덮어씁니다. 계속할까요?"))
                 return;
         }
 
-        var text = RenderFresh(WeekStart, WeekEnd);
-        ReportText = text;
-        Persist(_anchorMonday, existing, text);
+        var rendered = RenderFresh(WeekStart, WeekEnd, format);
+        UnclassifiedTaskCount = rendered.UnclassifiedTaskCount;
+        ReportText = rendered.Text;
+        _currentNoteId = Persist(_anchorMonday, format, existing, rendered.Text);
     }
 
     [RelayCommand]
     private async Task RegenerateInBackgroundAsync()
     {
+        AppLog.Action("UI.WeeklyReportRegenerate", $"format={SelectedFormat} date={SelectedDate:yyyy-MM-dd}");
         using var perf = AppLog.Measure("WeeklyReport.Regenerate");
-        var existing = await Task.Run(() => _noteRepository.FindWeeklyReport(_anchorMonday, SelectedFormat));
+        var monday = _anchorMonday;
+        var start = WeekStart;
+        var end = WeekEnd;
+        var format = SelectedFormat;
+        var existing = await Task.Run(() => _noteRepository.FindWeeklyReport(monday, format));
         if (existing is not null && !string.IsNullOrEmpty(existing.Body)
             && !_dialogs.Confirm("기존에 편집한 주간보고 내용을 덮어씁니다. 계속할까요?"))
             return;
@@ -206,12 +240,16 @@ public partial class WeeklyReportViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            await Task.Run(() =>
+            var result = await Task.Run(() =>
             {
-                var text = RenderFresh(WeekStart, WeekEnd);
-                ReportText = text;
-                Persist(_anchorMonday, existing, text);
+                var rendered = RenderFresh(start, end, format);
+                var noteId = Persist(monday, format, existing, rendered.Text);
+                return (rendered, noteId);
             });
+            if (generation != _generation) return;
+            UnclassifiedTaskCount = result.rendered.UnclassifiedTaskCount;
+            ReportText = result.rendered.Text;
+            _currentNoteId = result.noteId;
         }
         finally
         {
@@ -219,7 +257,7 @@ public partial class WeeklyReportViewModel : ObservableObject
         }
     }
 
-    private void Persist(DateOnly monday, Note? existing, string text)
+    private int Persist(DateOnly monday, ReportFormatKind format, Note? existing, string text)
     {
         if (existing is null)
         {
@@ -227,18 +265,16 @@ public partial class WeeklyReportViewModel : ObservableObject
             {
                 Type = NoteType.WeeklyReport,
                 GroupId = ResolveWeeklyReportGroupId(),
-                ReportFormat = SelectedFormat,
+                ReportFormat = format,
                 ReportWeekStart = monday,
                 Body = text,
             };
-            _currentNoteId = _noteRepository.Create(note);
+            return _noteRepository.Create(note);
         }
-        else
-        {
-            existing.Body = text;
-            _noteRepository.Update(existing);
-            _currentNoteId = existing.Id;
-        }
+
+        existing.Body = text;
+        _noteRepository.Update(existing);
+        return existing.Id;
     }
 
     private int? ResolveWeeklyReportGroupId()
@@ -265,8 +301,9 @@ public partial class WeeklyReportViewModel : ObservableObject
     {
         var monday = WeekStart;   // 양식 C면 금~목 구간
         var friday = WeekEnd;
-        var sheetId = _settings.GetOrDefault(SettingsKeys.GoogleSheetId, "");
-        var tabName = _settings.GetOrDefault(SettingsKeys.GoogleSheetTabName, "일자 작업내역");
+        var settings = _settings.GetAll();
+        var sheetId = Read(settings, SettingsKeys.GoogleSheetId, "");
+        var tabName = Read(settings, SettingsKeys.GoogleSheetTabName, "일자 작업내역");
         if (string.IsNullOrWhiteSpace(sheetId))
         {
             _dialogs.Confirm("구글 시트 ID가 설정되지 않았습니다. 설정 > 구글 연동에서 입력하세요.");
@@ -276,19 +313,30 @@ public partial class WeeklyReportViewModel : ObservableObject
         try
         {
             var grid = await _sheetReader.ReadRowsAsync(sheetId, tabName);
-            var parsed = SheetWorkParser.Parse(grid, monday, friday);
-            if (parsed.Tasks.Count == 0 && parsed.Issues.Count == 0)
+            var anchorMonday = _anchorMonday;
+            var format = SelectedFormat;
+            var result = await Task.Run(() =>
+            {
+                var parsed = SheetWorkParser.Parse(grid, monday, friday);
+                if (parsed.Tasks.Count == 0 && parsed.Issues.Count == 0)
+                    return (Found: false, Text: "", Unclassified: 0, NoteId: (int?)null);
+
+                var options = BuildOptions(monday, friday);
+                var build = _reportService.BuildFromTexts(parsed.Tasks, parsed.Issues, monday, friday, options);
+                var text = _reportService.Render(format, build.Data, options);
+                var existing = _noteRepository.FindWeeklyReport(anchorMonday, format);
+                var noteId = Persist(anchorMonday, format, existing, text);
+                return (Found: true, Text: text, Unclassified: build.UnclassifiedTaskCount, NoteId: (int?)noteId);
+            });
+            if (!result.Found)
             {
                 _dialogs.Confirm("이번 주에 해당하는 시트 행이 없습니다. 주(날짜)와 탭 이름을 확인하세요.");
                 return;
             }
-            var options = BuildOptions(monday, friday);
-            var build = _reportService.BuildFromTexts(parsed.Tasks, parsed.Issues, monday, friday, options);
-            UnclassifiedTaskCount = build.UnclassifiedTaskCount;
-            var text = _reportService.Render(SelectedFormat, build.Data, options);
-            ReportText = text;
-            var existing = _noteRepository.FindWeeklyReport(_anchorMonday, SelectedFormat);
-            Persist(_anchorMonday, existing, text);
+
+            UnclassifiedTaskCount = result.Unclassified;
+            ReportText = result.Text;
+            _currentNoteId = result.NoteId;
         }
         catch (System.Exception ex)
         {

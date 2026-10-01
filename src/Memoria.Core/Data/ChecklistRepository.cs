@@ -19,7 +19,7 @@ public sealed class ChecklistRepository : IChecklistRepository
         var now = DateTimeOffset.UtcNow;
         item.CreatedAt = now;
         item.UpdatedAt = now;
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Checklist.AddItem"))
         {
             var conn = _factory.Write;
             conn.Execute(
@@ -34,7 +34,7 @@ public sealed class ChecklistRepository : IChecklistRepository
 
     public void UpdateItem(ChecklistItem item)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Checklist.UpdateItem"))
         {
             _factory.Write.Execute(
                 "UPDATE checklist_items SET kind = @Kind, text = @Text, done = @Done, done_at = @DoneAt, " +
@@ -46,7 +46,7 @@ public sealed class ChecklistRepository : IChecklistRepository
     public void UpdateItems(IReadOnlyList<ChecklistItem> items)
     {
         if (items.Count == 0) return;
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Checklist.UpdateItems"))
         {
             var conn = _factory.Write;
             using var tx = conn.BeginTransaction();
@@ -60,7 +60,7 @@ public sealed class ChecklistRepository : IChecklistRepository
 
     public void UpdateItemMetadata(ChecklistItem item)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Checklist.UpdateItemMetadata"))
             _factory.Write.Execute(
                 "UPDATE checklist_items SET done = @Done, done_at = @DoneAt, client_id = @ClientId, " +
                 "is_manual = @IsManual, sort_order = @SortOrder, updated_at = @UpdatedAt WHERE id = @Id;", item);
@@ -69,7 +69,7 @@ public sealed class ChecklistRepository : IChecklistRepository
     public void SetSortOrders(IReadOnlyList<ChecklistItem> items)
     {
         if (items.Count == 0) return;
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Checklist.SetSortOrders"))
         {
             var conn = _factory.Write;
             using var tx = conn.BeginTransaction();
@@ -81,7 +81,7 @@ public sealed class ChecklistRepository : IChecklistRepository
 
     public void DeleteItem(int id)
     {
-        lock (_factory.WriteSync)
+        using (DatabaseDiagnostics.EnterWrite(_factory.WriteSync, "Checklist.DeleteItem"))
         {
             _factory.Write.Execute("DELETE FROM checklist_items WHERE id = @id;", new { id });
         }
@@ -89,6 +89,7 @@ public sealed class ChecklistRepository : IChecklistRepository
 
     public IReadOnlyList<ChecklistItem> GetByNote(int noteId)
     {
+        using var perf = DatabaseDiagnostics.Measure("Checklist.GetByNote");
         using var conn = _factory.Open();
         return conn.Query<ChecklistItem>(
             $"SELECT {SelectColumns} FROM checklist_items WHERE note_id = @noteId " +
@@ -97,6 +98,7 @@ public sealed class ChecklistRepository : IChecklistRepository
 
     public IReadOnlyList<ChecklistItem> GetByNotes(IReadOnlyList<int> noteIds)
     {
+        using var perf = DatabaseDiagnostics.Measure("Checklist.GetByNotes");
         if (noteIds.Count == 0) return [];
         using var conn = _factory.Open();
         return conn.Query<ChecklistItem>(
