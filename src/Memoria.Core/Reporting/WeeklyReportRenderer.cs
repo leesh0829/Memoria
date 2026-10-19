@@ -34,8 +34,7 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         foreach (var group in groups)
         {
             var name = group.Key is int id && names.TryGetValue(id, out var n) ? n : options.UnclassifiedLabel;
-            var header = name switch { "SLD" => "MES", "SLD 자율형공장" => "ICC", _ => name };
-            lines.Add("- " + header);
+            lines.Add("- " + ClientHeader(name));
             foreach (var task in group)
             {
                 var text = StripClientPrefix(task.Text, name, options.Clients);
@@ -45,10 +44,22 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         }
         lines.Add("");
         lines.Add(options.IssueHeaderA);
-        foreach (var issue in data.Issues.DistinctBy(i => i.Text.Trim()))
-            lines.Add(options.Indent + "- " + issue.Text);
+        // 고객사 미지정/삭제된 고객사의 이슈는 고객사 묶음보다 먼저 출력한다.
+        var issueGroups = data.Issues
+            .GroupBy(issue => issue.ClientId is int id && names.ContainsKey(id) ? (int?)id : null)
+            .OrderBy(group => group.Key is int id ? clientOrder[id] : -1);
+        foreach (var group in issueGroups)
+        {
+            var name = group.Key is int id ? names[id] : "";
+            if (group.Key is not null) lines.Add("- " + ClientHeader(name));
+            foreach (var issue in group.DistinctBy(i => i.Text.Trim()))
+                lines.Add(options.Indent + "- " + StripClientPrefix(issue.Text, name, options.Clients));
+        }
         return string.Join("\n", lines);
     }
+
+    private static string ClientHeader(string name)
+        => name switch { "SLD" => "MES", "SLD 자율형공장" => "ICC", _ => name };
 
     private static string StripClientPrefix(string text, string name, IReadOnlyList<Client> clients)
     {
@@ -57,7 +68,7 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
                      .Append("충북테크놀로지파크").OrderByDescending(n => n.Length))
         {
             if (string.IsNullOrWhiteSpace(prefix)) continue;
-            if (text == prefix) return "";
+            if (text == prefix) return text; // 고객사명만 있는 원문까지 빈 항목으로 만들지 않는다.
             if (text.StartsWith(prefix, StringComparison.Ordinal)
                 && " :：/-_\t".Contains(text[prefix.Length]))
                 return text[prefix.Length..].TrimStart(' ', ':', '：', '/', '-', '_', '\t');

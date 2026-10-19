@@ -149,4 +149,40 @@ public class WeeklyReportServiceTests
         result.Data.Tasks.Should().HaveCount(2);   // Data는 전부 포함(렌더러가 필터)
         result.UnclassifiedTaskCount.Should().Be(1); // done인 미분류만 카운트
     }
+    [Fact]
+    public void Build_ClassifiesIssuesAndPreservesManualAssignmentsIncludingUnclassified()
+    {
+        using var db = new TestDb();
+        var (svc, notes, items, clients) = Build(db);
+        var noteId = notes.Create(new Note { Type = NoteType.Checklist, LogDate = new DateOnly(2026, 10, 19) });
+        var enabled = clients.GetAll(enabledOnly: true);
+        var sld = enabled.Single(c => c.Name == "SLD").Id;
+        var mtp = enabled.Single(c => c.Name == "MTP").Id;
+        items.AddItem(new() { NoteId = noteId, Kind = ItemKind.Issue, Text = "SLD 자동 분류" });
+        items.AddItem(new() { NoteId = noteId, Kind = ItemKind.Issue, Text = "SLD 수동 MTP", IsManual = true, ClientId = mtp });
+        items.AddItem(new() { NoteId = noteId, Kind = ItemKind.Issue, Text = "SLD 수동 미지정", IsManual = true });
+        items.AddItem(new() { NoteId = noteId, Kind = ItemKind.Issue, Text = "전체 공지" });
+
+        var result = svc.Build(new DateOnly(2026, 10, 19), new() { Clients = enabled });
+
+        result.Data.Issues.Should().Contain(i => i.Text == "SLD 자동 분류" && i.ClientId == sld);
+        result.Data.Issues.Should().Contain(i => i.Text == "SLD 수동 MTP" && i.ClientId == mtp);
+        result.Data.Issues.Should().Contain(i => i.Text == "SLD 수동 미지정" && i.ClientId == null);
+        result.Data.Issues.Should().Contain(i => i.Text == "전체 공지" && i.ClientId == null);
+    }
+
+    [Fact]
+    public void SheetIssues_UseSameClientClassificationAndGroupedOutput()
+    {
+        using var db = new TestDb();
+        var (svc, _, _, clients) = Build(db);
+        var options = new ReportRenderOptions { Clients = clients.GetAll(enabledOnly: true) };
+        var start = new DateOnly(2026, 10, 16);
+        var result = svc.BuildFromTexts([], ["MTP 일정 조정", "공통 공지", "SLD 자율형공장 회의"], start, start.AddDays(6), options);
+        var a = svc.Render(ReportFormatKind.A, result.Data, options);
+        a.Should().Contain("[이슈]\n\t- 공통 공지\n- MTP\n\t- 일정 조정\n- ICC\n\t- 회의");
+        result.Data.Issues.Should().Contain(i => i.Text == "MTP 일정 조정" && i.ClientId != null);
+        result.Data.Issues.Should().Contain(i => i.Text == "공통 공지" && i.ClientId == null);
+    }
+
 }

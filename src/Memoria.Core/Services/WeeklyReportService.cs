@@ -51,18 +51,18 @@ public sealed class WeeklyReportService : IWeeklyReportService
         {
             foreach (var item in itemsByNote[note.Id])
             {
+                int? clientId = item.IsManual
+                    ? item.ClientId
+                    : _classifier.Classify(item.Text, rules, enabledIds);
                 if (item.Kind == ItemKind.Task)
                 {
-                    int? clientId = item.IsManual
-                        ? item.ClientId
-                        : _classifier.Classify(item.Text, rules, enabledIds);
                     tasks.Add(new ReportTask(item.Text, clientId, item.Done,
                         item.Done ? (item.DoneAt is { } completed
                             ? DateOnly.FromDateTime(completed.LocalDateTime) : note.LogDate) : null));
                 }
                 else
                 {
-                    issues.Add(new ReportIssue(item.Text));
+                    issues.Add(new ReportIssue(item.Text, clientId));
                 }
             }
         }
@@ -88,7 +88,7 @@ public sealed class WeeklyReportService : IWeeklyReportService
         var tasks = taskTexts
             .Select(t => new ReportTask(t, _classifier.Classify(t, rules, enabledIds), Done: true))
             .ToList();
-        var issues = issueTexts.Select(t => new ReportIssue(t)).ToList();
+        var issues = issueTexts.Select(t => new ReportIssue(t, _classifier.Classify(t, rules, enabledIds))).ToList();
 
         tasks = ReportTaskDeduplicator.Merge(tasks).ToList();
         var relevant = options.IncludeDoneOnly ? tasks.Where(t => t.Done) : tasks;
