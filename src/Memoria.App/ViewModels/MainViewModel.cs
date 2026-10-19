@@ -314,6 +314,9 @@ public partial class MainViewModel : ObservableObject
             ? "none"
             : $"kind={value.Kind} group_id={value.GroupId?.ToString() ?? "null"}");
         IsUndoAvailable = false;   // 그룹 이동 등 다른 동작 시 휴지통 Undo 토스트 자동 해제
+        // 업무 내역 진입 시 SelectedNote는 이미 null이다. 그룹 이동으로 목록을 비워도
+        // SelectedNoteChanged(null)이 다시 발생하지 않으므로 전체 화면 에디터를 직접 해제한다.
+        if (CurrentEditor is WorkEntriesViewModel) ClearEditor();
         BuildFolders();
         BuildBreadcrumb();
         if (_suppressSelectedNodeLoad) return;

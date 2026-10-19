@@ -14,7 +14,7 @@ public class MainViewModelEditorHostTests
     // M9 신규 파라미터를 포함해 MainViewModel을 구성한다.
     // (M3~M8에서 생성자가 더 늘었다면, 기존 파라미터를 보존한 현재 시그니처에 맞춰 이 헬퍼를 갱신한다.)
     internal static (MainViewModel vm, FakeNoteRepository notes, FakeGroupRepository groups, FakeSearchService search)
-        Build()
+        Build(Func<WorkEntriesViewModel>? workEntriesFactory = null)
     {
         var groups = new FakeGroupRepository();
         var notes = new FakeNoteRepository();
@@ -32,7 +32,7 @@ public class MainViewModelEditorHostTests
                 new FakeConfirm(), time, new FakeSheetReader());
 
         var vm = new MainViewModel(groups, notes, autosave, recovery, time,
-            search, checklistFactory, weeklyFactory);
+            search, checklistFactory, weeklyFactory, workEntriesFactory);
         return (vm, notes, groups, search);
     }
 
