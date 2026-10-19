@@ -10,7 +10,7 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         {
             ReportFormatKind.A => RenderA(data, options),
             ReportFormatKind.B => RenderB(data, options),
-            ReportFormatKind.C => RenderA(data, options, omitClientHeaders: true),
+            ReportFormatKind.C => FormatAReport.WithoutClientHeaders(RenderA(data, options), options),
             ReportFormatKind.D => RenderD(data, options),
             _ => throw new ArgumentOutOfRangeException(nameof(format)),
         }).Replace("충북테크놀로지파크", "충북테크노파크 (FEMS)", StringComparison.Ordinal);
@@ -22,7 +22,7 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
     private static IEnumerable<ReportTask> VisibleTasks(WeeklyReportData data, ReportRenderOptions options)
         => ReportTaskDeduplicator.Merge(options.IncludeDoneOnly ? data.Tasks.Where(t => t.Done) : data.Tasks);
 
-    private static string RenderA(WeeklyReportData data, ReportRenderOptions options, bool omitClientHeaders = false)
+    private static string RenderA(WeeklyReportData data, ReportRenderOptions options)
     {
         var lines = new List<string> { options.TaskHeaderA };
         var names = options.Clients.ToDictionary(c => c.Id, c => c.Name);
@@ -35,7 +35,7 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         {
             var name = group.Key is int id && names.TryGetValue(id, out var n) ? n : options.UnclassifiedLabel;
             var header = name switch { "SLD" => "MES", "SLD 자율형공장" => "ICC", _ => name };
-            if (!omitClientHeaders) lines.Add("[ " + header + " ]");
+            lines.Add("- " + header);
             foreach (var task in group)
             {
                 var text = StripClientPrefix(task.Text, name, options.Clients);

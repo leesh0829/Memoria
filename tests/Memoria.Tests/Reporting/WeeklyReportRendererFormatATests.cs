@@ -25,8 +25,8 @@ public class WeeklyReportRendererFormatATests
             new("설계", 1, false),
         ], [new("장비 이슈")]);
         var text = _renderer.Render(ReportFormatKind.A, data, new() { Clients = Clients });
-        text.Should().Be("[업무 내용]\n[ MES ]\n\t- 점검 [완료일자: 10/15]\n\t- 설계 [완료일자: --/--]"
-            + "\n[ MTP ]\n\t- 개발 [완료일자: --/--]\n[ ICC ]\n\t- 회의 [완료일자: 10/14]\n\n[이슈]\n\t- 장비 이슈");
+        text.Should().Be("[업무 내용]\n- MES\n\t- 점검 [완료일자: 10/15]\n\t- 설계 [완료일자: --/--]"
+            + "\n- MTP\n\t- 개발 [완료일자: --/--]\n- ICC\n\t- 회의 [완료일자: 10/14]\n\n[이슈]\n\t- 장비 이슈");
     }
 
     [Fact]

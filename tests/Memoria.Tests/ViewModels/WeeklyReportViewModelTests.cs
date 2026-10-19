@@ -536,4 +536,53 @@ public class WeeklyReportViewModelTests
         vm.ShowFormatD.Should().BeTrue();
     }
 
+    [Fact]
+    public void SwitchingFromEditedAToC_UsesCurrentABodyInsteadOfRebuildingChecklist()
+    {
+        var (vm, svc, _, clients, _, _, _, _) = CreateSut();
+        clients.Clients.Add(new Client { Id = 2, Name = "MTP" });
+        vm.GenerateCommand.Execute(null);
+        vm.ReportText = "[업무 내용]\n- MES\n\t- 수정 업무 [완료일자: 06/24]\n- MTP\n\t- 추가 업무 [완료일자: --/--]\n\n[이슈]\n\t- 사용자 이슈";
+        var builds = svc.BuildCallCount;
+        svc.RenderResult = "다른 체크리스트 본문";
+
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        svc.BuildCallCount.Should().Be(builds);
+        vm.ReportText.Should().Be("[업무 내용]\n\t- 수정 업무 [완료일자: 06/24]\n\t- 추가 업무 [완료일자: --/--]\n\n[이슈]\n\t- 사용자 이슈");
+    }
+
+    [Fact]
+    public async Task SwitchingFromSheetAToC_KeepsSheetContent()
+    {
+        var reader = new FakeSpreadsheetReader
+        {
+            Grid = [["일자", "작업내역", "특이사항"], ["2026.06.24", "1. SLD 시트 업무", ""]],
+        };
+        var (vm, svc, _, _, _, settings, _, _) = CreateSut(reader: reader);
+        settings.Set(SettingsKeys.GoogleSheetId, "SHEET123");
+        svc.RenderResult = "[업무 내용]\n- MES\n\t- 시트 업무 [완료일자: 06/24]\n\n[이슈]";
+        await vm.GenerateFromSheetCommand.ExecuteAsync(null);
+        svc.RenderResult = "체크리스트 업무";
+
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        vm.ReportText.Should().Be("[업무 내용]\n\t- 시트 업무 [완료일자: 06/24]\n\n[이슈]");
+    }
+
+    [Fact]
+    public void CDoesNotReuseAFromAnotherWeek()
+    {
+        var (vm, svc, _, _, _, _, _, _) = CreateSut();
+        svc.RenderResult = "이전 주 A";
+        vm.GenerateCommand.Execute(null);
+        vm.SelectedDate = vm.SelectedDate.AddDays(7);
+        svc.RenderResult = "새 주 C";
+
+        vm.SelectedFormat = ReportFormatKind.C;
+
+        vm.ReportText.Should().Be("새 주 C");
+        svc.LastRenderFormat.Should().Be(ReportFormatKind.C);
+    }
+
 }

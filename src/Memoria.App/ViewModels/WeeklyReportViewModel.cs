@@ -30,6 +30,23 @@ public partial class WeeklyReportViewModel : ObservableObject
 
     private int? _currentNoteId;
     private int _generation;
+    private sealed record FormatASnapshot(DateOnly Start, DateOnly End, string Text, int Unclassified);
+    private FormatASnapshot? _formatASnapshot;
+
+    partial void OnReportTextChanged(string value) => RememberFormatA(value);
+
+    private void RememberFormatA(string text)
+    {
+        if (SelectedFormat == ReportFormatKind.A)
+            _formatASnapshot = new(WeekStart, WeekEnd, text, UnclassifiedTaskCount);
+    }
+
+    private void SetRenderedText(string text)
+    {
+        ReportText = text;
+        // 주차만 바뀌고 생성 본문이 같아도 원본 기간·미분류 수는 갱신한다.
+        RememberFormatA(text);
+    }
 
     /// 저장 앵커. 양식 C는 표시 구간이 금~목이라 시작일을 그대로 저장하면 노트를 다시 열 때
     /// 구간이 한 주 밀린다. 그래서 A/B/C 모두 '선택 날짜가 속한 주의 월요일'을 키로 쓴다.
@@ -167,6 +184,11 @@ public partial class WeeklyReportViewModel : ObservableObject
     private RenderResult RenderFresh(DateOnly start, DateOnly end, ReportFormatKind format)
     {
         var options = BuildOptions(start, end);
+        // A→C 전환 시 시트에서 생성하거나 직접 편집한 현재 A 본문을 그대로 사용한다.
+        // 체크리스트를 다시 조회하면 A와 C의 원본이 달라질 수 있다.
+        if (format == ReportFormatKind.C && _formatASnapshot is { } source
+            && source.Start == start && source.End == end)
+            return new RenderResult(FormatAReport.WithoutClientHeaders(source.Text, options), source.Unclassified);
         var build = _reportService.BuildRange(start, end, options);
         return new RenderResult(
             _reportService.Render(format, build.Data, options),
@@ -182,7 +204,7 @@ public partial class WeeklyReportViewModel : ObservableObject
         var existing = _noteRepository.FindWeeklyReport(_anchorMonday, format);
         var rendered = RenderFresh(WeekStart, WeekEnd, format);   // RecomputeWeek가 SelectedDate·양식에 맞춰 이미 채움
         UnclassifiedTaskCount = rendered.UnclassifiedTaskCount;
-        ReportText = rendered.Text;
+        SetRenderedText(rendered.Text);
         _currentNoteId = Persist(_anchorMonday, format, existing, rendered.Text);
     }
 
@@ -208,7 +230,7 @@ public partial class WeeklyReportViewModel : ObservableObject
             });
             if (generation != _generation) return;
             UnclassifiedTaskCount = result.rendered.UnclassifiedTaskCount;
-            ReportText = result.rendered.Text;
+            SetRenderedText(result.rendered.Text);
             _currentNoteId = result.noteId;
         }
         finally
@@ -230,7 +252,7 @@ public partial class WeeklyReportViewModel : ObservableObject
 
         var rendered = RenderFresh(WeekStart, WeekEnd, format);
         UnclassifiedTaskCount = rendered.UnclassifiedTaskCount;
-        ReportText = rendered.Text;
+        SetRenderedText(rendered.Text);
         _currentNoteId = Persist(_anchorMonday, format, existing, rendered.Text);
     }
 
@@ -260,7 +282,7 @@ public partial class WeeklyReportViewModel : ObservableObject
             });
             if (generation != _generation) return;
             UnclassifiedTaskCount = result.rendered.UnclassifiedTaskCount;
-            ReportText = result.rendered.Text;
+            SetRenderedText(result.rendered.Text);
             _currentNoteId = result.noteId;
         }
         finally
@@ -353,7 +375,7 @@ public partial class WeeklyReportViewModel : ObservableObject
             }
 
             UnclassifiedTaskCount = result.Unclassified;
-            ReportText = result.Text;
+            SetRenderedText(result.Text);
             _currentNoteId = result.NoteId;
         }
         catch (System.Exception ex)
