@@ -89,6 +89,7 @@ internal static class DapperConfig
             "A" => ReportFormatKind.A,
             "B" => ReportFormatKind.B,
             "C" => ReportFormatKind.C,
+            "D" => ReportFormatKind.D,
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown report format"),
         };
 
@@ -100,6 +101,7 @@ internal static class DapperConfig
                 ReportFormatKind.A => "A",
                 ReportFormatKind.B => "B",
                 ReportFormatKind.C => "C",
+                ReportFormatKind.D => "D",
                 _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown report format"),
             };
         }

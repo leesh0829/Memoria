@@ -94,6 +94,15 @@ public partial class MainWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MainViewModel.CurrentEditor))
+        {
+            var work = ViewModel.CurrentEditor as WorkEntriesViewModel;
+            NoteListPanel.Visibility = work is null ? Visibility.Visible : Visibility.Collapsed;
+            EditorPanel.Visibility = work is null ? Visibility.Visible : Visibility.Collapsed;
+            SidebarSplitter1.Visibility = work is null && !_sidebarCollapsed ? Visibility.Visible : Visibility.Collapsed;
+            WorkEntriesPanel.DataContext = work;
+            WorkEntriesPanel.Visibility = work is null ? Visibility.Collapsed : Visibility.Visible;
+        }
         if (e.PropertyName == nameof(MainViewModel.SelectedNode))
             SyncSidebarSelection();
     }

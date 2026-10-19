@@ -2,7 +2,10 @@ using System.Text.RegularExpressions;
 
 namespace Memoria.Core.Sheets;
 
-public sealed record ParsedWeek(IReadOnlyList<string> Tasks, IReadOnlyList<string> Issues);
+public sealed record ParsedWeek(IReadOnlyList<string> Tasks, IReadOnlyList<string> Issues)
+{
+    public IReadOnlyDictionary<string, DateOnly> TaskDates { get; init; } = new Dictionary<string, DateOnly>();
+}
 
 /// <summary>구글 시트 '일자 작업내역' 격자 → 대상 주(월~금)의 업무/이슈 텍스트. 순수 함수.</summary>
 public static class SheetWorkParser
@@ -16,15 +19,20 @@ public static class SheetWorkParser
     {
         var tasks = new List<string>();
         var issues = new List<string>();
+        var taskDates = new Dictionary<string, DateOnly>();
         for (int r = 1; r < grid.Count; r++)   // 0행(헤더) 스킵
         {
             var row = grid[r];
             if (!TryParseDate(Cell(row, 0), out var date)) continue;
             if (date < monday || date > friday) continue;
-            tasks.AddRange(SplitItems(Cell(row, 1)));
+            foreach (var task in SplitItems(Cell(row, 1)))
+            {
+                tasks.Add(task);
+                if (!taskDates.TryGetValue(task, out var previous) || date > previous) taskDates[task] = date;
+            }
             issues.AddRange(SplitItems(Cell(row, 2)));
         }
-        return new ParsedWeek(tasks, issues);
+        return new ParsedWeek(tasks, issues) { TaskDates = taskDates };
     }
 
     public static bool TryParseDate(string cell, out DateOnly date)

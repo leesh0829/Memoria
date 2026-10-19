@@ -23,7 +23,7 @@ public class DatabaseInitializerTests
             File.Exists(path).Should().BeTrue();
 
             using var conn = factory.Open();
-            conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(5);   // v5: 누적 데이터용 목록 복합 인덱스
+            conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(6);   // v5: 누적 데이터용 목록 복합 인덱스
             conn.ExecuteScalar<string>("PRAGMA journal_mode;").Should().Be("wal");
 
             conn.ExecuteScalar<long>("SELECT COUNT(*) FROM clients;").Should().Be(6);

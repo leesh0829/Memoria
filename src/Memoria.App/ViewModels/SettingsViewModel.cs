@@ -70,6 +70,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _detailMarkerC = "o";
     [ObservableProperty] private string _reportIndent = "\t";
     [ObservableProperty] private bool _includeDoneOnly;
+    [ObservableProperty] private bool _showFormatD;
 
     [ObservableProperty] private string _serviceAccountJsonPath = "";
     [ObservableProperty] private string _sheetId = "";
@@ -113,6 +114,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         Mode = _theme.Mode;
         Preset = _theme.Preset;
 
+        ShowFormatD = bool.TryParse(Read(SettingsKeys.ShowFormatD, "false"), out var showD) && showD;
         ReporterName = Read(SettingsKeys.ReporterName, "이승현");
         TaskHeaderA = Read(SettingsKeys.FormatATaskHeader, "[업무 내용]");
         IssueHeaderA = Read(SettingsKeys.FormatAIssueHeader, "[이슈]");
@@ -213,6 +215,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             [SettingsKeys.FormatAIssueHeader] = IssueHeaderA,
             [SettingsKeys.FormatBTitleWord] = TitleWordB,
             [SettingsKeys.FormatBIssueHeader] = IssueHeaderB,
+            [SettingsKeys.ShowFormatD] = ShowFormatD.ToString().ToLowerInvariant(),
             [SettingsKeys.FormatCStartDay] = StartDayC.ToString(),
             [SettingsKeys.FormatCEndDay] = EndDayC.ToString(),
             [SettingsKeys.FormatCTitleHeader] = TitleHeaderC,

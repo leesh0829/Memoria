@@ -27,6 +27,10 @@
             <RadioButton Content="양식 C" Margin="0,0,12,4" VerticalAlignment="Center"
                          Foreground="{DynamicResource Brush.Foreground}"
                          IsChecked="{Binding SelectedFormat, Converter={x:Static conv:EnumMatchConverter.Instance}, ConverterParameter={x:Static models:ReportFormatKind.C}}"/>
+            <RadioButton Content="양식 D" Margin="0,0,12,4"
+                         Visibility="{Binding ShowFormatD, Converter={StaticResource BoolToVis}}"
+                         Foreground="{DynamicResource Brush.Foreground}"
+                         IsChecked="{Binding SelectedFormat, Converter={x:Static conv:EnumMatchConverter.Instance}, ConverterParameter={x:Static models:ReportFormatKind.D}}"/>
             <Button Content="생성" Command="{Binding GenerateInBackgroundCommand}" Margin="0,0,4,4" Padding="10,2"/>
             <Button Content="다시 생성" Command="{Binding RegenerateInBackgroundCommand}" Margin="0,0,4,4" Padding="10,2"/>
             <Button Content="복사" Command="{Binding CopyCommand}" Margin="0,0,4,4" Padding="10,2"/>

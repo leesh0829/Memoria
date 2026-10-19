@@ -52,12 +52,14 @@
                     <TextBlock Text="양식 B — 제목 문구" Margin="0,8,0,0" /><TextBox Text="{Binding TitleWordB}" />
                     <TextBlock Text="양식 B — 이슈 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding IssueHeaderB}" />
 
-                    <TextBlock Text="양식 C — 기간 시작 요일" Margin="0,8,0,0" />
+                    <TextBlock Text="양식 A/C: 전주 금요일 ~ 금주 목요일" Margin="0,8,0,0"/>
+                    <CheckBox Content="양식 D 표시 (기존 양식 C)" IsChecked="{Binding ShowFormatD}" Margin="0,8,0,0"/>
+                    <TextBlock Text="양식 D — 기간 시작 요일" Margin="0,8,0,0" />
                     <ComboBox ItemsSource="{Binding DayOfWeekOptions}"
                               SelectedValuePath="Value" DisplayMemberPath="Label"
                               SelectedValue="{Binding StartDayC}"
                               Width="140" HorizontalAlignment="Left" />
-                    <TextBlock Text="양식 C — 기간 종료 요일" Margin="0,8,0,0" />
+                    <TextBlock Text="양식 D — 기간 종료 요일" Margin="0,8,0,0" />
                     <ComboBox ItemsSource="{Binding DayOfWeekOptions}"
                               SelectedValuePath="Value" DisplayMemberPath="Label"
                               SelectedValue="{Binding EndDayC}"
@@ -65,12 +67,12 @@
                     <TextBlock Text="※ 기본값 금요일~목요일 = 전주 금요일부터 해당 주 목요일까지 집계합니다."
                                TextWrapping="Wrap" Margin="0,4,0,0"
                                Foreground="{DynamicResource Brush.SecondaryForeground}" />
-                    <TextBlock Text="양식 C — 실적 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding TitleHeaderC}" />
-                    <TextBlock Text="양식 C — 계획 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding PlanHeaderC}" />
-                    <TextBlock Text="양식 C — 설명 머릿말" Margin="0,8,0,0" />
+                    <TextBlock Text="양식 D — 실적 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding TitleHeaderC}" />
+                    <TextBlock Text="양식 D — 계획 머리글" Margin="0,8,0,0" /><TextBox Text="{Binding PlanHeaderC}" />
+                    <TextBlock Text="양식 D — 설명 머릿말" Margin="0,8,0,0" />
                     <TextBox Text="{Binding DetailMarkerC}" Width="80" HorizontalAlignment="Left" />
 
-                    <TextBlock Text="양식 C — 포함할 고객사" Margin="0,8,0,0" />
+                    <TextBlock Text="양식 D — 포함할 고객사" Margin="0,8,0,0" />
                     <ItemsControl ItemsSource="{Binding FormatCClientOptions}" Margin="0,2,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -82,7 +84,7 @@
                             <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
-                    <TextBlock Text="※ 체크한 고객사로 분류된 할 일만 양식 C에 출력됩니다(미분류는 제외). 기본값은 'SLD 자율형공장'입니다."
+                    <TextBlock Text="※ 체크한 고객사로 분류된 할 일만 양식 D에 출력됩니다(미분류는 제외). 기본값은 'SLD 자율형공장'입니다."
                                TextWrapping="Wrap" Margin="0,4,0,0"
                                Foreground="{DynamicResource Brush.SecondaryForeground}" />
 

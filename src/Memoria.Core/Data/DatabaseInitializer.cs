@@ -4,7 +4,7 @@ namespace Memoria.Core.Data;
 
 public sealed class DatabaseInitializer : IDatabaseInitializer
 {
-    private const long TargetVersion = 5;
+    private const long TargetVersion = 6;
     private readonly SqliteConnectionFactory _factory;
 
     public DatabaseInitializer(SqliteConnectionFactory factory) => _factory = factory;
@@ -26,6 +26,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
             if (current < 3) ApplyV3(conn);
             if (current < 4) ApplyV4(conn);
             if (current < 5) ApplyV5(conn);
+            if (current < 6) ApplyV6(conn);
         }
     }
 
@@ -130,6 +131,19 @@ CREATE INDEX IF NOT EXISTS idx_groups_parent_order
             "INSERT INTO _migrations(version, applied_at) VALUES(5, strftime('%Y-%m-%dT%H:%M:%fZ','now'));",
             transaction: tx);
         conn.Execute("PRAGMA user_version = 5;", transaction: tx);
+        tx.Commit();
+    }
+
+    private static void ApplyV6(Microsoft.Data.Sqlite.SqliteConnection conn)
+    {
+        using var tx = conn.BeginTransaction();
+        conn.Execute(@"
+UPDATE clients SET name = '충북테크노파크 (FEMS)' WHERE name = '충북테크놀로지파크';
+UPDATE notes SET report_format = 'D' WHERE report_format = 'C';
+INSERT OR IGNORE INTO settings(key, value) VALUES('report.formatD.visible', 'false');
+CREATE TABLE work_entries (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+INSERT INTO _migrations(version, applied_at) VALUES(6, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+PRAGMA user_version = 6;", transaction: tx);
         tx.Commit();
     }
 

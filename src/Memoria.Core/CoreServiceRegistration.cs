@@ -26,6 +26,7 @@ public static class CoreServiceRegistration
         services.AddSingleton<IClientRepository, ClientRepository>();
         services.AddSingleton<ISettingsRepository, SettingsRepository>();
         services.AddSingleton<ISearchService, SearchService>();
+        services.AddSingleton<IWorkEntryRepository, WorkEntryRepository>();
 
         services.AddSingleton<IClientClassifier, ClientClassifier>();
         services.AddSingleton<IWeekCalculator, WeekCalculator>();

@@ -2,6 +2,7 @@ namespace Memoria.Core;
 
 public static class SettingsKeys
 {
+    public const string ShowFormatD = "report.formatD.visible";
     public const string ThemeMode = "theme.mode";
     public const string ThemePreset = "theme.preset";
     public const string ReporterName = "report.reporterName";

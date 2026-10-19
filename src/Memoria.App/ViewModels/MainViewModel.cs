@@ -24,6 +24,8 @@ public partial class MainViewModel : ObservableObject
     private readonly Func<ChecklistViewModel> _checklistEditorFactory;
     private readonly Func<WeeklyReportViewModel> _weeklyReportEditorFactory;
 
+    private readonly Func<WorkEntriesViewModel>? _workEntriesFactory;
+
     private Note? _current;                 // plain 에디터의 현재 노트(헤더/본문 로직용)
     private int? _currentEditorNoteId;      // #6 우측에 호스팅 중인 노트 id(plain/checklist/weekly 공통)
     private bool _suppressDirty;
@@ -197,8 +199,10 @@ public partial class MainViewModel : ObservableObject
         TimeProvider time,
         ISearchService search,
         Func<ChecklistViewModel> checklistEditorFactory,
-        Func<WeeklyReportViewModel> weeklyReportEditorFactory)
+        Func<WeeklyReportViewModel> weeklyReportEditorFactory,
+        Func<WorkEntriesViewModel>? workEntriesFactory = null)
     {
+        _workEntriesFactory = workEntriesFactory;
         _groupRepo = groupRepo;
         _noteRepo = noteRepo;
         _autosave = autosave;
@@ -953,6 +957,21 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void OpenWorkEntries()
+    {
+        (CurrentEditor as ChecklistViewModel)?.FlushSaves();
+        _autosave.FlushAll();
+        if (_workEntriesFactory is null) return;
+        SelectedNode = null;
+        SelectedNote = null;
+        _editorLoadGeneration++;
+        _current = null;
+        _currentEditorNoteId = null;
+        IsUndoAvailable = false;
+        CurrentEditor = _workEntriesFactory();
+    }
+
+    [RelayCommand]
     private void OpenWeeklyReport()
     {
         IsUndoAvailable = false;
@@ -1008,7 +1027,11 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenSettings() => AppServices.Resolve<ISettingsWindowService>().ShowSettings();
+    private void OpenSettings()
+    {
+        AppServices.Resolve<ISettingsWindowService>().ShowSettings();
+        (CurrentEditor as WeeklyReportViewModel)?.RefreshSettings();
+    }
 
     [RelayCommand]
     private void Search()

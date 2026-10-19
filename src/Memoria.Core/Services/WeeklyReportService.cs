@@ -56,7 +56,9 @@ public sealed class WeeklyReportService : IWeeklyReportService
                     int? clientId = item.IsManual
                         ? item.ClientId
                         : _classifier.Classify(item.Text, rules, enabledIds);
-                    tasks.Add(new ReportTask(item.Text, clientId, item.Done));
+                    tasks.Add(new ReportTask(item.Text, clientId, item.Done,
+                        item.Done ? (item.DoneAt is { } completed
+                            ? DateOnly.FromDateTime(completed.LocalDateTime) : note.LogDate) : null));
                 }
                 else
                 {
@@ -65,6 +67,7 @@ public sealed class WeeklyReportService : IWeeklyReportService
             }
         }
 
+        tasks = ReportTaskDeduplicator.Merge(tasks).ToList();
         var relevant = options.IncludeDoneOnly ? tasks.Where(t => t.Done) : tasks;
         int unclassified = relevant.Count(t => t.ClientId is null);
 
@@ -87,6 +90,7 @@ public sealed class WeeklyReportService : IWeeklyReportService
             .ToList();
         var issues = issueTexts.Select(t => new ReportIssue(t)).ToList();
 
+        tasks = ReportTaskDeduplicator.Merge(tasks).ToList();
         var relevant = options.IncludeDoneOnly ? tasks.Where(t => t.Done) : tasks;
         int unclassified = relevant.Count(t => t.ClientId is null);
 

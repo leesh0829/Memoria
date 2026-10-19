@@ -6,46 +6,63 @@ namespace Memoria.Core.Reporting;
 public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
 {
     public string Render(ReportFormatKind format, WeeklyReportData data, ReportRenderOptions options)
-        => format switch
+        => (format switch
         {
             ReportFormatKind.A => RenderA(data, options),
             ReportFormatKind.B => RenderB(data, options),
-            ReportFormatKind.C => RenderC(data, options),
+            ReportFormatKind.C => RenderA(data, options, omitClientHeaders: true),
+            ReportFormatKind.D => RenderD(data, options),
             _ => throw new ArgumentOutOfRangeException(nameof(format)),
-        };
+        }).Replace("충북테크놀로지파크", "충북테크노파크 (FEMS)", StringComparison.Ordinal);
 
-    /// 양식 C의 설명 머릿말 줄 들여쓰기. 붙여넣는 문서마다 탭 폭이 달라 정렬이 깨지므로
+    /// 양식 D의 설명 머릿말 줄 들여쓰기. 붙여넣는 문서마다 탭 폭이 달라 정렬이 깨지므로
     /// 공통 report.indent(기본 탭) 대신 공백 4칸으로 고정한다.
-    private const string FormatCIndent = "    ";
+    private const string FormatDIndent = "    ";
 
     private static IEnumerable<ReportTask> VisibleTasks(WeeklyReportData data, ReportRenderOptions options)
-        => options.IncludeDoneOnly ? data.Tasks.Where(t => t.Done) : data.Tasks;
+        => ReportTaskDeduplicator.Merge(options.IncludeDoneOnly ? data.Tasks.Where(t => t.Done) : data.Tasks);
 
-    private static string RenderA(WeeklyReportData data, ReportRenderOptions options)
+    private static string RenderA(WeeklyReportData data, ReportRenderOptions options, bool omitClientHeaders = false)
     {
-        var clientNames = options.Clients.ToDictionary(c => c.Id, c => c.Name);
         var lines = new List<string> { options.TaskHeaderA };
-        foreach (var t in VisibleTasks(data, options))
-            lines.Add(options.Indent + "* " + WithClientPrefix(t, clientNames));
+        var names = options.Clients.ToDictionary(c => c.Id, c => c.Name);
+        var tasks = VisibleTasks(data, options).ToList();
+        var clientOrder = options.Clients.Select((client, index) => (client.Id, index))
+            .ToDictionary(pair => pair.Id, pair => pair.index);
+        var groups = tasks.GroupBy(t => t.ClientId)
+            .OrderBy(g => g.Key is int id && clientOrder.TryGetValue(id, out var index) ? index : int.MaxValue);
+        foreach (var group in groups)
+        {
+            var name = group.Key is int id && names.TryGetValue(id, out var n) ? n : options.UnclassifiedLabel;
+            var header = name switch { "SLD" => "MES", "SLD 자율형공장" => "ICC", _ => name };
+            if (!omitClientHeaders) lines.Add("[ " + header + " ]");
+            foreach (var task in group)
+            {
+                var text = StripClientPrefix(task.Text, name, options.Clients);
+                var date = task.CompletedDate?.ToString("MM/dd", CultureInfo.InvariantCulture) ?? "--/--";
+                lines.Add(options.Indent + "- " + text + " [완료일자: " + date + "]");
+            }
+        }
         lines.Add("");
         lines.Add(options.IssueHeaderA);
-        foreach (var i in data.Issues)
-            lines.Add(options.Indent + "* " + i.Text);
+        foreach (var issue in data.Issues.DistinctBy(i => i.Text.Trim()))
+            lines.Add(options.Indent + "- " + issue.Text);
         return string.Join("\n", lines);
     }
 
-    /// 업무 텍스트 앞에 선택한 고객사명을 붙인다. 텍스트가 이미 고객사명으로 시작하면(구글시트 경로처럼
-    /// 셀에 회사명이 포함된 경우) 중복을 피하려고 그대로 둔다.
-    private static string WithClientPrefix(ReportTask t, IReadOnlyDictionary<int, string> clientNames)
+    private static string StripClientPrefix(string text, string name, IReadOnlyList<Client> clients)
     {
-        if (t.ClientId is int id
-            && clientNames.TryGetValue(id, out var name)
-            && !string.IsNullOrWhiteSpace(name)
-            && !t.Text.StartsWith(name, StringComparison.Ordinal))
+        // 긴 이름부터 비교하여 SLD 자율형공장을 SLD로 잘못 잘라내지 않는다.
+        foreach (var prefix in clients.Select(c => c.Name).Append(name)
+                     .Append("충북테크놀로지파크").OrderByDescending(n => n.Length))
         {
-            return name + " " + t.Text;
+            if (string.IsNullOrWhiteSpace(prefix)) continue;
+            if (text == prefix) return "";
+            if (text.StartsWith(prefix, StringComparison.Ordinal)
+                && " :：/-_\t".Contains(text[prefix.Length]))
+                return text[prefix.Length..].TrimStart(' ', ':', '：', '/', '-', '_', '\t');
         }
-        return t.Text;
+        return text;
     }
 
     private static string RenderB(WeeklyReportData data, ReportRenderOptions options)
@@ -85,9 +102,9 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         return string.Join("\n", lines);
     }
 
-    /// 양식 C: 보고자 이름 아래로 업무 한 건마다 "- 업무" + 빈 설명 머릿말("o") 줄.
+    /// 양식 D(기존 C): 보고자 이름 아래로 업무 한 건마다 "- 업무" + 빈 설명 머릿말("o") 줄.
     /// 이슈는 다루지 않고 고객사 접두도 붙이지 않는다. 차주 계획은 머리글만 두고 사용자가 채운다.
-    private static string RenderC(WeeklyReportData data, ReportRenderOptions options)
+    private static string RenderD(WeeklyReportData data, ReportRenderOptions options)
     {
         var lines = new List<string>
         {
@@ -99,7 +116,7 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         foreach (var t in VisibleTasks(data, options).Where(t => IncludedInC(t, options)))
         {
             lines.Add("- " + t.Text);
-            lines.Add(FormatCIndent + options.DetailMarkerC);
+            lines.Add(FormatDIndent + options.DetailMarkerC);
         }
 
         lines.Add("");

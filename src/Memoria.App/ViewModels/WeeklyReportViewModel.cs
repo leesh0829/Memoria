@@ -63,6 +63,8 @@ public partial class WeeklyReportViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasUnclassifiedWarning))]
     private int _unclassifiedTaskCount;
 
+    public bool ShowFormatD => bool.TryParse(_settings.Get(SettingsKeys.ShowFormatD), out var show) && show;
+
     public bool HasUnclassifiedWarning => UnclassifiedTaskCount > 0;
 
     public WeeklyReportViewModel(
@@ -95,14 +97,24 @@ public partial class WeeklyReportViewModel : ObservableObject
 
     partial void OnSelectedDateChanged(DateOnly value) => RecomputeWeek();
 
+    public void RefreshSettings()
+    {
+        OnPropertyChanged(nameof(ShowFormatD));
+        RecomputeWeek();
+    }
+
     private void RecomputeWeek()
     {
         var (monday, friday) = _weekCalculator.GetWorkWeek(SelectedDate);
         _anchorMonday = monday;
 
-        // 양식 C는 월~금이 아니라 설정된 요일 구간(기본 전주 금 ~ 해당 주 목)을 집계한다.
+        // A/C는 금~목 고정, D는 기존 C의 사용자 지정 기간을 보존한다.
         var (start, end) = (monday, friday);
-        if (SelectedFormat == ReportFormatKind.C)
+        if (SelectedFormat is ReportFormatKind.A or ReportFormatKind.C)
+        {
+            (start, end) = _weekCalculator.GetCustomRange(SelectedDate, DayOfWeek.Friday, DayOfWeek.Thursday);
+        }
+        else if (SelectedFormat == ReportFormatKind.D)
         {
             var settings = _settings.GetAll();
             var startDay = ReportDayOfWeek.Parse(
@@ -323,7 +335,13 @@ public partial class WeeklyReportViewModel : ObservableObject
 
                 var options = BuildOptions(monday, friday);
                 var build = _reportService.BuildFromTexts(parsed.Tasks, parsed.Issues, monday, friday, options);
-                var text = _reportService.Render(format, build.Data, options);
+                // 시트의 완료 처리된 업무는 실제 업무일을 사용한다. 중복 업무는 마지막 업무일을 보존한다.
+                var datedData = build.Data with
+                {
+                    Tasks = build.Data.Tasks.Select(task => parsed.TaskDates.TryGetValue(task.Text, out var date)
+                        ? task with { CompletedDate = date } : task).ToList(),
+                };
+                var text = _reportService.Render(format, datedData, options);
                 var existing = _noteRepository.FindWeeklyReport(anchorMonday, format);
                 var noteId = Persist(anchorMonday, format, existing, text);
                 return (Found: true, Text: text, Unclassified: build.UnclassifiedTaskCount, NoteId: (int?)noteId);

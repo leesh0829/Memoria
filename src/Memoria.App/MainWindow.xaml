@@ -137,6 +137,7 @@
                     <Border Grid.Row="1" Height="1" Margin="8,4" Background="{DynamicResource Brush.Border}" />
 
                     <!-- 시스템 그룹(고정): 일일업무일지·주간보고. 드래그/순서변경/메모드롭 불가 (#5) -->
+                    <StackPanel Grid.Row="2">
                     <ListBox x:Name="SystemListBox" Grid.Row="2"
                              Background="Transparent"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -155,11 +156,13 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
+                    <Button Content="업무 내역" Command="{Binding OpenWorkEntriesCommand}" HorizontalContentAlignment="Left" Padding="14,8" Margin="0,2,0,0"/>
+                    </StackPanel>
                 </Grid>
             </Border>
 
             <!-- 메모 목록 + 검색 결과 패널 -->
-            <Border Grid.Column="2" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0">
+            <Border x:Name="NoteListPanel" Grid.Column="2" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />  <!-- 브레드크럼 -->
@@ -279,7 +282,7 @@
             </Border>
 
             <!-- 에디터 영역: NoteType별 DataTemplate (M9). Border로 빈 상태 배경 보장 -->
-            <Border Grid.Column="4" Background="{DynamicResource Brush.EditorBackground}">
+            <Border x:Name="EditorPanel" Grid.Column="4" Background="{DynamicResource Brush.EditorBackground}">
             <ContentControl Margin="12" Content="{Binding CurrentEditor}">
                 <ContentControl.Resources>
                     <!-- plain: CurrentEditor == MainViewModel 자신. 박스/포커스 테두리 없이 '가로 줄'로만 구분(#7) -->
@@ -375,6 +378,9 @@
                 </ContentControl.Resources>
             </ContentControl>
             </Border>
+
+            <views:WorkEntriesView x:Name="WorkEntriesPanel" Grid.Column="2" Grid.ColumnSpan="3"
+                                   Visibility="Collapsed" Panel.ZIndex="2"/>
 
             <!-- Undo 토스트 (#4: MainViewModel 소유) N7.3: slide-up + fade-in on appear -->
             <Border Grid.Column="0" Grid.ColumnSpan="5"

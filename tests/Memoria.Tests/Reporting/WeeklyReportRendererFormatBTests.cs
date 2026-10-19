@@ -14,7 +14,7 @@ public class WeeklyReportRendererFormatBTests
         new() { Id = 1, Name = "SLD", SortOrder = 1, Enabled = true },
         new() { Id = 2, Name = "MTP", SortOrder = 2, Enabled = true },
         new() { Id = 3, Name = "코모텍", SortOrder = 3, Enabled = true },
-        new() { Id = 4, Name = "충북테크놀로지파크", SortOrder = 4, Enabled = true },
+        new() { Id = 4, Name = "충북테크노파크 (FEMS)", SortOrder = 4, Enabled = true },
         new() { Id = 5, Name = "자율형 공장", SortOrder = 5, Enabled = true },
         new() { Id = 6, Name = "카본센스", SortOrder = 6, Enabled = true },
     ];
@@ -57,7 +57,7 @@ public class WeeklyReportRendererFormatBTests
             "[ 코모텍 ]\n" +
             "\t* 코모텍 미팅\n" +
             "\n" +
-            "[ 충북테크놀로지파크 ]\n" +
+            "[ 충북테크노파크 (FEMS) ]\n" +
             "\n" +
             "[ 자율형 공장 ]\n" +
             "\t* 자율형공장 라인 셋업\n" +

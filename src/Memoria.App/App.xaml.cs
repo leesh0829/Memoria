@@ -163,13 +163,15 @@ public partial class App : Application
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<ISearchService>(),
             () => sp.GetRequiredService<ChecklistViewModel>(),
-            () => sp.GetRequiredService<WeeklyReportViewModel>()));
+            () => sp.GetRequiredService<WeeklyReportViewModel>(),
+            () => sp.GetRequiredService<WorkEntriesViewModel>()));
         sc.AddSingleton<MainWindow>();
         // M4 — WPF 서비스 구현체 + WeeklyReportViewModel 등록.
         sc.AddSingleton<IClipboardService, WpfClipboardService>();
         sc.AddSingleton<IConfirmationDialogService, MessageBoxConfirmationDialogService>();
         // TimeProvider.System 은 위에서 이미 등록됨 → 중복 등록 금지.
         sc.AddTransient<WeeklyReportViewModel>();
+        sc.AddSingleton<WorkEntriesViewModel>();
         // M5 — 그룹 CRUD 뷰모델 + 휴지통 뷰모델 등록.
         sc.AddTransient<GroupManagementViewModel>();
         sc.AddSingleton<TrashViewModel>();

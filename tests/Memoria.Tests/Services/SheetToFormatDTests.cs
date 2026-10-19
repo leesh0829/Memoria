@@ -11,7 +11,7 @@ using Xunit;
 namespace Memoria.Tests.Services;
 
 /// 구글 시트 격자 → SheetWorkParser → BuildFromTexts(자동 분류) → 양식 C 렌더까지의 실제 경로.
-public class SheetToFormatCTests
+public class SheetToFormatDTests
 {
     // 2026-08-12(수) 기준 양식 C 기본 구간 = 08-07(금) ~ 08-13(목).
     private static readonly DateOnly Start = new(2026, 8, 7);
@@ -50,7 +50,7 @@ public class SheetToFormatCTests
 
         var parsed = SheetWorkParser.Parse(Grid(), Start, End);
         var built = svc.BuildFromTexts(parsed.Tasks, parsed.Issues, Start, End, options);
-        var text = svc.Render(ReportFormatKind.C, built.Data, options);
+        var text = svc.Render(ReportFormatKind.D, built.Data, options);
 
         const string expected =
             "[ 주간 실적 ]\n\n== 이승현\n" +
@@ -94,4 +94,17 @@ public class SheetToFormatCTests
         built.Data.Tasks.Should().Contain(t => t.Text == "자율형 공장 설비 확인" && t.ClientId == factoryId);
         built.Data.Tasks.Should().Contain(t => t.Text == "SLD 비전회의" && t.ClientId == sldId);
     }
+    [Fact]
+    public void SheetParser_KeepsLatestWorkDateForRepeatedTasks()
+    {
+        IReadOnlyList<IReadOnlyList<string>> grid =
+        [
+            ["일자", "작업내역", "특이사항"],
+            ["2026.08.13", "1. SLD 점검", ""],
+            ["2026.08.07", "1. SLD 점검", ""],
+        ];
+        var parsed = SheetWorkParser.Parse(grid, Start, End);
+        parsed.TaskDates["SLD 점검"].Should().Be(new DateOnly(2026, 8, 13));
+    }
+
 }
