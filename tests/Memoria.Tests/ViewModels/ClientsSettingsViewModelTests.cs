@@ -150,4 +150,29 @@ public class ClientsSettingsViewModelTests
         // sort_order는 그대로
         repo.Store.Single(c => c.Id == 3).SortOrder.Should().Be(2);
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task AddClientFromSettings_TrimsSelectsAndClearsInput()
+    {
+        var (vm, repo) = Create();
+        vm.NewClientName = "  신규 고객사  ";
+        await vm.AddClientWithLoadingCommand.ExecuteAsync(vm.NewClientName);
+        repo.Store.Last().Name.Should().Be("신규 고객사");
+        vm.SelectedClient.Should().Be(vm.Clients.Last());
+        vm.NewClientName.Should().BeEmpty();
+        vm.ClientError.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData(" SLD ")]
+    [InlineData("sld")]
+    public async System.Threading.Tasks.Task AddClientFromSettings_RejectsBlankAndDuplicate(string name)
+    {
+        var (vm, repo) = Create();
+        await vm.AddClientWithLoadingCommand.ExecuteAsync(name);
+        repo.Store.Should().HaveCount(3);
+        vm.ClientError.Should().NotBeEmpty();
+    }
+
 }

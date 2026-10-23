@@ -30,11 +30,46 @@ public partial class ChecklistViewModel : ObservableObject
 
     private Note? _note;
     private bool _loading;
+    private bool _updatingClients;
     private readonly SemaphoreSlim _persistenceGate = new(1, 1);
     private readonly SemaphoreSlim _flushGate = new(1, 1);
 
     public ObservableCollection<ChecklistItemViewModel> Items { get; } = new();
     public ObservableCollection<Client> AvailableClients { get; } = new();
+
+    public sealed record ClientChoice(int Id, string Name);
+    public System.Collections.Generic.IReadOnlyList<ClientChoice> ClientChoices { get; private set; }
+        = new[] { new ClientChoice(0, "미분류") };
+
+    private void ApplyClients(System.Collections.Generic.IReadOnlyList<Client> clients)
+    {
+        var selected = Items.Select(item => (Item: item, item.ClientId)).ToList();
+        _updatingClients = true;
+        try
+        {
+            AvailableClients.Clear();
+            foreach (var client in clients) AvailableClients.Add(client);
+            ClientChoices = new[] { new ClientChoice(0, "미분류") }
+                .Concat(clients.Select(client => new ClientChoice(client.Id, client.Name))).ToList();
+            OnPropertyChanged(nameof(ClientChoices));
+            foreach (var (item, clientId) in selected) item.ClientId = clientId;
+        }
+        finally { _updatingClients = false; }
+    }
+
+    public async Task RefreshClientsAsync()
+    {
+        try
+        {
+            var clients = await Task.Run(() => _clients.GetAll(enabledOnly: true));
+            ApplyClients(clients);
+        }
+        catch (Exception ex)
+        {
+            OperationError = "고객사 목록을 불러오지 못했습니다.";
+            AppLog.Error("Checklist.RefreshClients", ex);
+        }
+    }
 
     // #4 같은 Items를 종류별로 분리한 두 뷰(할 일 / 이슈). 추가/삭제 시 자동 반영.
     public ICollectionView TasksView { get; }
@@ -113,9 +148,7 @@ public partial class ChecklistViewModel : ObservableObject
             _note = note;
             LogDate = note.LogDate ?? DateOnly.FromDateTime(DateTime.Today);  // _loading 가드로 OnLogDateChanged 재영속화 방지
 
-            AvailableClients.Clear();
-            foreach (var client in snapshot.Clients)
-                AvailableClients.Add(client);
+            ApplyClients(snapshot.Clients);
 
             Items.Clear();
             foreach (var item in snapshot.Items)
@@ -148,9 +181,7 @@ public partial class ChecklistViewModel : ObservableObject
         {
             _note = null;
             LogDate = date;                       // _loading 가드로 이벤트 억제
-            AvailableClients.Clear();
-            foreach (var client in clients)
-                AvailableClients.Add(client);
+            ApplyClients(clients);
             Items.Clear();
         }
         finally { _loading = false; }
@@ -421,8 +452,7 @@ public partial class ChecklistViewModel : ObservableObject
     /// 수동 교정으로 표시하여 이후 자동 재분류로부터 보호한다.
     public void CommitClient(ChecklistItemViewModel item)
     {
-        if (!item.IsTask) return;
-
+        if (_loading || _updatingClients) return;
         item.IsManual = true;
         item.UpdatedAt = DateTimeOffset.UtcNow;
         _checklist.UpdateItemMetadata(item.ToModel());
@@ -432,7 +462,7 @@ public partial class ChecklistViewModel : ObservableObject
     [RelayCommand]
     private async Task CommitClientAsync(ChecklistItemViewModel? item)
     {
-        if (item is null || !item.IsTask) return;
+        if (item is null || _loading || _updatingClients) return;
         AppLog.Action("UI.ChecklistClient", $"item_id={item.Id} client_id={item.ClientId?.ToString() ?? "null"}");
         var note = _note;
         var now = DateTimeOffset.UtcNow;

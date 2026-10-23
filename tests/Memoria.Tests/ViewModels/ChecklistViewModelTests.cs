@@ -573,4 +573,48 @@ public class ChecklistViewModelTests
         sut.SetWriteModeCommand.Execute(null);
         sut.IsReadMode.Should().BeFalse();
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async System.Threading.Tasks.Task IssueClient_CanBeAssignedAndCleared_AndSurvivesTextSave(bool asyncCommand)
+    {
+        var sut = CreateSut();
+        sut.Load(SeedNote());
+        sut.ClientChoices.First().Should().Be(new ChecklistViewModel.ClientChoice(0, "미분류"));
+        sut.AddIssue();
+        var item = sut.Items.Last();
+        item.ClientSelectionId.Should().Be(0);
+        item.ClientId.Should().BeNull();
+        item.ClientSelectionId = 3;
+        if (asyncCommand) await sut.CommitClientCommand.ExecuteAsync(item);
+        else sut.CommitClient(item);
+        item.Text = "SLD 관련 이슈";
+        sut.FlushSaves();
+        _checklist.Items.Single(i => i.Id == item.Id).ClientId.Should().Be(3);
+        item.ClientSelectionId = 0;
+        if (asyncCommand) await sut.CommitClientCommand.ExecuteAsync(item);
+        else sut.CommitClient(item);
+        item.ClientId.Should().BeNull();
+        _checklist.Items.Single(i => i.Id == item.Id).ClientId.Should().BeNull();
+    }
+
+
+    [Fact]
+    public async System.Threading.Tasks.Task RefreshClients_PreservesDraftTextAndIssueSelection()
+    {
+        var sut = CreateSut();
+        sut.Load(SeedNote());
+        sut.AddIssue();
+        var issue = sut.Items.Single();
+        issue.ClientId = 3;
+        issue.Text = "저장 전 입력";
+        _clients.Clients.Add(new Client { Id = 8, Name = "신규", Enabled = true });
+        await sut.RefreshClientsAsync();
+        sut.ClientChoices.Should().Contain(c => c.Id == 8 && c.Name == "신규");
+        issue.ClientId.Should().Be(3);
+        issue.Text.Should().Be("저장 전 입력");
+        issue.IsDirty.Should().BeTrue();
+    }
+
 }

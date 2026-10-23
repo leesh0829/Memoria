@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-23
+### Added
+- 신규·기존 DB에 고객사 SLD 도금 및 SLD보다 우선하는 전용 분류 규칙 추가.
+- 설정 고객사 탭에 고객사 이름 입력·추가, 공백/중복 검사, 추가 실패 안내 제공.
+- 일일업무일지 이슈 고객사 선택·미분류 해제 지원(기본값 미분류), 설정 종료 후 고객사 목록 갱신.
+
+### Changed
+- 양식 A/C 고객사 구분: SLD는 SLD PLC, 코모텍은 코모텍 PLC, SLD 도금은 도금 PLC로 표시. 소분류 체계는 보류.
+- 양식 A 각 업무 바로 아래에 탭 3개와 o 설명 줄 추가. A 본문을 공유하는 C에도 유지.
+
+### Validation
+- 고객사 추가·이슈 수동 지정/해제·보고서 출력·DB 업그레이드 회귀 테스트 추가/수정.
+- WPF 빌드·테스트는 WSL 환경에서 실행하지 않음. Windows에서 Install-Memoria.ps1 실행 필요.
+
 ## [0.11.3] - 2026-10-19
 ### Changed
 - 주간보고 A/C 이슈를 고객사별로 묶고 고객사 없는 이슈를 최상단에 배치.

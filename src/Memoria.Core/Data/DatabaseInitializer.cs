@@ -4,7 +4,7 @@ namespace Memoria.Core.Data;
 
 public sealed class DatabaseInitializer : IDatabaseInitializer
 {
-    private const long TargetVersion = 6;
+    private const long TargetVersion = 7;
     private readonly SqliteConnectionFactory _factory;
 
     public DatabaseInitializer(SqliteConnectionFactory factory) => _factory = factory;
@@ -27,6 +27,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
             if (current < 4) ApplyV4(conn);
             if (current < 5) ApplyV5(conn);
             if (current < 6) ApplyV6(conn);
+            if (current < 7) ApplyV7(conn);
         }
     }
 
@@ -144,6 +145,22 @@ INSERT OR IGNORE INTO settings(key, value) VALUES('report.formatD.visible', 'fal
 CREATE TABLE work_entries (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
 INSERT INTO _migrations(version, applied_at) VALUES(6, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
 PRAGMA user_version = 6;", transaction: tx);
+        tx.Commit();
+    }
+
+    private static void ApplyV7(Microsoft.Data.Sqlite.SqliteConnection conn)
+    {
+        using var tx = conn.BeginTransaction();
+        conn.Execute(@"
+INSERT INTO clients(name, sort_order, enabled)
+SELECT 'SLD 도금', COALESCE(MAX(sort_order), 0) + 1, 1 FROM clients
+HAVING NOT EXISTS (SELECT 1 FROM clients WHERE name = 'SLD 도금');
+INSERT INTO client_rules(client_id, keyword, priority)
+SELECT c.id, 'SLD 도금', COALESCE((SELECT MIN(priority) FROM client_rules), 1) - 1
+FROM clients c WHERE c.name = 'SLD 도금'
+AND NOT EXISTS (SELECT 1 FROM client_rules WHERE keyword = 'SLD 도금');
+INSERT INTO _migrations(version, applied_at) VALUES(7, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+PRAGMA user_version = 7;", transaction: tx);
         tx.Commit();
     }
 

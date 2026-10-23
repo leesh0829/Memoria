@@ -21,6 +21,16 @@ public sealed partial class ClientsSettingsViewModel : ObservableObject
 
     [ObservableProperty] private ClientRowViewModel? _selectedClient;
     private int _rulesLoadGeneration;
+    [ObservableProperty] private string _newClientName = "";
+    [ObservableProperty] private string _clientError = "";
+
+    private bool ValidateClientName(string? name)
+    {
+        ClientError = string.IsNullOrWhiteSpace(name) ? "고객사 이름을 입력하세요."
+            : Clients.Any(c => string.Equals(c.Name, name.Trim(), System.StringComparison.OrdinalIgnoreCase))
+                ? "이미 등록된 고객사입니다." : "";
+        return ClientError.Length == 0;
+    }
 
     public ClientsSettingsViewModel(IClientRepository clients)
     {
@@ -88,6 +98,8 @@ public sealed partial class ClientsSettingsViewModel : ObservableObject
     [RelayCommand]
     private void AddClient(string name)
     {
+        if (!ValidateClientName(name)) return;
+        name = name.Trim();
         var nextOrder = Clients.Count == 0 ? 0 : Clients.Max(c => c.SortOrder) + 1;
         var id = _clients.Create(new Client { Name = name, SortOrder = nextOrder, Enabled = true });
         Clients.Add(new ClientRowViewModel(id, name, true, nextOrder));
@@ -96,16 +108,21 @@ public sealed partial class ClientsSettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task AddClientWithLoadingAsync(string name)
     {
-        if (string.IsNullOrWhiteSpace(name)) return;
+        if (!ValidateClientName(name)) return;
+        name = name.Trim();
         var nextOrder = Clients.Count == 0 ? 0 : Clients.Max(c => c.SortOrder) + 1;
         var client = new Client { Name = name, SortOrder = nextOrder, Enabled = true };
         try
         {
             var id = await Task.Run(() => _clients.Create(client));
-            Clients.Add(new ClientRowViewModel(id, name, true, nextOrder));
+            var row = new ClientRowViewModel(id, name, true, nextOrder);
+            Clients.Add(row);
+            SelectedClient = row;
+            NewClientName = "";
         }
         catch (System.Exception ex)
         {
+            ClientError = "고객사를 추가하지 못했습니다. 다시 시도하세요.";
             AppLog.Error("Clients.Add", ex);
         }
     }

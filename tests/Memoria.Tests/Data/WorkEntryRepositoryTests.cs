@@ -38,7 +38,7 @@ public class WorkEntryRepositoryTests
         var id = notes.Create(new Note { Type = NoteType.WeeklyReport, ReportFormat = ReportFormatKind.C, Body = "기존 C 편집본" });
         var connection = db.Factory.Write;
         connection.Execute("UPDATE clients SET name = '충북테크놀로지파크' WHERE name = '충북테크노파크 (FEMS)';");
-        connection.Execute("DROP TABLE work_entries; DELETE FROM _migrations WHERE version = 6; PRAGMA user_version = 5;");
+        connection.Execute("DROP TABLE work_entries; DELETE FROM _migrations WHERE version >= 6; PRAGMA user_version = 5;");
         var initializer = new DatabaseInitializer(db.Factory);
         initializer.EnsureReady();
         initializer.EnsureReady();

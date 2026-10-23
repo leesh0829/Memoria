@@ -44,12 +44,11 @@
                     </TextBox.Style>
                 </TextBox>
 
-                <!-- 고객사 드롭다운: task만, 미분류면 강조 -->
+                <!-- 할 일/이슈 고객사 선택. 미분류 선택으로 해제 가능. -->
                 <ComboBox Grid.Column="2" Width="140" Margin="8,0,0,0"
-                          Visibility="{Binding ShowCheckbox, Converter={StaticResource BoolToVis}}"
-                          ItemsSource="{Binding DataContext.AvailableClients, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                          ItemsSource="{Binding DataContext.ClientChoices, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                           SelectedValuePath="Id"
-                          SelectedValue="{Binding ClientId, Mode=TwoWay}"
+                          SelectedValue="{Binding ClientSelectionId, Mode=TwoWay}"
                           SelectionChanged="OnClientSelectionChanged">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>

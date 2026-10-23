@@ -24,7 +24,7 @@ public class WeeklyReportIssueGroupingTests
         ]);
         var text = new WeeklyReportRenderer().Render(format, data, new() { Clients = Clients });
         text.Should().Be("[업무 내용]\n\n[이슈]\n\t- 공통 이슈\n\t- 일반 공지\n"
-            + "- MES\n\t- 점검 지연\n- MTP\n\t- 일정 협의\n\t- 추가 협의\n- ICC\n\t- 설비 확인");
+            + "- SLD PLC\n\t- 점검 지연\n- MTP\n\t- 일정 협의\n\t- 추가 협의\n- ICC\n\t- 설비 확인");
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class WeeklyReportIssueGroupingTests
         ]);
         var text = new WeeklyReportRenderer().Render(ReportFormatKind.A, data, new() { Clients = Clients });
         text.Should().Be("[업무 내용]\n\n[이슈]\n\t- 삭제된 고객사 업무\n"
-            + "- MES\n\t- 동일 문장\n\t- 검토: MTP 담당자 협의\n- MTP\n\t- 동일 문장");
+            + "- SLD PLC\n\t- 동일 문장\n\t- 검토: MTP 담당자 협의\n- MTP\n\t- 동일 문장");
     }
 
     [Fact]
@@ -49,6 +49,6 @@ public class WeeklyReportIssueGroupingTests
         var a = renderer.Render(ReportFormatKind.A, data, options);
         var c = renderer.Render(ReportFormatKind.C, data, options);
         c.Should().Be(FormatAReport.WithoutClientHeaders(a, options));
-        c.Should().Contain("[이슈]\n\t- 공지\n- MES\n\t- 점검\n- MTP\n\t- 협의");
+        c.Should().Contain("[이슈]\n\t- 공지\n- SLD PLC\n\t- 점검\n- MTP\n\t- 협의");
     }
 }

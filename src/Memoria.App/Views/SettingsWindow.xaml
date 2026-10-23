@@ -103,12 +103,20 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="표시순(양식 B 섹션 순서)" />
+                    <TextBlock Text="고객사 이름" />
+                    <DockPanel Margin="0,4,0,8">
+                        <Button DockPanel.Dock="Right" Content="추가" Margin="6,0,0,0"
+                                Command="{Binding AddClientWithLoadingCommand}"
+                                CommandParameter="{Binding NewClientName}" />
+                        <TextBox Text="{Binding NewClientName, UpdateSourceTrigger=PropertyChanged}" />
+                    </DockPanel>
+                    <TextBlock Text="{Binding ClientError}" TextWrapping="Wrap" Foreground="#D32F2F" />
+                    <TextBlock Text="표시순(양식 A/B 섹션 순서)" />
                     <ListBox x:Name="ClientList"
                              ItemsSource="{Binding Clients}"
                              SelectedItem="{Binding SelectedClient}"
                              DisplayMemberPath="Name"
-                             Height="380"
+                             Height="320"
                              Background="{DynamicResource Brush.Surface}" />
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                         <Button Content="▲"
@@ -129,7 +137,7 @@
                     <TextBlock Text="키워드/우선순위(매칭순 — 표시순과 독립)" />
                     <DataGrid ItemsSource="{Binding Rules}"
                               AutoGenerateColumns="False"
-                              Height="380"
+                              Height="320"
                               Background="{DynamicResource Brush.Surface}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="키워드" Binding="{Binding Keyword}" Width="*" />

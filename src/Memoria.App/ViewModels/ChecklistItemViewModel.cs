@@ -23,7 +23,15 @@ public partial class ChecklistItemViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsUnclassified))]
+    [NotifyPropertyChangedFor(nameof(ClientSelectionId))]
     private int? _clientId;
+
+    // ComboBox는 null SelectedValue를 선택 해제로 취급하므로 미분류 UI 값은 0을 쓴다.
+    public int ClientSelectionId
+    {
+        get => ClientId ?? 0;
+        set => ClientId = value == 0 ? null : value;
+    }
 
     public DateTimeOffset? DoneAt { get; set; }
     public bool IsManual { get; set; }

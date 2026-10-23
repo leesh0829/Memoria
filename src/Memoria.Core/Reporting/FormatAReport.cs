@@ -5,8 +5,9 @@ public static class FormatAReport
 {
     public static string WithoutClientHeaders(string text, ReportRenderOptions options)
     {
-        var names = options.Clients.Select(c => c.Name)
-            .Append(options.UnclassifiedLabel).Append("MES").Append("ICC").ToHashSet(StringComparer.Ordinal);
+        var names = options.Clients.SelectMany(c => new[] { c.Name, WeeklyReportRenderer.ClientHeader(c.Name) })
+            .Append(options.UnclassifiedLabel).Append("MES").Append("ICC")
+            .Append("SLD PLC").Append("코모텍 PLC").Append("도금 PLC").ToHashSet(StringComparer.Ordinal);
         var headers = names.SelectMany(name => new[] { "- " + name, "[ " + name + " ]" })
             .ToHashSet(StringComparer.Ordinal);
         var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";

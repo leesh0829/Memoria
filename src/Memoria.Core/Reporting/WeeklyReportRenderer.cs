@@ -40,6 +40,7 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
                 var text = StripClientPrefix(task.Text, name, options.Clients);
                 var date = task.CompletedDate?.ToString("MM/dd", CultureInfo.InvariantCulture) ?? "--/--";
                 lines.Add(options.Indent + "- " + text + " [완료일자: " + date + "]");
+                lines.Add("\t\t\to");
             }
         }
         lines.Add("");
@@ -58,8 +59,8 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         return string.Join("\n", lines);
     }
 
-    private static string ClientHeader(string name)
-        => name switch { "SLD" => "MES", "SLD 자율형공장" => "ICC", _ => name };
+    internal static string ClientHeader(string name)
+        => name switch { "SLD" => "SLD PLC", "코모텍" => "코모텍 PLC", "SLD 도금" => "도금 PLC", "SLD 자율형공장" => "ICC", _ => name };
 
     private static string StripClientPrefix(string text, string name, IReadOnlyList<Client> clients)
     {

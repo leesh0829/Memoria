@@ -23,10 +23,10 @@ public class DatabaseInitializerTests
             File.Exists(path).Should().BeTrue();
 
             using var conn = factory.Open();
-            conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(6);   // v5: 누적 데이터용 목록 복합 인덱스
+            conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(7);   // v7: SLD 도금 고객사/분류 규칙
             conn.ExecuteScalar<string>("PRAGMA journal_mode;").Should().Be("wal");
 
-            conn.ExecuteScalar<long>("SELECT COUNT(*) FROM clients;").Should().Be(6);
+            conn.ExecuteScalar<long>("SELECT COUNT(*) FROM clients;").Should().Be(7);
             conn.ExecuteScalar<long>("SELECT COUNT(*) FROM groups WHERE is_system = 1;").Should().Be(2);
             conn.ExecuteScalar<string>(
                 "SELECT value FROM settings WHERE key = @k;",
@@ -70,7 +70,7 @@ public class DatabaseInitializerTests
             init.EnsureReady(); // 두 번째 호출은 마이그레이션/시드를 다시 적용하지 않음
 
             using var conn = factory.Open();
-            conn.ExecuteScalar<long>("SELECT COUNT(*) FROM clients;").Should().Be(6);
+            conn.ExecuteScalar<long>("SELECT COUNT(*) FROM clients;").Should().Be(7);
         }
         finally
         {
@@ -100,4 +100,28 @@ public class DatabaseInitializerTests
                 if (File.Exists(p)) File.Delete(p);
         }
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void V7_AddsPlatingWithoutDuplicates_AndClassifiesBeforeGenericSld(bool existingClient)
+    {
+        using var db = new TestDb();
+        using var conn = db.Factory.Open();
+        conn.Execute("DELETE FROM client_rules WHERE keyword = 'SLD 도금';");
+        if (!existingClient) conn.Execute("DELETE FROM clients WHERE name = 'SLD 도금';");
+        var existingId = conn.ExecuteScalar<int?>("SELECT id FROM clients WHERE name = 'SLD 도금';");
+        conn.Execute("DELETE FROM _migrations WHERE version = 7; PRAGMA user_version = 6;");
+        var initializer = new DatabaseInitializer(db.Factory);
+        initializer.EnsureReady();
+        initializer.EnsureReady();
+        var clients = new ClientRepository(db.Factory);
+        var plating = clients.GetAll().Single(c => c.Name == "SLD 도금");
+        if (existingClient) plating.Id.Should().Be(existingId);
+        conn.ExecuteScalar<int>("SELECT COUNT(*) FROM client_rules WHERE keyword = 'SLD 도금';").Should().Be(1);
+        new Memoria.Core.Classification.ClientClassifier()
+            .Classify("SLD 도금 점검", clients.GetRules(), clients.GetAll(true).Select(c => c.Id).ToHashSet())
+            .Should().Be(plating.Id);
+    }
+
 }

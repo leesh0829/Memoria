@@ -25,8 +25,8 @@ public class WeeklyReportRendererFormatATests
             new("설계", 1, false),
         ], [new("장비 이슈")]);
         var text = _renderer.Render(ReportFormatKind.A, data, new() { Clients = Clients });
-        text.Should().Be("[업무 내용]\n- MES\n\t- 점검 [완료일자: 10/15]\n\t- 설계 [완료일자: --/--]"
-            + "\n- MTP\n\t- 개발 [완료일자: --/--]\n- ICC\n\t- 회의 [완료일자: 10/14]\n\n[이슈]\n\t- 장비 이슈");
+        text.Should().Be("[업무 내용]\n- SLD PLC\n\t- 점검 [완료일자: 10/15]\n\t\t\to\n\t- 설계 [완료일자: --/--]\n\t\t\to"
+            + "\n- MTP\n\t- 개발 [완료일자: --/--]\n\t\t\to\n- ICC\n\t- 회의 [완료일자: 10/14]\n\t\t\to\n\n[이슈]\n\t- 장비 이슈");
     }
 
     [Fact]
@@ -49,4 +49,19 @@ public class WeeklyReportRendererFormatATests
         var text = _renderer.Render(ReportFormatKind.A, data, new() { IncludeDoneOnly = true });
         text.Should().Contain("- 완료").And.NotContain("- 미완료").And.Contain("- 이슈");
     }
+
+    [Theory]
+    [InlineData("SLD", "SLD PLC")]
+    [InlineData("코모텍", "코모텍 PLC")]
+    [InlineData("SLD 도금", "도금 PLC")]
+    public void PlcAliasesAndThreeTabDetails_AreUsedForTasks_AndAliasForIssues(string name, string header)
+    {
+        var data = new WeeklyReportData([new(name + " 점검", 1, false)], [new(name + " 지연", 1)]);
+        var options = new ReportRenderOptions { Clients = [new() { Id = 1, Name = name }], Indent = "  " };
+        var a = _renderer.Render(ReportFormatKind.A, data, options);
+        a.Should().Be("[업무 내용]\n- " + header + "\n  - 점검 [완료일자: --/--]\n\t\t\to\n\n[이슈]\n- " + header + "\n  - 지연");
+        _renderer.Render(ReportFormatKind.C, data, options).Should()
+            .Be(a.Replace("[업무 내용]\n- " + header + "\n", "[업무 내용]\n"));
+    }
+
 }

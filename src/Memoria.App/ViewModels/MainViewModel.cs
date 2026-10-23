@@ -1030,10 +1030,11 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenSettings()
+    private async Task OpenSettingsAsync()
     {
         AppServices.Resolve<ISettingsWindowService>().ShowSettings();
         (CurrentEditor as WeeklyReportViewModel)?.RefreshSettings();
+        if (CurrentEditor is ChecklistViewModel checklist) await checklist.RefreshClientsAsync();
     }
 
     [RelayCommand]

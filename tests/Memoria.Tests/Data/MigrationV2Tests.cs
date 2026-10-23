@@ -14,7 +14,7 @@ public class MigrationV2Tests
         using var db = new TestDb();   // EnsureReady() 실행됨
         using var conn = db.Factory.Open();
 
-        conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(6);
+        conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(7);
         var cols = conn.Query<string>("SELECT name FROM pragma_table_info('notes');");
         cols.Should().Contain("body_format");
     }
@@ -37,6 +37,7 @@ public class MigrationV2Tests
                 // v3 마이그레이션(clients 개명)이 존재하므로 v1 흉내에도 clients 테이블이 있어야 한다.
                 c.Execute("CREATE TABLE clients (id INTEGER PRIMARY KEY, name TEXT NOT NULL, sort_order INTEGER NOT NULL, enabled INTEGER NOT NULL DEFAULT 1);");
                 c.Execute("CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
+                c.Execute("CREATE TABLE client_rules (id INTEGER PRIMARY KEY, client_id INTEGER NOT NULL, keyword TEXT NOT NULL, priority INTEGER NOT NULL);");
                 c.Execute("PRAGMA user_version = 1;");
             }
             SqliteConnection.ClearAllPools();
@@ -45,7 +46,7 @@ public class MigrationV2Tests
             {
                 new DatabaseInitializer(factory1).EnsureReady();   // v1 → 최신
                 var c = factory1.Write;
-                c.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(6);
+                c.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(7);
                 c.ExecuteScalar<string>("SELECT body_format FROM notes WHERE id = 1;").Should().Be("plain");
             }
             SqliteConnection.ClearAllPools();

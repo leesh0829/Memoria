@@ -14,7 +14,7 @@ public class ClientRepositoryTests
         var sut = new ClientRepository(db.Factory);
 
         var all = sut.GetAll();
-        all.Should().HaveCount(6);
+        all.Should().HaveCount(7);
         all.Select(c => c.Name).First().Should().Be("SLD");
         all.Select(c => c.SortOrder).Should().BeInAscendingOrder();
     }
