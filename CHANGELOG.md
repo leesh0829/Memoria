@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [0.12.0] - 2026-10-23
+### Fixed
+- V7 마이그레이션 테스트 준비 단계에서 읽기 전용 연결로 DB를 수정해 실패하던 문제 수정. 쓰기 연결 및 WriteSync 잠금 사용.
+
 ### Added
 - 신규·기존 DB에 고객사 SLD 도금 및 SLD보다 우선하는 전용 분류 규칙 추가.
 - 설정 고객사 탭에 고객사 이름 입력·추가, 공백/중복 검사, 추가 실패 안내 제공.
@@ -20,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Validation
 - 고객사 추가·이슈 수동 지정/해제·보고서 출력·DB 업그레이드 회귀 테스트 추가/수정.
 - WPF 빌드·테스트는 WSL 환경에서 실행하지 않음. Windows에서 Install-Memoria.ps1 실행 필요.
+- Windows 실행 결과: 앱·테스트 컴파일 성공, 519개 중 517개 통과 및 위 테스트 2개 실패 확인. 수정 후 전체 테스트·설치는 Windows 재실행 필요.
 
 ## [0.11.3] - 2026-10-19
 ### Changed

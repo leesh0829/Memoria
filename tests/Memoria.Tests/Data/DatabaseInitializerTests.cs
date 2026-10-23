@@ -107,14 +107,19 @@ public class DatabaseInitializerTests
     public void V7_AddsPlatingWithoutDuplicates_AndClassifiesBeforeGenericSld(bool existingClient)
     {
         using var db = new TestDb();
-        using var conn = db.Factory.Open();
-        conn.Execute("DELETE FROM client_rules WHERE keyword = 'SLD 도금';");
-        if (!existingClient) conn.Execute("DELETE FROM clients WHERE name = 'SLD 도금';");
-        var existingId = conn.ExecuteScalar<int?>("SELECT id FROM clients WHERE name = 'SLD 도금';");
-        conn.Execute("DELETE FROM _migrations WHERE version = 7; PRAGMA user_version = 6;");
+        int? existingId;
+        lock (db.Factory.WriteSync)
+        {
+            var writer = db.Factory.Write;
+            writer.Execute("DELETE FROM client_rules WHERE keyword = 'SLD 도금';");
+            if (!existingClient) writer.Execute("DELETE FROM clients WHERE name = 'SLD 도금';");
+            existingId = writer.ExecuteScalar<int?>("SELECT id FROM clients WHERE name = 'SLD 도금';");
+            writer.Execute("DELETE FROM _migrations WHERE version = 7; PRAGMA user_version = 6;");
+        }
         var initializer = new DatabaseInitializer(db.Factory);
         initializer.EnsureReady();
         initializer.EnsureReady();
+        using var conn = db.Factory.Open();
         var clients = new ClientRepository(db.Factory);
         var plating = clients.GetAll().Single(c => c.Name == "SLD 도금");
         if (existingClient) plating.Id.Should().Be(existingId);
