@@ -11,5 +11,6 @@ public static class ReportTaskDeduplicator
             Text = g.First().Text.Trim(),
             Done = g.Any(t => t.Done),
             CompletedDate = g.Max(t => t.CompletedDate),
+            StartedDate = g.Min(t => t.StartedDate),
         }).ToList();
 }

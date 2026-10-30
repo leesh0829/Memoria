@@ -7,7 +7,7 @@ namespace Memoria.Tests.Reporting;
 public class WeeklyReportRendererFormatCTests
 {
     [Fact]
-    public void CMatchesAWithoutClientHeaders_AndIgnoresLegacyDClientFilter()
+    public void CRemovesTaskHeadersMarkersAndIndent_AndIgnoresLegacyDClientFilter()
     {
         Client[] clients = [new() { Id = 1, Name = "SLD" }, new() { Id = 2, Name = "SLD 자율형공장" }];
         var data = new WeeklyReportData(
@@ -17,8 +17,8 @@ public class WeeklyReportRendererFormatCTests
         var renderer = new WeeklyReportRenderer();
         var a = renderer.Render(ReportFormatKind.A, data, options);
         var c = renderer.Render(ReportFormatKind.C, data, options);
-        c.Should().Be(a.Replace("- SLD PLC\n", "").Replace("- ICC\n", ""));
-        c.Should().Be("[업무 내용]\n\t- 점검 [완료일자: 10/15]\n\t\t\to\n\t- 회의 [완료일자: --/--]\n\t\t\to\n\n[이슈]\n\t- 이슈");
+        a.Should().Contain("\t\t\to").And.Contain("\t- 점검");
+        c.Should().Be("[업무 내용]\n- 점검 [완료일자: 10/15]\n- 회의 [--/--~]\n\n[이슈]\n\t- 이슈");
     }
     [Theory]
     [InlineData(ReportFormatKind.A)]
@@ -36,7 +36,7 @@ public class WeeklyReportRendererFormatCTests
     [InlineData("\t")]
     [InlineData("    ")]
     [InlineData("")]
-    public void COnlyRemovesClientLines_PreservesCustomHeadersOrderDatesIssuesAndIndent(string indent)
+    public void CRemovesTaskIndentAndMarkers_PreservesCustomHeadersOrderDatesAndIssues(string indent)
     {
         var options = new ReportRenderOptions
         {
@@ -50,8 +50,8 @@ public class WeeklyReportRendererFormatCTests
         var a = renderer.Render(ReportFormatKind.A, data, options);
         var c = renderer.Render(ReportFormatKind.C, data, options);
         a.Should().Contain("\n- SLD PLC\n").And.Contain("\n- MTP\n").And.NotContain("[ SLD PLC ]");
-        c.Should().Be("이번주 업무\n" + indent + "- 점검 [완료일자: --/--]\n\t\t\to\n"
-            + indent + "- 개발 [완료일자: 10/15]\n\t\t\to\n\n이번주 이슈\n" + indent + "- MTP\n" + indent + "- 이슈");
+        c.Should().Be("이번주 업무\n- 점검 [--/--~]\n"
+            + "- 개발 [완료일자: 10/15]\n\n이번주 이슈\n" + indent + "- MTP\n" + indent + "- 이슈");
     }
 
     [Fact]
@@ -61,8 +61,19 @@ public class WeeklyReportRendererFormatCTests
         var a = "[업무 내용]\r\n- MES\r\n\t- 직접 수정한 업무 [완료일자: 10/15]\r\n"
             + "- MTP\r\n\t추가 설명: MTP 현장\r\n\r\n[이슈]\r\n- MTP";
         FormatAReport.WithoutClientHeaders(a, options).Should().Be(
-            "[업무 내용]\r\n\t- 직접 수정한 업무 [완료일자: 10/15]\r\n"
+            "[업무 내용]\r\n- 직접 수정한 업무 [완료일자: 10/15]\r\n"
             + "\t추가 설명: MTP 현장\r\n\r\n[이슈]\r\n- MTP");
+    }
+
+
+    [Fact]
+    public void CFromEditedA_RemovesGeneratedMarkersAndTaskIndent_ButKeepsDetailsAndIssues()
+    {
+        var options = new ReportRenderOptions();
+        var text = "[업무 내용]\r\n- SLD PLC\r\n\t- 진행 [10/23~]\r\n\t\t\to\r\n"
+            + "\t\t\to 직접 작성한 설명\r\n\r\n[이슈]\r\n- SLD PLC\r\n\t- 이슈\r\n\t\t\to";
+        FormatAReport.WithoutClientHeaders(text, options).Should().Be(
+            "[업무 내용]\r\n- 진행 [10/23~]\r\n\t\t\to 직접 작성한 설명\r\n\r\n[이슈]\r\n- SLD PLC\r\n\t- 이슈\r\n\t\t\to");
     }
 
 }

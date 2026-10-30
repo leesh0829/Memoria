@@ -58,7 +58,8 @@ public sealed class WeeklyReportService : IWeeklyReportService
                 {
                     tasks.Add(new ReportTask(item.Text, clientId, item.Done,
                         item.Done ? (item.DoneAt is { } completed
-                            ? DateOnly.FromDateTime(completed.LocalDateTime) : note.LogDate) : null));
+                            ? DateOnly.FromDateTime(completed.LocalDateTime) : note.LogDate) : null,
+                        StartedDate: note.LogDate));
                 }
                 else
                 {

@@ -549,7 +549,7 @@ public class WeeklyReportViewModelTests
         vm.SelectedFormat = ReportFormatKind.C;
 
         svc.BuildCallCount.Should().Be(builds);
-        vm.ReportText.Should().Be("[업무 내용]\n\t- 수정 업무 [완료일자: 06/24]\n\t- 추가 업무 [완료일자: --/--]\n\n[이슈]\n\t- 사용자 이슈");
+        vm.ReportText.Should().Be("[업무 내용]\n- 수정 업무 [완료일자: 06/24]\n- 추가 업무 [완료일자: --/--]\n\n[이슈]\n\t- 사용자 이슈");
     }
 
     [Fact]
@@ -567,7 +567,7 @@ public class WeeklyReportViewModelTests
 
         vm.SelectedFormat = ReportFormatKind.C;
 
-        vm.ReportText.Should().Be("[업무 내용]\n\t- 시트 업무 [완료일자: 06/24]\n\n[이슈]");
+        vm.ReportText.Should().Be("[업무 내용]\n- 시트 업무 [완료일자: 06/24]\n\n[이슈]");
     }
 
     [Fact]

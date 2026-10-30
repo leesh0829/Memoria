@@ -38,8 +38,10 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
             foreach (var task in group)
             {
                 var text = StripClientPrefix(task.Text, name, options.Clients);
-                var date = task.CompletedDate?.ToString("MM/dd", CultureInfo.InvariantCulture) ?? "--/--";
-                lines.Add(options.Indent + "- " + text + " [완료일자: " + date + "]");
+                var date = (task.Done ? task.CompletedDate : task.StartedDate)
+                    ?.ToString("MM/dd", CultureInfo.InvariantCulture) ?? "--/--";
+                var period = task.Done ? "[완료일자: " + date + "]" : "[" + date + "~]";
+                lines.Add(options.Indent + "- " + text + " " + period);
                 lines.Add("\t\t\to");
             }
         }

@@ -2,7 +2,7 @@ using Memoria.Core.Models;
 
 namespace Memoria.Core.Reporting;
 
-public sealed record ReportTask(string Text, int? ClientId, bool Done, DateOnly? CompletedDate = null);
+public sealed record ReportTask(string Text, int? ClientId, bool Done, DateOnly? CompletedDate = null, DateOnly? StartedDate = null);
 public sealed record ReportIssue(string Text, int? ClientId = null);
 
 public sealed record WeeklyReportData(

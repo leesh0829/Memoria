@@ -185,4 +185,23 @@ public class WeeklyReportServiceTests
         result.Data.Issues.Should().Contain(i => i.Text == "공통 공지" && i.ClientId == null);
     }
 
+
+    [Theory]
+    [InlineData(ReportFormatKind.A)]
+    [InlineData(ReportFormatKind.C)]
+    public void Build_UsesEarliestLogDateForRepeatedUnfinishedTasks(ReportFormatKind format)
+    {
+        using var db = new TestDb();
+        var (svc, notes, items, _) = Build(db);
+        foreach (var day in new[] { 29, 23, 27 })
+        {
+            var noteId = notes.Create(new Note { Type = NoteType.Checklist, LogDate = new(2026, 10, day) });
+            items.AddItem(new ChecklistItem { NoteId = noteId, Kind = ItemKind.Task, Text = "진행 중" });
+        }
+        var options = new ReportRenderOptions();
+        var result = svc.BuildRange(new(2026, 10, 23), new(2026, 10, 29), options);
+        result.Data.Tasks.Should().ContainSingle().Which.StartedDate.Should().Be(new DateOnly(2026, 10, 23));
+        svc.Render(format, result.Data, options).Should().Contain("- 진행 중 [10/23~]");
+    }
+
 }
