@@ -127,4 +127,27 @@ public class WorkEntriesViewModelTests
         saved.Statuses.Should().Equal("진행중");
     }
 
+
+    [Fact]
+    public void DateFilterAndCopy_ExcludeOldUndatedCompletedAndOtherDayNotStarted()
+    {
+        var day = new DateTime(2026, 10, 30);
+        var repository = new Repository();
+        repository.Items.AddRange([
+            new() { Request = "과거 완료", Statuses = ["완료"], RequestedDate = day, ProcessingStart = day.AddDays(-10), ProcessingEnd = day.AddDays(-1) },
+            new() { Request = "종료일 빈 과거 완료", Statuses = ["완료"], RequestedDate = day, ProcessingStart = day.AddDays(-20) },
+            new() { Request = "날짜 없는 완료", Statuses = ["완료"], RequestedDate = day },
+            new() { Request = "당일 완료", Statuses = ["완료"], ProcessingEnd = day },
+            new() { Request = "이후 완료", Statuses = ["완료"], ProcessingEnd = day.AddDays(1) },
+            new() { Request = "이전 미진행", Statuses = ["미진행"], RequestedDate = day.AddDays(-1) },
+            new() { Request = "당일 미진행", Statuses = ["미진행"], RequestedDate = day },
+        ]);
+        var clipboard = new FakeClipboardService();
+        var vm = new WorkEntriesViewModel(repository, clipboard, new FakeConfirmationDialogService()) { SelectedDate = day };
+        vm.Entries.Cast<WorkEntryRow>().Select(r => r.Request).Should().BeEquivalentTo(new[] { "당일 완료", "이후 완료", "당일 미진행" });
+        vm.CopyCommand.Execute(null);
+        clipboard.LastText.Should().Contain("당일 완료").And.Contain("이후 완료").And.Contain("당일 미진행")
+            .And.NotContain("과거 완료").And.NotContain("날짜 없는 완료").And.NotContain("이전 미진행");
+    }
+
 }

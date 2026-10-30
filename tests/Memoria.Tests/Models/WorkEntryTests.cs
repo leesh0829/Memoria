@@ -13,38 +13,67 @@ public class WorkEntryTests
         ProcessingStart = Day.AddDays(-5), ProcessingEnd = Day.AddDays(-3),
     };
 
-    [Fact]
-    public void CompletedWork_IsVisibleOnRequestDateAndInclusiveProcessingDates()
+
+    [Theory]
+    [InlineData(-1, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    public void CompletedWork_IsVisibleOnlyWhenCompletionIsOnOrAfterSelectedDate(int completionOffset, bool visible)
     {
         var entry = Completed();
-        entry.IsVisibleOn(Day).Should().BeFalse();
-        entry.IsVisibleOn(entry.RequestedDate!.Value).Should().BeTrue();
-        entry.IsVisibleOn(entry.ProcessingStart!.Value).Should().BeTrue();
-        entry.IsVisibleOn(Day.AddDays(-4)).Should().BeTrue();
-        entry.IsVisibleOn(entry.ProcessingEnd!.Value).Should().BeTrue();
+        entry.RequestedDate = Day;
+        entry.ProcessingStart = Day.AddDays(-10);
+        entry.ProcessingEnd = Day.AddDays(completionOffset);
+        entry.IsVisibleOn(Day).Should().Be(visible);
     }
 
     [Theory]
-    [InlineData("요청")]
-    [InlineData("작업 중")]
-    [InlineData("검토 중")]
-    [InlineData("회의필요")]
+    [InlineData("대기중")]
+    [InlineData("협의중")]
+    [InlineData("진행중")]
+    [InlineData("검토중")]
     public void ActiveStatuses_AreVisibleOutsideDateRange(string status)
     {
         var entry = Completed();
-        entry.Statuses = ["완료", status];
+        entry.Statuses = [status];
         entry.IsVisibleOn(Day).Should().BeTrue();
     }
 
     [Fact]
-    public void MissingProcessingDate_AlwaysRemainsVisible_EvenIfCompleted()
+    public void CompletedWithoutEnd_UsesSingleProcessingDate_AndHidesUnknownCompletion()
     {
         var entry = Completed();
         entry.ProcessingEnd = null;
+        entry.IsVisibleOn(Day).Should().BeFalse();
+        entry.ProcessingStart = Day;
         entry.IsVisibleOn(Day).Should().BeTrue();
-        entry.ProcessingEnd = Day.AddDays(-3);
+        entry.ProcessingStart = Day.AddDays(1);
+        entry.IsVisibleOn(Day).Should().BeTrue();
         entry.ProcessingStart = null;
+        entry.RequestedDate = Day;
+        entry.IsVisibleOn(Day).Should().BeFalse();
+    }
+
+    [Fact]
+    public void NotStarted_IsVisibleOnlyOnRequestDate_RegardlessOfProcessingDates()
+    {
+        var entry = new WorkEntry { Done = true, Statuses = ["미진행"], RequestedDate = Day };
         entry.IsVisibleOn(Day).Should().BeTrue();
+        entry.IsVisibleOn(Day.AddDays(1)).Should().BeFalse();
+        entry.ProcessingStart = Day;
+        entry.ProcessingEnd = Day.AddDays(1);
+        entry.RequestedDate = Day.AddDays(-1);
+        entry.IsVisibleOn(Day).Should().BeFalse();
+        entry.RequestedDate = null;
+        entry.IsVisibleOn(Day).Should().BeFalse();
+    }
+
+    [Fact]
+    public void CompletedStatus_TakesDateFilterPriorityOverLegacyActiveStatus()
+    {
+        var entry = Completed();
+        entry.Statuses = ["완료", "진행중"];
+        entry.IsVisibleOn(Day).Should().BeFalse();
     }
 
     [Fact]

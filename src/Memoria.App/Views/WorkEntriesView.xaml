@@ -15,7 +15,9 @@
   <TextBlock DockPanel.Dock="Bottom" Text="{Binding Message}" Margin="0,8,0,0" TextWrapping="Wrap"/>
   <DataGrid x:Name="EntriesGrid" ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry}"
    AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single"
+   RowHeight="72" CanUserResizeRows="False"
    EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+   VirtualizingPanel.ScrollUnit="Pixel"
    ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"
    Background="{DynamicResource Brush.EditorBackground}" Foreground="{DynamicResource Brush.Foreground}"
    RowEditEnding="OnRowEditEnding" BorderBrush="{DynamicResource Brush.Border}">
@@ -50,44 +52,44 @@
      <CheckBox IsChecked="{Binding Done, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="작업상태" Width="160"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <views:WorkEntryMultiSelect ItemsSource="{Binding Statuses}" ToolTip="작업상태는 하나만 선택합니다." SelectionClosed="OnSelectionClosed"/>
+     <views:WorkEntryMultiSelect VerticalAlignment="Center" ItemsSource="{Binding Statuses}" ToolTip="작업상태는 하나만 선택합니다." SelectionClosed="OnSelectionClosed"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="요청일" Width="135"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <DatePicker SelectedDate="{Binding RequestedDate, UpdateSourceTrigger=PropertyChanged}"/>
+     <DatePicker VerticalAlignment="Center" SelectedDate="{Binding RequestedDate, UpdateSourceTrigger=PropertyChanged}"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="완료일(처리일)" Width="295"><DataGridTemplateColumn.CellTemplate><DataTemplate>
      <StackPanel Orientation="Horizontal">
-      <DatePicker SelectedDate="{Binding ProcessingStart, UpdateSourceTrigger=PropertyChanged}" Width="135"/>
+      <DatePicker VerticalAlignment="Center" SelectedDate="{Binding ProcessingStart, UpdateSourceTrigger=PropertyChanged}" Width="135"/>
       <TextBlock Text=" ~ " VerticalAlignment="Center"/>
-      <DatePicker SelectedDate="{Binding ProcessingEnd, UpdateSourceTrigger=PropertyChanged}" Width="135"/>
+      <DatePicker VerticalAlignment="Center" SelectedDate="{Binding ProcessingEnd, UpdateSourceTrigger=PropertyChanged}" Width="135"/>
      </StackPanel>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="요청유형" Width="160"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <views:WorkEntryMultiSelect ItemsSource="{Binding RequestTypes}" SelectionClosed="OnSelectionClosed"/>
+     <views:WorkEntryMultiSelect VerticalAlignment="Center" ItemsSource="{Binding RequestTypes}" SelectionClosed="OnSelectionClosed"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="고객사" Width="170"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <views:WorkEntryMultiSelect ItemsSource="{Binding Clients}" SelectionClosed="OnSelectionClosed"/>
+     <views:WorkEntryMultiSelect VerticalAlignment="Center" ItemsSource="{Binding Clients}" SelectionClosed="OnSelectionClosed"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="작업유형" Width="150"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <views:WorkEntryMultiSelect ItemsSource="{Binding WorkTypes}" SelectionClosed="OnSelectionClosed"/>
+     <views:WorkEntryMultiSelect VerticalAlignment="Center" ItemsSource="{Binding WorkTypes}" SelectionClosed="OnSelectionClosed"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="요청방식" Width="210"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <views:WorkEntryMultiSelect ItemsSource="{Binding RequestMethods}" SelectionClosed="OnSelectionClosed"/>
+     <views:WorkEntryMultiSelect VerticalAlignment="Center" ItemsSource="{Binding RequestMethods}" SelectionClosed="OnSelectionClosed"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="요청내용" Width="320"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <TextBox Text="{Binding Request, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="32" Padding="4" BorderThickness="0"/>
+     <TextBox Text="{Binding Request, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" MinHeight="32" Padding="4" BorderThickness="0"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="원인" Width="280"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <TextBox Text="{Binding Cause, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="32" Padding="4" BorderThickness="0"/>
+     <TextBox Text="{Binding Cause, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" MinHeight="32" Padding="4" BorderThickness="0"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="조치내역" Width="320"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <TextBox Text="{Binding Action, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="32" Padding="4" BorderThickness="0"/>
+     <TextBox Text="{Binding Action, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" MinHeight="32" Padding="4" BorderThickness="0"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="요청자" Width="120"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <TextBox Text="{Binding Requester, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="32" Padding="4" BorderThickness="0"/>
+     <TextBox Text="{Binding Requester, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" MinHeight="32" Padding="4" BorderThickness="0"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="담당자" Width="120"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-     <TextBox Text="{Binding Assignee, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="32" Padding="4" BorderThickness="0"/>
+     <TextBox Text="{Binding Assignee, UpdateSourceTrigger=LostFocus}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" MinHeight="32" Padding="4" BorderThickness="0"/>
     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
    </DataGrid.Columns>
   </DataGrid>

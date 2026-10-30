@@ -20,11 +20,12 @@ public sealed class WorkEntry
     public string Requester { get; set; } = "";
     public string Assignee { get; set; } = "";
 
-    public bool IsVisibleOn(DateTime date) => RequestedDate?.Date == date.Date
-        || (ProcessingStart is { } start && ProcessingEnd is { } end
-            && start.Date <= date.Date && date.Date <= end.Date)
-        || Statuses.Select(NormalizeStatus).Any(s => s is "대기중" or "협의중" or "진행중" or "검토중")
-        || ProcessingStart is null || ProcessingEnd is null;
+    public bool IsVisibleOn(DateTime date) => Section switch
+    {
+        "완료" => (ProcessingEnd ?? ProcessingStart) is { } completed && completed.Date >= date.Date,
+        "미진행" => RequestedDate?.Date == date.Date,
+        _ => true,
+    };
 
     public static string NormalizeStatus(string status) => status.Trim().Replace(" ", "") switch
     {
