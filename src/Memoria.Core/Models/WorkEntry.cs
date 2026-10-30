@@ -4,7 +4,9 @@ public sealed class WorkEntry
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public bool Done { get; set; }
-    public string[] Statuses { get; set; } = ["요청"];
+    public static IReadOnlyList<string> StatusOptions { get; } = Array.AsReadOnly(
+        new[] { "대기중", "협의중", "진행중", "검토중", "완료", "미진행" });
+    public string[] Statuses { get; set; } = ["대기중"];
     public DateTime? RequestedDate { get; set; } = DateTime.Today;
     public DateTime? ProcessingStart { get; set; }
     public DateTime? ProcessingEnd { get; set; }
@@ -21,16 +23,17 @@ public sealed class WorkEntry
     public bool IsVisibleOn(DateTime date) => RequestedDate?.Date == date.Date
         || (ProcessingStart is { } start && ProcessingEnd is { } end
             && start.Date <= date.Date && date.Date <= end.Date)
-        || Statuses.Any(s => s is "요청" or "작업 중" or "검토 중" or "회의필요")
+        || Statuses.Select(NormalizeStatus).Any(s => s is "대기중" or "협의중" or "진행중" or "검토중")
         || ProcessingStart is null || ProcessingEnd is null;
 
     public static string NormalizeStatus(string status) => status.Trim().Replace(" ", "") switch
     {
-        "진행중" or "작업중" => "작업 중",
-        "검토중" => "검토 중",
-        "대기중" or "대기" => "대기",
-        "협의중" => "협의중",
-        _ => status.Trim(),
+        "진행중" or "작업중" => "진행중",
+        "검토중" => "검토중",
+        "회의필요" or "협의중" => "협의중",
+        "완료" or "완료(테스트필요)" => "완료",
+        "무산" or "미진행" => "미진행",
+        _ => "대기중",
     };
 
     // 기존 복수 상태 데이터도 한 섹션에만 표시한다. 새 작업상태 선택은 하나만 유지한다.
@@ -39,15 +42,15 @@ public sealed class WorkEntry
         get
         {
             var statuses = Statuses.Select(NormalizeStatus).ToHashSet();
-            foreach (var section in new[] { "완료", "회의필요", "검토 중", "협의중", "대기", "보류", "미진행", "무산" })
+            foreach (var section in new[] { "완료", "미진행", "협의중", "검토중", "진행중", "대기중" })
                 if (statuses.Contains(section)) return section;
-            return "요청 / 작업 중";
+            return "대기중";
         }
     }
     public int StatusOrder => Section switch
     {
-        "검토 중" => 2, "회의필요" => 3, "협의중" => 4, "대기" => 5,
-        "보류" => 6, "미진행" => 7, "무산" => 8, "완료" => 9,
-        _ => Statuses.Contains("요청") ? 0 : 1,
+        "대기중" => 0, "협의중" => 1, "진행중" => 2,
+        "검토중" => 3, "완료" => 4, "미진행" => 5,
+        _ => 0,
     };
 }

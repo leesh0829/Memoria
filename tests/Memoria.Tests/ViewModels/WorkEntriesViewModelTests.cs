@@ -23,7 +23,7 @@ public class WorkEntriesViewModelTests
         repository.Saved!.Done.Should().BeTrue();
         repository.Saved.Request.Should().Be("요청\n상세");
         repository.Saved.Clients.Should().Equal("SLD_파주", "SLD_공주");
-        repository.Saved.Statuses.Should().Equal("요청");
+        repository.Saved.Statuses.Should().Equal("대기중");
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class WorkEntriesViewModelTests
         var vm = new WorkEntriesViewModel(repository, clipboard, new FakeConfirmationDialogService()) { SelectedDate = day };
         vm.CopyCommand.Execute(null);
         clipboard.LastText.Should().NotContain("지난 완료").And.Contain("오늘 완료");
-        clipboard.LastText!.IndexOf("검토 업무", StringComparison.Ordinal).Should().BeLessThan(clipboard.LastText.IndexOf("회의 업무", StringComparison.Ordinal));
+        clipboard.LastText!.IndexOf("회의 업무", StringComparison.Ordinal).Should().BeLessThan(clipboard.LastText.IndexOf("검토 업무", StringComparison.Ordinal));
         vm.Entries.Groups.Should().HaveCount(3);
     }
 
@@ -60,28 +60,28 @@ public class WorkEntriesViewModelTests
     {
         WorkEntry? saved = null;
         var row = new WorkEntryRow(new WorkEntry { Statuses = ["완료"] }, r => saved = r.ToModel());
-        row.Statuses.Single(c => c.Name == "작업 중").IsSelected = true;
-        row.ToModel().Statuses.Should().Equal("작업 중");
-        row.Section.Should().Be("요청 / 작업 중");
-        saved!.Statuses.Should().Equal("작업 중");
-        row.Statuses.Single(c => c.Name == "보류").IsSelected = true;
-        row.Section.Should().Be("보류");
-        saved.Statuses.Should().Equal("보류");
+        row.Statuses.Single(c => c.Name == "진행중").IsSelected = true;
+        row.ToModel().Statuses.Should().Equal("진행중");
+        row.Section.Should().Be("진행중");
+        saved!.Statuses.Should().Equal("진행중");
+        row.Statuses.Single(c => c.Name == "대기중").IsSelected = true;
+        row.Section.Should().Be("대기중");
+        saved.Statuses.Should().Equal("대기중");
     }
 
     [Fact]
     public void CurrentStatus_CannotBeClearedByClickingItAgain()
     {
         var row = new WorkEntryRow(new WorkEntry { Statuses = ["요청"] }, _ => { });
-        row.Statuses.Single(c => c.Name == "요청").IsSelected = false;
-        row.ToModel().Statuses.Should().Equal("요청");
+        row.Statuses.Single(c => c.Name == "대기중").IsSelected = false;
+        row.ToModel().Statuses.Should().Equal("대기중");
     }
 
     [Fact]
     public void ImportedWaitingStatus_UsesCanonicalChoice_AndCanChangeToCompleted()
     {
         var row = new WorkEntryRow(new WorkEntry { Statuses = ["대기 중"] }, _ => { });
-        row.Statuses.Single(c => c.Name == "대기").IsSelected.Should().BeTrue();
+        row.Statuses.Single(c => c.Name == "대기중").IsSelected.Should().BeTrue();
         row.Statuses.Should().NotContain(c => c.Name == "대기 중");
         row.Statuses.Single(c => c.Name == "완료").IsSelected = true;
         row.ToModel().Statuses.Should().Equal("완료");
@@ -100,6 +100,31 @@ public class WorkEntriesViewModelTests
         vm.Entries.Groups.Should().ContainSingle();
         ((System.Windows.Data.CollectionViewGroup)vm.Entries.Groups![0]).Name.Should().Be("협의중");
         repository.Saved!.Statuses.Should().Equal("협의중");
+    }
+
+
+    [Fact]
+    public void StatusChoices_AreExactlyTheSixSpreadsheetStatuses()
+    {
+        var row = new WorkEntryRow(new WorkEntry { Statuses = ["대기 중"] }, _ => { });
+        row.Statuses.Select(c => c.Name).Should().Equal("대기중", "협의중", "진행중", "검토중", "완료", "미진행");
+        row.ToModel().Statuses.Should().Equal("대기중");
+    }
+
+    [Theory]
+    [InlineData("완료")]
+    [InlineData("미진행")]
+    public void TerminalStatusSelection_ChecksDone_AndActiveSelectionClearsIt(string terminal)
+    {
+        WorkEntry? saved = null;
+        var row = new WorkEntryRow(new WorkEntry(), r => saved = r.ToModel());
+        row.Statuses.Single(c => c.Name == terminal).IsSelected = true;
+        row.Done.Should().BeTrue();
+        saved!.Done.Should().BeTrue();
+        row.Statuses.Single(c => c.Name == "진행중").IsSelected = true;
+        row.Done.Should().BeFalse();
+        saved.Done.Should().BeFalse();
+        saved.Statuses.Should().Equal("진행중");
     }
 
 }

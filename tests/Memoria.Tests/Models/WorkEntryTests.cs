@@ -50,8 +50,8 @@ public class WorkEntryTests
     [Fact]
     public void MultipleStatuses_HaveOneDeterministicSection()
     {
-        new WorkEntry { Statuses = ["작업 중", "검토 중"] }.Section.Should().Be("검토 중");
-        new WorkEntry { Statuses = ["검토 중", "회의필요"] }.Section.Should().Be("회의필요");
+        new WorkEntry { Statuses = ["작업 중", "검토 중"] }.Section.Should().Be("검토중");
+        new WorkEntry { Statuses = ["검토 중", "회의필요"] }.Section.Should().Be("협의중");
         new WorkEntry { Statuses = ["완료", "회의필요"] }.Section.Should().Be("완료");
     }
 
@@ -73,10 +73,10 @@ public class WorkEntryTests
 
     [Theory]
     [InlineData("미진행", "미진행")]
-    [InlineData("무산", "무산")]
-    [InlineData("보류", "보류")]
-    [InlineData("대기 중", "대기")]
-    [InlineData("대기", "대기")]
+    [InlineData("무산", "미진행")]
+    [InlineData("보류", "대기중")]
+    [InlineData("대기 중", "대기중")]
+    [InlineData("대기", "대기중")]
     [InlineData("협의중", "협의중")]
     public void ImportedInactiveStatuses_HaveTheirOwnSections(string status, string section)
     {

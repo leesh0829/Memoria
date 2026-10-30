@@ -124,19 +124,19 @@ public partial class WorkEntryRow : ObservableObject
     public WorkEntryRow(WorkEntry entry, Action<WorkEntryRow> save)
     {
         Id = entry.Id; _save = save;
-        _done = entry.Done; _requestedDate = entry.RequestedDate;
+        _done = entry.Done || entry.Section is "완료" or "미진행";
+        _requestedDate = entry.RequestedDate;
         _processingStart = entry.ProcessingStart; _processingEnd = entry.ProcessingEnd;
         _request = entry.Request; _cause = entry.Cause; _action = entry.Action;
         _requester = entry.Requester; _assignee = entry.Assignee;
-        Statuses = Choices(["요청", "작업 중", "검토 중", "회의필요", "협의중", "대기", "보류", "미진행", "무산", "완료"],
-            entry.Statuses.Select(WorkEntry.NormalizeStatus).Distinct().ToArray(), singleStatus: true);
+        Statuses = Choices(WorkEntry.StatusOptions.ToArray(), [entry.Section], singleStatus: true);
         RequestTypes = Choices(["MES", "설비", "라벨프린트", "프로그램개발", "기타"], entry.RequestTypes);
         Clients = Choices(["SCA", "MTP", "ECI", "SLD_파주", "SLD_공주", "코모텍", "충북", "자율형공장"], entry.Clients);
         WorkTypes = Choices(["유지보수", "개발", "문서", "설계"], entry.WorkTypes);
         RequestMethods = Choices(["유선", "담당자 지정", "카카오톡(단체)", "카카오톡(개인)", "이메일", "현장"], entry.RequestMethods);
         PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(Section) or nameof(StatusOrder)) return;
+            if (_changingStatus || e.PropertyName is nameof(Section) or nameof(StatusOrder)) return;
             _save(this);
         };
     }
@@ -154,7 +154,10 @@ public partial class WorkEntryRow : ObservableObject
                 try
                 {
                     if (choice.IsSelected)
+                    {
                         foreach (var other in choices.Where(c => c != choice)) other.IsSelected = false;
+                        Done = choice.Name is "완료" or "미진행";
+                    }
                     else if (!choices.Any(c => c.IsSelected))
                         choice.IsSelected = true;
                 }
