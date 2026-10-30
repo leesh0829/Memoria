@@ -14,7 +14,7 @@ public class MigrationV2Tests
         using var db = new TestDb();   // EnsureReady() 실행됨
         using var conn = db.Factory.Open();
 
-        conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(7);
+        conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(8);
         var cols = conn.Query<string>("SELECT name FROM pragma_table_info('notes');");
         cols.Should().Contain("body_format");
     }
@@ -46,7 +46,7 @@ public class MigrationV2Tests
             {
                 new DatabaseInitializer(factory1).EnsureReady();   // v1 → 최신
                 var c = factory1.Write;
-                c.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(7);
+                c.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(8);
                 c.ExecuteScalar<string>("SELECT body_format FROM notes WHERE id = 1;").Should().Be("plain");
             }
             SqliteConnection.ClearAllPools();

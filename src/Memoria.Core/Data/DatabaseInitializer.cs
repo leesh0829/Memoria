@@ -4,7 +4,7 @@ namespace Memoria.Core.Data;
 
 public sealed class DatabaseInitializer : IDatabaseInitializer
 {
-    private const long TargetVersion = 7;
+    private const long TargetVersion = 8;
     private readonly SqliteConnectionFactory _factory;
 
     public DatabaseInitializer(SqliteConnectionFactory factory) => _factory = factory;
@@ -28,6 +28,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
             if (current < 5) ApplyV5(conn);
             if (current < 6) ApplyV6(conn);
             if (current < 7) ApplyV7(conn);
+            if (current < 8) ApplyV8(conn);
         }
     }
 
@@ -161,6 +162,27 @@ FROM clients c WHERE c.name = 'SLD 도금'
 AND NOT EXISTS (SELECT 1 FROM client_rules WHERE keyword = 'SLD 도금');
 INSERT INTO _migrations(version, applied_at) VALUES(7, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
 PRAGMA user_version = 7;", transaction: tx);
+        tx.Commit();
+    }
+
+    private static void ApplyV8(Microsoft.Data.Sqlite.SqliteConnection conn)
+    {
+        using var tx = conn.BeginTransaction();
+        conn.Execute(@"
+UPDATE work_entries
+SET payload = json_set(payload, '$.Statuses', json((
+    SELECT json_group_array(status) FROM (
+        SELECT DISTINCT CASE WHEN replace(value, ' ', '') = '완료(테스트필요)'
+            THEN '완료' ELSE value END AS status
+        FROM json_each(work_entries.payload, '$.Statuses')
+    )
+)), '$.Done', json('true'))
+WHERE EXISTS (
+    SELECT 1 FROM json_each(work_entries.payload, '$.Statuses')
+    WHERE replace(value, ' ', '') = '완료(테스트필요)'
+);
+INSERT INTO _migrations(version, applied_at) VALUES(8, strftime('%Y-%m-%dT%H:%M:%fZ','now'));
+PRAGMA user_version = 8;", transaction: tx);
         tx.Commit();
     }
 

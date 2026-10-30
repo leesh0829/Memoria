@@ -26,10 +26,16 @@ public partial class WorkEntryMultiSelect : UserControl, INotifyPropertyChanged
     }
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? SelectionClosed;
-    public WorkEntryMultiSelect() => InitializeComponent();
+    public WorkEntryMultiSelect()
+    {
+        InitializeComponent();
+        ChoiceList.ItemsSource = ItemsSource;
+    }
     private static void OnItemsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var control = (WorkEntryMultiSelect)d;
+        // Popup은 별도 트리이므로 ElementName 탐색에 의존하지 않고 선택지를 전달한다.
+        if (control.ChoiceList is not null) control.ChoiceList.ItemsSource = control.ItemsSource;
         if (e.OldValue is ObservableCollection<WorkEntryChoice> old)
             foreach (var choice in old) PropertyChangedEventManager.RemoveHandler(choice, control.OnChoiceChanged, "");
         if (e.NewValue is ObservableCollection<WorkEntryChoice> next)

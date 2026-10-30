@@ -24,10 +24,30 @@ public sealed class WorkEntry
         || Statuses.Any(s => s is "요청" or "작업 중" or "검토 중" or "회의필요")
         || ProcessingStart is null || ProcessingEnd is null;
 
-    // 여러 상태를 선택해도 한 행은 한 번만 나열한다. 별도 구분 상태를 우선한다.
-    public string Section => Statuses.Contains("완료") ? "완료"
-        : Statuses.Contains("회의필요") ? "회의필요"
-        : Statuses.Contains("검토 중") ? "검토 중" : "요청 / 작업 중";
-    public int StatusOrder => Section switch { "검토 중" => 2, "회의필요" => 3, "완료" => 4,
-        _ => Statuses.Contains("요청") ? 0 : 1 };
+    public static string NormalizeStatus(string status) => status.Trim().Replace(" ", "") switch
+    {
+        "진행중" or "작업중" => "작업 중",
+        "검토중" => "검토 중",
+        "대기중" or "대기" => "대기",
+        "협의중" => "협의중",
+        _ => status.Trim(),
+    };
+
+    // 기존 복수 상태 데이터도 한 섹션에만 표시한다. 새 작업상태 선택은 하나만 유지한다.
+    public string Section
+    {
+        get
+        {
+            var statuses = Statuses.Select(NormalizeStatus).ToHashSet();
+            foreach (var section in new[] { "완료", "회의필요", "검토 중", "협의중", "대기", "보류", "미진행", "무산" })
+                if (statuses.Contains(section)) return section;
+            return "요청 / 작업 중";
+        }
+    }
+    public int StatusOrder => Section switch
+    {
+        "검토 중" => 2, "회의필요" => 3, "협의중" => 4, "대기" => 5,
+        "보류" => 6, "미진행" => 7, "무산" => 8, "완료" => 9,
+        _ => Statuses.Contains("요청") ? 0 : 1,
+    };
 }

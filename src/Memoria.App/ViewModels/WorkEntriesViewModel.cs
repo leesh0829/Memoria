@@ -103,6 +103,7 @@ public partial class WorkEntryRow : ObservableObject
 {
     public string Id { get; }
     private readonly Action<WorkEntryRow> _save;
+    private bool _changingStatus;
     [ObservableProperty] private bool _done;
     [ObservableProperty] private DateTime? _requestedDate;
     [ObservableProperty] private DateTime? _processingStart;
@@ -127,7 +128,8 @@ public partial class WorkEntryRow : ObservableObject
         _processingStart = entry.ProcessingStart; _processingEnd = entry.ProcessingEnd;
         _request = entry.Request; _cause = entry.Cause; _action = entry.Action;
         _requester = entry.Requester; _assignee = entry.Assignee;
-        Statuses = Choices(["요청", "회의필요", "검토 중", "작업 중", "완료"], entry.Statuses);
+        Statuses = Choices(["요청", "작업 중", "검토 중", "회의필요", "협의중", "대기", "보류", "미진행", "무산", "완료"],
+            entry.Statuses.Select(WorkEntry.NormalizeStatus).Distinct().ToArray(), singleStatus: true);
         RequestTypes = Choices(["MES", "설비", "라벨프린트", "프로그램개발", "기타"], entry.RequestTypes);
         Clients = Choices(["SCA", "MTP", "ECI", "SLD_파주", "SLD_공주", "코모텍", "충북", "자율형공장"], entry.Clients);
         WorkTypes = Choices(["유지보수", "개발", "문서", "설계"], entry.WorkTypes);
@@ -139,12 +141,25 @@ public partial class WorkEntryRow : ObservableObject
         };
     }
 
-    private ObservableCollection<WorkEntryChoice> Choices(string[] names, string[] selected)
+    private ObservableCollection<WorkEntryChoice> Choices(string[] names, string[] selected, bool singleStatus = false)
     {
         var choices = new ObservableCollection<WorkEntryChoice>(names.Union(selected)
             .Select(n => new WorkEntryChoice(n, selected.Contains(n))));
         foreach (var choice in choices) choice.PropertyChanged += (_, _) =>
         {
+            if (_changingStatus) return;
+            if (singleStatus)
+            {
+                _changingStatus = true;
+                try
+                {
+                    if (choice.IsSelected)
+                        foreach (var other in choices.Where(c => c != choice)) other.IsSelected = false;
+                    else if (!choices.Any(c => c.IsSelected))
+                        choice.IsSelected = true;
+                }
+                finally { _changingStatus = false; }
+            }
             OnPropertyChanged(nameof(Section)); OnPropertyChanged(nameof(StatusOrder)); _save(this);
         };
         return choices;

@@ -54,4 +54,52 @@ public class WorkEntriesViewModelTests
         public void Save(WorkEntry entry) => Saved = entry;
         public void Delete(string id) => Items.RemoveAll(e => e.Id == id);
     }
+
+    [Fact]
+    public void SelectingNewStatus_ReplacesPreviousStatus_AndPersistsTheNewSection()
+    {
+        WorkEntry? saved = null;
+        var row = new WorkEntryRow(new WorkEntry { Statuses = ["완료"] }, r => saved = r.ToModel());
+        row.Statuses.Single(c => c.Name == "작업 중").IsSelected = true;
+        row.ToModel().Statuses.Should().Equal("작업 중");
+        row.Section.Should().Be("요청 / 작업 중");
+        saved!.Statuses.Should().Equal("작업 중");
+        row.Statuses.Single(c => c.Name == "보류").IsSelected = true;
+        row.Section.Should().Be("보류");
+        saved.Statuses.Should().Equal("보류");
+    }
+
+    [Fact]
+    public void CurrentStatus_CannotBeClearedByClickingItAgain()
+    {
+        var row = new WorkEntryRow(new WorkEntry { Statuses = ["요청"] }, _ => { });
+        row.Statuses.Single(c => c.Name == "요청").IsSelected = false;
+        row.ToModel().Statuses.Should().Equal("요청");
+    }
+
+    [Fact]
+    public void ImportedWaitingStatus_UsesCanonicalChoice_AndCanChangeToCompleted()
+    {
+        var row = new WorkEntryRow(new WorkEntry { Statuses = ["대기 중"] }, _ => { });
+        row.Statuses.Single(c => c.Name == "대기").IsSelected.Should().BeTrue();
+        row.Statuses.Should().NotContain(c => c.Name == "대기 중");
+        row.Statuses.Single(c => c.Name == "완료").IsSelected = true;
+        row.ToModel().Statuses.Should().Equal("완료");
+        row.Section.Should().Be("완료");
+    }
+
+
+    [Fact]
+    public void RefreshAfterStatusSelection_MovesRowToNewGroup()
+    {
+        var repository = new Repository();
+        var vm = new WorkEntriesViewModel(repository, new FakeClipboardService(), new FakeConfirmationDialogService());
+        vm.AddCommand.Execute(null);
+        vm.Rows.Single().Statuses.Single(c => c.Name == "협의중").IsSelected = true;
+        vm.Refresh();
+        vm.Entries.Groups.Should().ContainSingle();
+        ((System.Windows.Data.CollectionViewGroup)vm.Entries.Groups![0]).Name.Should().Be("협의중");
+        repository.Saved!.Statuses.Should().Equal("협의중");
+    }
+
 }

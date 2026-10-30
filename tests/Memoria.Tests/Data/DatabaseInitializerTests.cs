@@ -23,7 +23,7 @@ public class DatabaseInitializerTests
             File.Exists(path).Should().BeTrue();
 
             using var conn = factory.Open();
-            conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(7);   // v7: SLD 도금 고객사/분류 규칙
+            conn.ExecuteScalar<long>("PRAGMA user_version;").Should().Be(8);   // v7: SLD 도금 고객사/분류 규칙
             conn.ExecuteScalar<string>("PRAGMA journal_mode;").Should().Be("wal");
 
             conn.ExecuteScalar<long>("SELECT COUNT(*) FROM clients;").Should().Be(7);
@@ -114,7 +114,7 @@ public class DatabaseInitializerTests
             writer.Execute("DELETE FROM client_rules WHERE keyword = 'SLD 도금';");
             if (!existingClient) writer.Execute("DELETE FROM clients WHERE name = 'SLD 도금';");
             existingId = writer.ExecuteScalar<int?>("SELECT id FROM clients WHERE name = 'SLD 도금';");
-            writer.Execute("DELETE FROM _migrations WHERE version = 7; PRAGMA user_version = 6;");
+            writer.Execute("DELETE FROM _migrations WHERE version >= 7; PRAGMA user_version = 6;");
         }
         var initializer = new DatabaseInitializer(db.Factory);
         initializer.EnsureReady();

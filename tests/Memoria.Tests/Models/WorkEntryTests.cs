@@ -70,4 +70,17 @@ public class WorkEntryTests
         text.Should().StartWith("\t요청\t2026-10-19\t\tMES, 설비\tSCA\t개발\t유선, 현장\t\"첫 줄\n두번째 \"\"인용\"\"\"\t원인\t조치\t요청자\t담당자\r\n완료\t완료");
         text.Should().Contain("2026-10-14 ~ 2026-10-16");
     }
+
+    [Theory]
+    [InlineData("미진행", "미진행")]
+    [InlineData("무산", "무산")]
+    [InlineData("보류", "보류")]
+    [InlineData("대기 중", "대기")]
+    [InlineData("대기", "대기")]
+    [InlineData("협의중", "협의중")]
+    public void ImportedInactiveStatuses_HaveTheirOwnSections(string status, string section)
+    {
+        new WorkEntry { Statuses = [status] }.Section.Should().Be(section);
+    }
+
 }

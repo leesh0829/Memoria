@@ -48,4 +48,31 @@ public class WorkEntryRepositoryTests
         connection.ExecuteScalar<int>("SELECT COUNT(*) FROM client_rules r JOIN clients c ON c.id=r.client_id WHERE c.name='충북테크노파크 (FEMS)';").Should().BeGreaterThan(0);
         new WorkEntryRepository(db.Factory).GetAll().Should().BeEmpty();
     }
+
+    [Theory]
+    [InlineData("완료 (테스트 필요)")]
+    [InlineData("완료(테스트 필요)")]
+    public void V8Migration_ReplacesCompletedTestStatus_AndSetsDoneWithoutChangingOtherData(string status)
+    {
+        using var db = new TestDb();
+        var repository = new WorkEntryRepository(db.Factory);
+        var entry = new WorkEntry { Statuses = [status], Request = "내용 유지", Action = "조치 유지" };
+        var untouched = new WorkEntry { Statuses = ["보류"], Request = "다른 항목" };
+        repository.Save(entry);
+        repository.Save(untouched);
+        lock (db.Factory.WriteSync)
+            db.Factory.Write.Execute("DELETE FROM _migrations WHERE version = 8; PRAGMA user_version = 7;");
+        var initializer = new DatabaseInitializer(db.Factory);
+        initializer.EnsureReady();
+        initializer.EnsureReady();
+        var entries = repository.GetAll();
+        entries.Should().HaveCount(2);
+        var changed = entries.Single(e => e.Id == entry.Id);
+        changed.Statuses.Should().Equal("완료");
+        changed.Done.Should().BeTrue();
+        changed.Request.Should().Be("내용 유지");
+        changed.Action.Should().Be("조치 유지");
+        entries.Single(e => e.Id == untouched.Id).Should().BeEquivalentTo(untouched);
+    }
+
 }
