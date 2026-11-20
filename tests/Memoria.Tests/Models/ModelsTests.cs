@@ -10,7 +10,7 @@ public class ModelsTests
     public void Enums_HaveExpectedMembers()
     {
         Enum.GetNames<NoteType>().Should().BeEquivalentTo("Plain", "Checklist", "WeeklyReport");
-        Enum.GetNames<ItemKind>().Should().BeEquivalentTo("Task", "Issue");
+        Enum.GetNames<ItemKind>().Should().BeEquivalentTo("Task", "Issue", "Handoff");
         Enum.GetNames<ReportFormatKind>().Should().BeEquivalentTo("A", "B", "C", "D");
         Enum.GetNames<ThemeMode>().Should().BeEquivalentTo("Light", "Dark", "System");
     }

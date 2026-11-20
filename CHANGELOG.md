@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-11-20
+### Fixed
+- 후임 작업이 업무내역에 연동되지 않던 DB 조회 조건 수정. 저장소와 동일한 enum 매개변수를 사용하여 Dapper가 저장한 기반 정수 값과 비교하도록 변경.
+- 후임 작업 추가와 공백 2칸 들여쓰기 변경을 반영하지 못했던 모델 enum/DI 통합 테스트 기대값 수정.
+
+### Validation
+- 사용자 제공 Windows v0.13.0 결과: Core/App/Tests 컴파일 성공, 564개 중 557개 통과·7개 실패. 후임 작업 연동 테스트 5개 및 기존 기대값 테스트 2개 실패 확인. 테스트 단계에서 게시·설치 중단.
+- WSL diff 공백·프로젝트 XML·버전/CHANGELOG 검사 통과. 실제 스키마와 연동 SQL의 SQLite 검증에서 이전 조건의 누락을 재현하고, 수정된 enum 매개변수 조건의 후임 전용 조회·휴지통 표식 보존 확인.
+- 위 7개 실패 원인에 대한 수정 반영. v0.13.1 Windows 빌드·xUnit·설치는 WSL 환경 제한으로 재실행하지 않음. 관리자 PowerShell에서 `scripts/Install-Memoria.ps1` 재실행 필요.
+
 ## [0.13.0] - 2026-11-20
 ### Added
 - 일일업무일지 맨 아래 세 번째 구역에 `후임 작업 (인수인계)` 추가. 항목 추가·편집·삭제·완료 체크·고객사 분류와 Read 출력·복사 지원.

@@ -24,6 +24,8 @@ internal static class HandoffWorkEntrySynchronizer
                 .Select(json => JsonSerializer.Deserialize<WorkEntry>(json)
                     ?? throw new InvalidDataException("업무 내역 데이터가 비어 있습니다.")).ToList();
             var byId = entries.ToDictionary(entry => entry.Id);
+            // ChecklistRepository와 같은 enum 매개변수를 사용한다. Dapper의 enum 저장값은
+            // 등록된 문자열 TypeHandler가 아니라 기반 정수이므로 문자열 리터럴로 비교하지 않는다.
             var sources = connection.Query<HandoffSource>("""
                 SELECT i.id AS Id, i.text AS Text, i.done AS Done, i.done_at AS DoneAt,
                        i.created_at AS CreatedAt, n.log_date AS LogDate,
@@ -31,9 +33,9 @@ internal static class HandoffWorkEntrySynchronizer
                 FROM checklist_items i
                 JOIN notes n ON n.id = i.note_id
                 LEFT JOIN clients c ON c.id = i.client_id
-                WHERE i.kind = 'handoff'
+                WHERE i.kind = @Kind
                 ORDER BY n.log_date, i.sort_order, i.id;
-                """, transaction: transaction).ToList();
+                """, new { Kind = ItemKind.Handoff }, transaction).ToList();
             var sourceIds = new HashSet<string>(StringComparer.Ordinal);
             var visibleIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (var source in sources)

@@ -73,7 +73,7 @@ public class CoreServiceRegistrationTests
             var svc = provider.GetRequiredService<IWeeklyReportService>();
             var result = svc.Build(new DateOnly(2026, 6, 23), options);
             svc.Render(ReportFormatKind.B, result.Data, options)
-               .Should().Contain("[ SLD ]\n\t* SLD 점검");
+               .Should().Contain("[ SLD ]\n  * SLD 점검");
         }
         finally { provider.Dispose(); Cleanup(path); }
     }
