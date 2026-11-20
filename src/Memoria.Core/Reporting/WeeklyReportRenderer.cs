@@ -24,9 +24,9 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
 
     private static string RenderA(WeeklyReportData data, ReportRenderOptions options)
     {
-        var lines = new List<string> { options.TaskHeaderA };
+        var lines = new List<string> { options.TaskHeaderA, "" };
         var names = options.Clients.ToDictionary(c => c.Id, c => c.Name);
-        var tasks = VisibleTasks(data, options).ToList();
+        var tasks = VisibleTasks(data, options).Where(task => !string.IsNullOrWhiteSpace(task.Text)).ToList();
         var clientOrder = options.Clients.Select((client, index) => (client.Id, index))
             .ToDictionary(pair => pair.Id, pair => pair.index);
         var groups = tasks.GroupBy(t => t.ClientId)
@@ -34,35 +34,39 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         foreach (var group in groups)
         {
             var name = group.Key is int id && names.TryGetValue(id, out var n) ? n : options.UnclassifiedLabel;
-            lines.Add("- " + ClientHeader(name));
+            lines.Add($"■ {ClientHeader(name)} — {group.Count()}건 (완료 {group.Count(task => task.Done)}건)");
             foreach (var task in group)
             {
                 var text = StripClientPrefix(task.Text, name, options.Clients);
                 var date = (task.Done ? task.CompletedDate : task.StartedDate)
                     ?.ToString("MM/dd", CultureInfo.InvariantCulture) ?? "--/--";
-                var period = task.Done ? "[완료일자: " + date + "]" : "[" + date + "~]";
-                lines.Add(options.Indent + "- " + text + " " + period);
-                lines.Add(ReportIndentation.TaskDetail);
+                var period = task.Done ? date + " 완료" : date + "~";
+                ReportBodyFormatter.AppendItem(lines, text, title => ReportBodyFormatter.TaskTitle(title, period));
+                lines.Add("");
             }
         }
-        lines.Add("");
-        lines.Add(options.IssueHeaderA);
+        ReportBodyFormatter.StartSection(lines, options.IssueHeaderA);
         // 고객사 미지정/삭제된 고객사의 이슈는 고객사 묶음보다 먼저 출력한다.
-        var issueGroups = data.Issues
+        var nonEmptyIssues = data.Issues.Where(issue => !string.IsNullOrWhiteSpace(issue.Text)).ToList();
+        var issueGroups = nonEmptyIssues.Where(issue => !ReportBodyFormatter.IsSchedule(issue.Text))
             .GroupBy(issue => issue.ClientId is int id && names.ContainsKey(id) ? (int?)id : null)
             .OrderBy(group => group.Key is int id ? clientOrder[id] : -1);
         foreach (var group in issueGroups)
         {
             var name = group.Key is int id ? names[id] : "";
-            if (group.Key is not null) lines.Add("- " + ClientHeader(name));
+            if (lines[^1] != "") lines.Add("");
+            if (group.Key is not null) lines.Add("■ " + ClientHeader(name));
             foreach (var issue in group.DistinctBy(i => i.Text.Trim()))
-                lines.Add(options.Indent + "- " + StripClientPrefix(issue.Text, name, options.Clients));
+                ReportBodyFormatter.AppendItem(lines, StripClientPrefix(issue.Text, name, options.Clients));
         }
-        return string.Join("\n", lines);
+        ReportBodyFormatter.StartSection(lines, ReportBodyFormatter.ScheduleHeader);
+        foreach (var schedule in nonEmptyIssues.Where(issue => ReportBodyFormatter.IsSchedule(issue.Text)).DistinctBy(issue => issue.Text.Trim()))
+            ReportBodyFormatter.AppendItem(lines, schedule.Text, ReportBodyFormatter.ScheduleTitle);
+        return ReportBodyFormatter.Finish(lines);
     }
 
     internal static string ClientHeader(string name)
-        => name switch { "SLD" => "SLD PLC", "코모텍" => "코모텍 PLC", "SLD 도금" => "도금 PLC", "SLD 자율형공장" => "ICC", _ => name };
+        => name switch { "SLD" => "SLD PLC", "코모텍" => "코모텍 PLC", "SLD 도금" => "SLD 도금 PLC", "SLD 자율형공장" => "ICC", _ => name };
 
     private static string StripClientPrefix(string text, string name, IReadOnlyList<Client> clients)
     {

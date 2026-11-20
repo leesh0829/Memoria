@@ -563,6 +563,18 @@ public class WeeklyReportViewModelTests
     }
 
     [Fact]
+    public void SwitchingNewAToC_PreservesManualDetailsAndScheduleSection()
+    {
+        var (vm, svc, _, _, _, _, _, _) = CreateSut();
+        vm.GenerateCommand.Execute(null);
+        vm.ReportText = "[업무 내용]\n\n■ ICC — 1건 (완료 0건)\n- 등록 안내 (디지트랙, 11/18~)\n  - 직접 작성한 설명\n\n[이슈]\n\n- 이슈\n\n[일정]\n\n- 11/25: 강의 참석 예정";
+        var builds = svc.BuildCallCount;
+        vm.SelectedFormat = ReportFormatKind.C;
+        svc.BuildCallCount.Should().Be(builds);
+        vm.ReportText.Should().Be("[업무 내용]\n\n- 등록 안내 (디지트랙, 11/18~)\n  - 직접 작성한 설명\n\n[이슈]\n\n- 이슈\n\n[일정]\n\n- 11/25: 강의 참석 예정");
+    }
+
+    [Fact]
     public async Task SwitchingFromSheetAToC_KeepsSheetContent()
     {
         var reader = new FakeSpreadsheetReader

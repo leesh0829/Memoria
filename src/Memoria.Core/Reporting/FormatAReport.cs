@@ -1,6 +1,6 @@
 namespace Memoria.Core.Reporting;
 
-/// <summary>양식 C는 A 본문의 업무 고객사 구분·빈 o 줄·업무 들여쓰기를 제거한다. 이슈는 유지한다.</summary>
+/// <summary>양식 C는 A의 업무 고객사 머리글만 제거한다. 신규 하위 설명·이슈·일정은 유지한다.</summary>
 public static class FormatAReport
 {
     public static string WithoutClientHeaders(string text, ReportRenderOptions options)
@@ -13,19 +13,30 @@ public static class FormatAReport
         var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
         var result = new List<string>();
         var inIssues = false;
+        var legacyGroup = false;
         foreach (var line in text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
         {
-            if (line == options.IssueHeaderA) inIssues = true;
+            if (line == options.IssueHeaderA || line == ReportBodyFormatter.ScheduleHeader) inIssues = true;
             if (inIssues || line == options.TaskHeaderA)
             {
                 result.Add(line);
                 continue;
             }
-            if (headers.Contains(line) || line == "\t\t\to" || line == ReportIndentation.TaskDetail) continue;
+            if (headers.Contains(line))
+            {
+                legacyGroup = true;
+                continue;
+            }
+            if (System.Text.RegularExpressions.Regex.IsMatch(line, @"^■ .+ — \d+건 \(완료 \d+건\)$"))
+            {
+                legacyGroup = false;
+                continue;
+            }
+            if (line == "\t\t\to" || line == ReportIndentation.TaskDetail) continue;
             var taskLine = line;
-            if (options.Indent.Length > 0 && taskLine.StartsWith(options.Indent + "- ", StringComparison.Ordinal))
+            if (legacyGroup && options.Indent.Length > 0 && taskLine.StartsWith(options.Indent + "- ", StringComparison.Ordinal))
                 taskLine = taskLine[options.Indent.Length..];
-            if (taskLine.TrimStart(' ', '\t').StartsWith("- ", StringComparison.Ordinal))
+            if (legacyGroup && taskLine.TrimStart('\t').StartsWith("- ", StringComparison.Ordinal))
                 taskLine = taskLine.TrimStart(' ', '\t');
             result.Add(taskLine);
         }

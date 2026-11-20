@@ -201,7 +201,7 @@ public class WeeklyReportServiceTests
         var start = new DateOnly(2026, 10, 16);
         var result = svc.BuildFromTexts([], ["MTP 일정 조정", "공통 공지", "SLD 자율형공장 회의"], start, start.AddDays(6), options);
         var a = svc.Render(ReportFormatKind.A, result.Data, options);
-        a.Should().Contain("[이슈]\n  - 공통 공지\n- MTP\n  - 일정 조정\n- ICC\n  - 회의");
+        a.Should().Contain("[이슈]\n\n- 공통 공지\n\n■ MTP\n- 일정 조정\n\n■ ICC\n- 회의");
         result.Data.Issues.Should().Contain(i => i.Text == "MTP 일정 조정" && i.ClientId != null);
         result.Data.Issues.Should().Contain(i => i.Text == "공통 공지" && i.ClientId == null);
     }
@@ -222,7 +222,7 @@ public class WeeklyReportServiceTests
         var options = new ReportRenderOptions();
         var result = svc.BuildRange(new(2026, 10, 23), new(2026, 10, 29), options);
         result.Data.Tasks.Should().ContainSingle().Which.StartedDate.Should().Be(new DateOnly(2026, 10, 23));
-        svc.Render(format, result.Data, options).Should().Contain("- 진행 중 [10/23~]");
+        svc.Render(format, result.Data, options).Should().Contain("- 진행 중 (10/23~)");
     }
 
 }

@@ -17,8 +17,8 @@ public class WeeklyReportRendererFormatCTests
         var renderer = new WeeklyReportRenderer();
         var a = renderer.Render(ReportFormatKind.A, data, options);
         var c = renderer.Render(ReportFormatKind.C, data, options);
-        a.Should().Contain("      o").And.Contain("  - 점검");
-        c.Should().Be("[업무 내용]\n- 점검 [완료일자: 10/15]\n- 회의 [--/--~]\n\n[이슈]\n  - 이슈");
+        a.Should().Contain("■ SLD PLC — 1건 (완료 1건)").And.NotContain("      o");
+        c.Should().Be("[업무 내용]\n\n- 점검 (10/15 완료)\n\n- 회의 (--/--~)\n\n[이슈]\n\n- 이슈\n\n[일정]");
     }
     [Theory]
     [InlineData(ReportFormatKind.A)]
@@ -49,9 +49,9 @@ public class WeeklyReportRendererFormatCTests
         var renderer = new WeeklyReportRenderer();
         var a = renderer.Render(ReportFormatKind.A, data, options);
         var c = renderer.Render(ReportFormatKind.C, data, options);
-        a.Should().Contain("\n- SLD PLC\n").And.Contain("\n- MTP\n").And.NotContain("[ SLD PLC ]");
-        c.Should().Be("이번주 업무\n- 점검 [--/--~]\n"
-            + "- 개발 [완료일자: 10/15]\n\n이번주 이슈\n" + ReportIndentation.NormalizeTabs(indent) + "- MTP\n" + ReportIndentation.NormalizeTabs(indent) + "- 이슈");
+        a.Should().Contain("\n■ SLD PLC — 1건 (완료 0건)\n").And.Contain("\n■ MTP — 1건 (완료 1건)\n").And.NotContain("[ SLD PLC ]");
+        c.Should().Be("이번주 업무\n\n- 점검 (--/--~)\n\n"
+            + "- 개발 (10/15 완료)\n\n이번주 이슈\n\n- MTP\n- 이슈\n\n[일정]");
     }
 
     [Fact]

@@ -17,7 +17,7 @@ public class ReportIndentationTests
             new WeeklyReportData([new("SLD 점검", 1, false)], [new("이슈")]), options);
         text.Should().NotContain("\t");
         if (format == ReportFormatKind.A)
-            text.Should().Contain("\n  - 점검").And.Contain("\n      o");
+            text.Should().Contain("\n- 점검").And.NotContain("\n      o");
         if (format == ReportFormatKind.B)
             text.Should().Contain("\n  * SLD 점검");
     }
