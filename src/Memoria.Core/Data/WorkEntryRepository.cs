@@ -14,12 +14,7 @@ public interface IWorkEntryRepository
 public sealed class WorkEntryRepository(SqliteConnectionFactory factory) : IWorkEntryRepository
 {
     public IReadOnlyList<WorkEntry> GetAll()
-    {
-        using var connection = factory.Open();
-        return connection.Query<string>("SELECT payload FROM work_entries ORDER BY rowid;")
-            .Select(json => JsonSerializer.Deserialize<WorkEntry>(json)
-                ?? throw new InvalidDataException("업무 내역 데이터가 비어 있습니다.")).ToList();
-    }
+        => HandoffWorkEntrySynchronizer.ReadAll(factory);
 
     public void Save(WorkEntry entry)
     {

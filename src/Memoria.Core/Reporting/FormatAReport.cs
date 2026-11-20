@@ -21,12 +21,12 @@ public static class FormatAReport
                 result.Add(line);
                 continue;
             }
-            if (headers.Contains(line) || line == "\t\t\to") continue;
+            if (headers.Contains(line) || line == "\t\t\to" || line == ReportIndentation.TaskDetail) continue;
             var taskLine = line;
             if (options.Indent.Length > 0 && taskLine.StartsWith(options.Indent + "- ", StringComparison.Ordinal))
                 taskLine = taskLine[options.Indent.Length..];
-            if (taskLine.TrimStart('\t').StartsWith("- ", StringComparison.Ordinal))
-                taskLine = taskLine.TrimStart('\t');
+            if (taskLine.TrimStart(' ', '\t').StartsWith("- ", StringComparison.Ordinal))
+                taskLine = taskLine.TrimStart(' ', '\t');
             result.Add(taskLine);
         }
         return string.Join(newline, result);

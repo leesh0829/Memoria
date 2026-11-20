@@ -78,7 +78,13 @@ public partial class WorkEntriesViewModel : ObservableObject
     [RelayCommand]
     private void Delete()
     {
-        if (SelectedEntry is not { } row || !_dialogs.Confirm("선택한 업무 내역을 삭제할까요?")) return;
+        if (SelectedEntry is not { } row) return;
+        if (row.IsHandoff)
+        {
+            Message = "후임 작업은 일일업무일지의 '후임 작업 (인수인계)'에서 삭제하세요.";
+            return;
+        }
+        if (!_dialogs.Confirm("선택한 업무 내역을 삭제할까요?")) return;
         try { _repository.Delete(row.Id); Rows.Remove(row); }
         catch (Exception ex) { Message = "삭제 실패: " + ex.Message; }
     }
@@ -102,6 +108,8 @@ public partial class WorkEntryChoice : ObservableObject
 public partial class WorkEntryRow : ObservableObject
 {
     public string Id { get; }
+    private readonly string? _handoffSnapshot;
+    public bool IsHandoff => _handoffSnapshot is not null;
     private readonly Action<WorkEntryRow> _save;
     private bool _changingStatus;
     [ObservableProperty] private bool _done;
@@ -124,6 +132,7 @@ public partial class WorkEntryRow : ObservableObject
     public WorkEntryRow(WorkEntry entry, Action<WorkEntryRow> save)
     {
         Id = entry.Id; _save = save;
+        _handoffSnapshot = entry.HandoffSnapshot;
         _done = entry.Done || entry.Section is "완료" or "미진행";
         _requestedDate = entry.RequestedDate;
         _processingStart = entry.ProcessingStart; _processingEnd = entry.ProcessingEnd;
@@ -176,5 +185,6 @@ public partial class WorkEntryRow : ObservableObject
         Statuses = Selected(Statuses), RequestTypes = Selected(RequestTypes), Clients = Selected(Clients),
         WorkTypes = Selected(WorkTypes), RequestMethods = Selected(RequestMethods),
         Request = Request, Cause = Cause, Action = Action, Requester = Requester, Assignee = Assignee,
+        HandoffSnapshot = _handoffSnapshot,
     };
 }

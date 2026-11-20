@@ -16,7 +16,7 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
         }).Replace("충북테크놀로지파크", "충북테크노파크 (FEMS)", StringComparison.Ordinal);
 
     /// 양식 D의 설명 머릿말 줄 들여쓰기. 붙여넣는 문서마다 탭 폭이 달라 정렬이 깨지므로
-    /// 공통 report.indent(기본 탭) 대신 공백 4칸으로 고정한다.
+    /// 공통 report.indent(기본 공백 2칸) 대신 공백 4칸으로 고정한다.
     private const string FormatDIndent = "    ";
 
     private static IEnumerable<ReportTask> VisibleTasks(WeeklyReportData data, ReportRenderOptions options)
@@ -42,7 +42,7 @@ public sealed class WeeklyReportRenderer : IWeeklyReportRenderer
                     ?.ToString("MM/dd", CultureInfo.InvariantCulture) ?? "--/--";
                 var period = task.Done ? "[완료일자: " + date + "]" : "[" + date + "~]";
                 lines.Add(options.Indent + "- " + text + " " + period);
-                lines.Add("\t\t\to");
+                lines.Add(ReportIndentation.TaskDetail);
             }
         }
         lines.Add("");

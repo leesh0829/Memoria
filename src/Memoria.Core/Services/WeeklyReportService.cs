@@ -51,6 +51,7 @@ public sealed class WeeklyReportService : IWeeklyReportService
         {
             foreach (var item in itemsByNote[note.Id])
             {
+                if (item.Kind == ItemKind.Handoff) continue;
                 int? clientId = item.IsManual
                     ? item.ClientId
                     : _classifier.Classify(item.Text, rules, enabledIds);
@@ -61,7 +62,7 @@ public sealed class WeeklyReportService : IWeeklyReportService
                             ? DateOnly.FromDateTime(completed.LocalDateTime) : note.LogDate) : null,
                         StartedDate: note.LogDate));
                 }
-                else
+                else if (item.Kind == ItemKind.Issue)
                 {
                     issues.Add(new ReportIssue(item.Text, clientId));
                 }

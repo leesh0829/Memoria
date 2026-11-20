@@ -33,7 +33,7 @@ public class DatabaseInitializerTests
                 new { k = SettingsKeys.ReporterName }).Should().Be("이승현");
             conn.ExecuteScalar<string>(
                 "SELECT value FROM settings WHERE key = @k;",
-                new { k = SettingsKeys.ReportIndent }).Should().Be("\t");
+                new { k = SettingsKeys.ReportIndent }).Should().Be("  ");
             // 분류 규칙: 자율형공장 키워드가 SLD보다 낮은(우선) priority
             var autoPriority = conn.ExecuteScalar<long>(
                 "SELECT priority FROM client_rules WHERE keyword = '자율형공장';");

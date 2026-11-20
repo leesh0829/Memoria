@@ -51,6 +51,7 @@
         <!-- 본문(편집 가능) -->
         <TextBox Text="{Binding ReportText, UpdateSourceTrigger=PropertyChanged}"
                  AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"
+                 PreviewKeyDown="OnReportPreviewKeyDown"
                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                  FontFamily="Consolas" FontSize="13"
                  Background="{DynamicResource Brush.EditorBackground}"

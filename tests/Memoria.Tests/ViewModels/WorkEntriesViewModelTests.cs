@@ -8,6 +8,29 @@ namespace Memoria.Tests.ViewModels;
 public class WorkEntriesViewModelTests
 {
     [Fact]
+    public void DeletingLinkedHandoff_DirectsToSource_AndPreservesSupplementalDetails()
+    {
+        var repository = new Repository();
+        repository.Items.Add(new WorkEntry { HandoffSnapshot = "원본 상태", Action = "보존할 조치" });
+        var vm = new WorkEntriesViewModel(repository, new FakeClipboardService(), new FakeConfirmationDialogService());
+        vm.SelectedEntry = vm.Rows.Single();
+        vm.DeleteCommand.Execute(null);
+        vm.Rows.Should().ContainSingle().Which.Action.Should().Be("보존할 조치");
+        repository.Items.Should().ContainSingle();
+        vm.Message.Should().Contain("일일업무일지").And.Contain("삭제");
+    }
+
+    [Fact]
+    public void EditingHandoffRows_PreservesSyncSnapshot()
+    {
+        var entry = new WorkEntry { HandoffSnapshot = "원본 동기화 상태" };
+        WorkEntry? saved = null;
+        var row = new WorkEntryRow(entry, r => saved = r.ToModel());
+        row.Action = "조치 입력";
+        saved!.HandoffSnapshot.Should().Be(entry.HandoffSnapshot);
+    }
+
+    [Fact]
     public void EditingRows_AutosavesAllFieldsAndMultipleSelections_WithoutChangingStatusOnCheck()
     {
         var repository = new Repository();

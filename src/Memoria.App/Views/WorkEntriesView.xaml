@@ -40,7 +40,12 @@
    </DataGrid.Resources>
    <DataGrid.RowStyle><Style TargetType="DataGridRow">
     <Setter Property="Background" Value="{DynamicResource Brush.EditorBackground}"/>
-    <Style.Triggers><DataTrigger Binding="{Binding Done}" Value="True"><Setter Property="Foreground" Value="Gray"/></DataTrigger></Style.Triggers>
+    <Style.Triggers>
+     <DataTrigger Binding="{Binding Done}" Value="True"><Setter Property="Foreground" Value="Gray"/></DataTrigger>
+     <DataTrigger Binding="{Binding IsHandoff}" Value="True">
+      <Setter Property="ToolTip" Value="일일업무일지의 후임 작업에서 연동된 업무입니다. 삭제는 원본 일지에서 진행하세요."/>
+     </DataTrigger>
+    </Style.Triggers>
    </Style></DataGrid.RowStyle>
    <DataGrid.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate>
     <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="8" Margin="0,8,0,3">

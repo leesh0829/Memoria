@@ -11,6 +11,16 @@ namespace Memoria.Tests.ViewModels;
 
 public class WeeklyReportViewModelTests
 {
+    [Fact]
+    public void ReportText_NormalizesLegacyTabsAndPastedTabs()
+    {
+        var (vm, _, _, _, _, _, clip, _) = CreateSut();
+        vm.ReportText = "\t업무\n\t\t설명";
+        vm.ReportText.Should().Be("  업무\n    설명");
+        vm.CopyCommand.Execute(null);
+        clip.LastText.Should().Be(vm.ReportText);
+    }
+
     private static (WeeklyReportViewModel vm, FakeWeeklyReportService svc, FakeNoteRepository notes,
         FakeClientRepository clients, FakeGroupRepository groups, FakeSettingsRepository settings,
         FakeClipboardService clip, FakeConfirmationDialogService dlg) CreateSut(
@@ -69,7 +79,7 @@ public class WeeklyReportViewModelTests
         settings.Set(SettingsKeys.FormatAIssueHeader, "[이슈들]");
         settings.Set(SettingsKeys.FormatBTitleWord, "위클리");
         settings.Set(SettingsKeys.FormatBIssueHeader, "* 이슈:");
-        settings.Set(SettingsKeys.ReportIndent, "  ");
+        settings.Set(SettingsKeys.ReportIndent, "\t"); // 기존 설정도 공백 2칸으로 출력
         settings.Set(SettingsKeys.IncludeDoneOnly, "true");
         clients.Clients.Add(new Client { Id = 1, Name = "SLD", SortOrder = 1, Enabled = true });
         clients.Clients.Add(new Client { Id = 2, Name = "MTP", SortOrder = 2, Enabled = false });
@@ -105,7 +115,7 @@ public class WeeklyReportViewModelTests
         opts.IssueHeaderA.Should().Be("[이슈]");
         opts.TitleWordB.Should().Be("주간 보고");
         opts.IssueHeaderB.Should().Be("* 이슈사항:");
-        opts.Indent.Should().Be("\t");
+        opts.Indent.Should().Be("  ");
         opts.IncludeDoneOnly.Should().BeFalse();
         opts.UnclassifiedLabel.Should().Be("미분류");
     }
@@ -549,7 +559,7 @@ public class WeeklyReportViewModelTests
         vm.SelectedFormat = ReportFormatKind.C;
 
         svc.BuildCallCount.Should().Be(builds);
-        vm.ReportText.Should().Be("[업무 내용]\n- 수정 업무 [완료일자: 06/24]\n- 추가 업무 [완료일자: --/--]\n\n[이슈]\n\t- 사용자 이슈");
+        vm.ReportText.Should().Be("[업무 내용]\n- 수정 업무 [완료일자: 06/24]\n- 추가 업무 [완료일자: --/--]\n\n[이슈]\n  - 사용자 이슈");
     }
 
     [Fact]

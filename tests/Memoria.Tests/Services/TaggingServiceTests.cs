@@ -17,26 +17,30 @@ public class TaggingServiceTests
         return (svc, clients);
     }
 
-    [Fact]
-    public void ApplyAutoTag_AutoTask_GetsClassified()
+    [Theory]
+    [InlineData(ItemKind.Task)]
+    [InlineData(ItemKind.Handoff)]
+    public void ApplyAutoTag_AutoTask_GetsClassified(ItemKind kind)
     {
         using var db = new TestDb();
         var (svc, clients) = Build(db);
         var autoFactoryId = clients.GetAll().Single(c => c.Name == "SLD 자율형공장").Id;
 
-        var item = new ChecklistItem { Kind = ItemKind.Task, Text = "자율형공장 점검", IsManual = false };
+        var item = new ChecklistItem { Kind = kind, Text = "자율형공장 점검", IsManual = false };
         var result = svc.ApplyAutoTag(item);
 
         result.ClientId.Should().Be(autoFactoryId);
     }
 
-    [Fact]
-    public void ApplyAutoTag_ManualTask_IsNotOverwritten()
+    [Theory]
+    [InlineData(ItemKind.Task)]
+    [InlineData(ItemKind.Handoff)]
+    public void ApplyAutoTag_ManualTask_IsNotOverwritten(ItemKind kind)
     {
         using var db = new TestDb();
         var (svc, _) = Build(db);
 
-        var item = new ChecklistItem { Kind = ItemKind.Task, Text = "SLD 점검", IsManual = true, ClientId = 99 };
+        var item = new ChecklistItem { Kind = kind, Text = "SLD 점검", IsManual = true, ClientId = 99 };
         var result = svc.ApplyAutoTag(item);
 
         result.ClientId.Should().Be(99);

@@ -72,13 +72,20 @@ internal static class DapperConfig
         {
             "task" => ItemKind.Task,
             "issue" => ItemKind.Issue,
+            "handoff" => ItemKind.Handoff,
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown item kind"),
         };
 
         public override void SetValue(IDbDataParameter parameter, ItemKind value)
         {
             parameter.DbType = DbType.String;
-            parameter.Value = value == ItemKind.Task ? "task" : "issue";
+            parameter.Value = value switch
+            {
+                ItemKind.Task => "task",
+                ItemKind.Issue => "issue",
+                ItemKind.Handoff => "handoff",
+                _ => throw new ArgumentOutOfRangeException(nameof(value)),
+            };
         }
     }
 

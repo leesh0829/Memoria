@@ -71,9 +71,10 @@ public partial class ChecklistViewModel : ObservableObject
         }
     }
 
-    // #4 같은 Items를 종류별로 분리한 두 뷰(할 일 / 이슈). 추가/삭제 시 자동 반영.
+    // 같은 Items를 종류별로 분리한다. 후임 작업은 본인 업무/이슈와 섞지 않는다.
     public ICollectionView TasksView { get; }
     public ICollectionView IssuesView { get; }
+    public ICollectionView HandoffsView { get; }
 
     [ObservableProperty]
     private DateOnly _logDate;
@@ -87,6 +88,9 @@ public partial class ChecklistViewModel : ObservableObject
 
     [ObservableProperty]
     private string _issueOutput = "";
+
+    [ObservableProperty]
+    private string _handoffOutput = "";
 
     [ObservableProperty]
     private bool _isBusy;
@@ -120,7 +124,9 @@ public partial class ChecklistViewModel : ObservableObject
         TasksView = new ListCollectionView(Items)
             { Filter = o => o is ChecklistItemViewModel { IsTask: true } };
         IssuesView = new ListCollectionView(Items)
-            { Filter = o => o is ChecklistItemViewModel { IsTask: false } };
+            { Filter = o => o is ChecklistItemViewModel { IsIssue: true } };
+        HandoffsView = new ListCollectionView(Items)
+            { Filter = o => o is ChecklistItemViewModel { IsHandoff: true } };
     }
 
     public void Load(Note note)
@@ -191,11 +197,16 @@ public partial class ChecklistViewModel : ObservableObject
 
     public void AddIssue() => AddItem(ItemKind.Issue);
 
+    public void AddHandoff() => AddItem(ItemKind.Handoff);
+
     [RelayCommand]
     private Task AddTaskAsync() => AddItemAsync(ItemKind.Task);
 
     [RelayCommand]
     private Task AddIssueAsync() => AddItemAsync(ItemKind.Issue);
+
+    [RelayCommand]
+    private Task AddHandoffAsync() => AddItemAsync(ItemKind.Handoff);
 
     // ---- Read(양식 출력) 탭 ----
 
@@ -213,9 +224,11 @@ public partial class ChecklistViewModel : ObservableObject
                 : _clients.GetAll();
             var clientNames = clients.ToDictionary(c => c.Id, c => c.Name);
             var tasks = Items.Where(i => i.IsTask).Select(i => (i.Text, i.ClientId)).ToList();
-            var issues = Items.Where(i => !i.IsTask).Select(i => i.Text).ToList();
+            var issues = Items.Where(i => i.IsIssue).Select(i => i.Text).ToList();
+            var handoffs = Items.Where(i => i.IsHandoff).Select(i => (i.Text, i.ClientId)).ToList();
             TaskOutput = DailyLogRenderer.RenderTasks(tasks, clientNames);
             IssueOutput = DailyLogRenderer.RenderIssues(issues);
+            HandoffOutput = DailyLogRenderer.RenderTasks(handoffs, clientNames);
         });
         if (rendered) IsReadMode = true;
     }
@@ -225,6 +238,9 @@ public partial class ChecklistViewModel : ObservableObject
 
     [RelayCommand]
     private void CopyIssueOutput() => _clipboard.SetText(IssueOutput ?? "");
+
+    [RelayCommand]
+    private void CopyHandoffOutput() => _clipboard.SetText(HandoffOutput ?? "");
 
     private ChecklistItemViewModel AddItem(ItemKind kind)
     {
@@ -298,7 +314,7 @@ public partial class ChecklistViewModel : ObservableObject
 
     public void ToggleDone(ChecklistItemViewModel item)
     {
-        if (!item.IsTask) return;
+        if (!item.ShowCheckbox) return;
 
         item.Done = !item.Done;
         item.DoneAt = item.Done ? DateTimeOffset.UtcNow : null;
@@ -317,7 +333,7 @@ public partial class ChecklistViewModel : ObservableObject
     [RelayCommand]
     private async Task ToggleDoneAsync(ChecklistItemViewModel? item)
     {
-        if (item is null || !item.IsTask) return;
+        if (item is null || !item.ShowCheckbox) return;
         AppLog.Action("UI.ChecklistToggle", $"item_id={item.Id} note_id={_note?.Id.ToString() ?? "draft"}");
 
         var previousDone = item.Done;
@@ -372,7 +388,7 @@ public partial class ChecklistViewModel : ObservableObject
     }
 
     /// 디바운스 저장 시점에 호출. dirty(텍스트 변경) 항목만 자동태깅 적용 후 영속화한다.
-    /// ApplyAutoTag는 Task & !IsManual 일 때만 ClientId를 재계산한다(Issue/수동보호 항목은 보존).
+    /// ApplyAutoTag는 할 일/후임 작업 중 !IsManual일 때 ClientId를 재계산한다(이슈/수동 항목 보존).
     public void FlushSaves()
     {
         var dirty = Items.Where(i => i.IsDirty).ToList();

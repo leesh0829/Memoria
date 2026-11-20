@@ -68,7 +68,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _titleHeaderC = "[ 주간 실적 ]";
     [ObservableProperty] private string _planHeaderC = "[ 차주 계획 ]";
     [ObservableProperty] private string _detailMarkerC = "o";
-    [ObservableProperty] private string _reportIndent = "\t";
+    [ObservableProperty] private string _reportIndent = Memoria.Core.Reporting.ReportIndentation.Unit;
     [ObservableProperty] private bool _includeDoneOnly;
     [ObservableProperty] private bool _showFormatD;
 
@@ -128,7 +128,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         PlanHeaderC = Read(SettingsKeys.FormatCPlanHeader, "[ 차주 계획 ]");
         DetailMarkerC = Read(SettingsKeys.FormatCDetailMarker, "o");
         LoadFormatCClients(all);
-        ReportIndent = Read(SettingsKeys.ReportIndent, "\t");
+        ReportIndent = Memoria.Core.Reporting.ReportIndentation.NormalizeTabs(
+            Read(SettingsKeys.ReportIndent, Memoria.Core.Reporting.ReportIndentation.Unit));
         IncludeDoneOnly = bool.Parse(Read(SettingsKeys.IncludeDoneOnly, "false"));
 
         ServiceAccountJsonPath = Read(SettingsKeys.GoogleServiceAccountJsonPath, "");
@@ -223,7 +224,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             [SettingsKeys.FormatCDetailMarker] = DetailMarkerC,
             [SettingsKeys.FormatCClientIds] = Memoria.Core.Reporting.FormatCClients.Format(
                 FormatCClientOptions.Where(c => c.IsSelected).Select(c => c.Id)),
-            [SettingsKeys.ReportIndent] = ReportIndent,
+            [SettingsKeys.ReportIndent] = Memoria.Core.Reporting.ReportIndentation.NormalizeTabs(ReportIndent),
             [SettingsKeys.IncludeDoneOnly] = IncludeDoneOnly ? "true" : "false",
             [SettingsKeys.GoogleServiceAccountJsonPath] = ServiceAccountJsonPath ?? "",
             [SettingsKeys.GoogleSheetId] = SheetId ?? "",

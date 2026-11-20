@@ -12,7 +12,9 @@ public partial class ChecklistItemViewModel : ObservableObject
     public ItemKind Kind { get; }
 
     public bool IsTask => Kind == ItemKind.Task;
-    public bool ShowCheckbox => IsTask;
+    public bool IsIssue => Kind == ItemKind.Issue;
+    public bool IsHandoff => Kind == ItemKind.Handoff;
+    public bool ShowCheckbox => IsTask || IsHandoff;
 
     [ObservableProperty]
     private string _text;
@@ -39,8 +41,8 @@ public partial class ChecklistItemViewModel : ObservableObject
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
-    public bool IsStruck => IsTask && Done;
-    public bool IsUnclassified => IsTask && ClientId is null;
+    public bool IsStruck => ShowCheckbox && Done;
+    public bool IsUnclassified => ShowCheckbox && ClientId is null;
 
     /// 텍스트가 사용자 입력으로 바뀌었음을 표시(디바운스 FlushSaves 대상).
     public bool IsDirty { get; set; }

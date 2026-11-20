@@ -75,14 +75,14 @@ internal sealed class FakeClientRepository : IClientRepository
     public void ReplaceRules(int clientId, IEnumerable<ClientRule> rules) { }
 }
 
-/// 계약 §5 ITaggingService 의미를 모사: Task & !IsManual 일 때만 키워드로 ClientId 재계산.
+/// 할 일/후임 작업 중 !IsManual일 때 키워드로 ClientId 재계산.
 internal sealed class FakeTaggingService : ITaggingService
 {
     public readonly Dictionary<string, int> KeywordToClient = new(StringComparer.OrdinalIgnoreCase);
 
     public ChecklistItem ApplyAutoTag(ChecklistItem item)
     {
-        if (item.Kind != ItemKind.Task || item.IsManual) return item;
+        if (item.Kind is not (ItemKind.Task or ItemKind.Handoff) || item.IsManual) return item;
         item.ClientId = null;
         foreach (var pair in KeywordToClient)
         {

@@ -11,6 +11,34 @@ namespace Memoria.Tests.ViewModels;
 
 public class ChecklistViewModelTests
 {
+    [Fact]
+    public async Task Handoffs_HaveTheirOwnSectionCompletionAndReadOutput()
+    {
+        var sut = CreateSut();
+        sut.Load(SeedNote());
+        sut.AddTask();
+        sut.AddIssue();
+        await sut.AddHandoffCommand.ExecuteAsync(null);
+        var handoff = sut.Items.Single(i => i.IsHandoff);
+        handoff.Text = "후임 기록";
+        handoff.ShowCheckbox.Should().BeTrue();
+        sut.TasksView.Cast<ChecklistItemViewModel>().Should().ContainSingle(i => i.Kind == ItemKind.Task);
+        sut.IssuesView.Cast<ChecklistItemViewModel>().Should().ContainSingle(i => i.Kind == ItemKind.Issue);
+        sut.HandoffsView.Cast<ChecklistItemViewModel>().Should().ContainSingle().Which.Should().Be(handoff);
+        await sut.ToggleDoneCommand.ExecuteAsync(handoff);
+        handoff.Done.Should().BeTrue();
+        handoff.IsStruck.Should().BeTrue();
+        await sut.SetReadModeCommand.ExecuteAsync(null);
+        sut.TaskOutput.Should().NotContain("후임 기록");
+        sut.IssueOutput.Should().NotContain("후임 기록");
+        sut.HandoffOutput.Should().Be("1. 후임 기록");
+        sut.CopyHandoffOutputCommand.Execute(null);
+        _clipboard.LastText.Should().Be(sut.HandoffOutput);
+        var reloaded = CreateSut();
+        reloaded.Load(_notes.Notes.Single());
+        reloaded.Items.Single(i => i.IsHandoff).Text.Should().Be("후임 기록");
+    }
+
     private readonly FakeChecklistRepository _checklist = new();
     private readonly FakeClientRepository _clients = new();
     private readonly FakeTaggingService _tagging = new();

@@ -11,6 +11,27 @@ namespace Memoria.Tests.Services;
 
 public class WeeklyReportServiceTests
 {
+    [Theory]
+    [InlineData(ReportFormatKind.A)]
+    [InlineData(ReportFormatKind.B)]
+    [InlineData(ReportFormatKind.C)]
+    public void Handoffs_AreExcludedFromTasksIssuesAndUnclassifiedCounts(ReportFormatKind format)
+    {
+        using var db = new TestDb();
+        var (svc, notes, items, _) = Build(db);
+        var day = new DateOnly(2026, 11, 20);
+        var noteId = notes.Create(new Note { Type = NoteType.Checklist, LogDate = day });
+        items.AddItem(new ChecklistItem { NoteId = noteId, Kind = ItemKind.Handoff, Text = "후임 전용", Done = true });
+        items.AddItem(new ChecklistItem { NoteId = noteId, Kind = ItemKind.Task, Text = "내 업무" });
+        items.AddItem(new ChecklistItem { NoteId = noteId, Kind = ItemKind.Issue, Text = "내 이슈" });
+        var options = new ReportRenderOptions();
+        var result = svc.BuildRange(day, day, options);
+        result.Data.Tasks.Should().ContainSingle(t => t.Text == "내 업무");
+        result.Data.Issues.Should().ContainSingle(i => i.Text == "내 이슈");
+        result.UnclassifiedTaskCount.Should().Be(1);
+        svc.Render(format, result.Data, options).Should().NotContain("후임 전용");
+    }
+
     private static (WeeklyReportService Svc, NoteRepository Notes, ChecklistRepository Items, ClientRepository Clients) Build(TestDb db)
     {
         var notes = new NoteRepository(db.Factory);
@@ -95,8 +116,8 @@ public class WeeklyReportServiceTests
         var text = svc.Render(ReportFormatKind.B, result.Data, options);
 
         text.Should().StartWith("[ 이승현 주간 보고 (06/22 ~ 06/26) ]:");
-        text.Should().Contain("[ SLD ]\n\t* SLD 점검");
-        text.Should().Contain("[ 미분류 ]\n\t* 기타 정리");
+        text.Should().Contain("[ SLD ]\n  * SLD 점검");
+        text.Should().Contain("[ 미분류 ]\n  * 기타 정리");
     }
 
     [Fact]
@@ -180,7 +201,7 @@ public class WeeklyReportServiceTests
         var start = new DateOnly(2026, 10, 16);
         var result = svc.BuildFromTexts([], ["MTP 일정 조정", "공통 공지", "SLD 자율형공장 회의"], start, start.AddDays(6), options);
         var a = svc.Render(ReportFormatKind.A, result.Data, options);
-        a.Should().Contain("[이슈]\n\t- 공통 공지\n- MTP\n\t- 일정 조정\n- ICC\n\t- 회의");
+        a.Should().Contain("[이슈]\n  - 공통 공지\n- MTP\n  - 일정 조정\n- ICC\n  - 회의");
         result.Data.Issues.Should().Contain(i => i.Text == "MTP 일정 조정" && i.ClientId != null);
         result.Data.Issues.Should().Contain(i => i.Text == "공통 공지" && i.ClientId == null);
     }

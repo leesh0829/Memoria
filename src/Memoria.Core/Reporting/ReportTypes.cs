@@ -23,7 +23,12 @@ public sealed record ReportRenderOptions
     public string DetailMarkerC { get; init; } = "o";
     /// 양식 C에 포함할 고객사. null = 필터 없음(전부 포함), 빈 목록 = 해당 업무 없음.
     public IReadOnlyList<int>? ClientIdsC { get; init; }
-    public string Indent { get; init; } = "\t";
+    private readonly string _indent = ReportIndentation.Unit;
+    public string Indent
+    {
+        get => _indent;
+        init => _indent = ReportIndentation.NormalizeTabs(value);
+    }
     public bool IncludeDoneOnly { get; init; } = false;
     public IReadOnlyList<Client> Clients { get; init; } = new List<Client>();
     public string UnclassifiedLabel { get; init; } = "미분류";

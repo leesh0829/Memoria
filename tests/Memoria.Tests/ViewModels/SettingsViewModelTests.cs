@@ -57,7 +57,7 @@ public class SettingsViewModelTests
         vm.IssueHeaderA.Should().Be("[이슈]");
         vm.TitleWordB.Should().Be("주간 보고");
         vm.IssueHeaderB.Should().Be("* 이슈사항:");
-        vm.ReportIndent.Should().Be("\t");
+        vm.ReportIndent.Should().Be("  ");
         vm.IncludeDoneOnly.Should().BeFalse();
         vm.HotkeyNewNote.Should().Be("Ctrl+Alt+N");
         vm.Autostart.Should().BeTrue();

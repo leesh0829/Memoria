@@ -17,8 +17,8 @@ public class WeeklyReportRendererFormatCTests
         var renderer = new WeeklyReportRenderer();
         var a = renderer.Render(ReportFormatKind.A, data, options);
         var c = renderer.Render(ReportFormatKind.C, data, options);
-        a.Should().Contain("\t\t\to").And.Contain("\t- 점검");
-        c.Should().Be("[업무 내용]\n- 점검 [완료일자: 10/15]\n- 회의 [--/--~]\n\n[이슈]\n\t- 이슈");
+        a.Should().Contain("      o").And.Contain("  - 점검");
+        c.Should().Be("[업무 내용]\n- 점검 [완료일자: 10/15]\n- 회의 [--/--~]\n\n[이슈]\n  - 이슈");
     }
     [Theory]
     [InlineData(ReportFormatKind.A)]
@@ -51,7 +51,7 @@ public class WeeklyReportRendererFormatCTests
         var c = renderer.Render(ReportFormatKind.C, data, options);
         a.Should().Contain("\n- SLD PLC\n").And.Contain("\n- MTP\n").And.NotContain("[ SLD PLC ]");
         c.Should().Be("이번주 업무\n- 점검 [--/--~]\n"
-            + "- 개발 [완료일자: 10/15]\n\n이번주 이슈\n" + indent + "- MTP\n" + indent + "- 이슈");
+            + "- 개발 [완료일자: 10/15]\n\n이번주 이슈\n" + ReportIndentation.NormalizeTabs(indent) + "- MTP\n" + ReportIndentation.NormalizeTabs(indent) + "- 이슈");
     }
 
     [Fact]

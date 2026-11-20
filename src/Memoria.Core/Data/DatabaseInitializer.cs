@@ -346,7 +346,7 @@ INSERT INTO settings(key, value) VALUES
   ('report.formatA.issueHeader', '[이슈]'),
   ('report.formatB.titleWord', '주간 보고'),
   ('report.formatB.issueHeader', '* 이슈사항:'),
-  ('report.indent', char(9)),
+  ('report.indent', '  '),
   ('report.includeDoneOnly', 'false'),
   ('hotkey.newNote', 'Ctrl+Alt+N'),
   ('app.autostart', 'true'),

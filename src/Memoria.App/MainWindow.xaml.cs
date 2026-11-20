@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Memoria.App.Services;
+using Memoria.App.Behaviors;
 using Memoria.App.ViewModels;
 using Memoria.App.Views;
 using Memoria.App.Windows;
@@ -35,6 +36,7 @@ public partial class MainWindow : Window
 
     // #1 드래그 임계값 판정용 좌클릭 시작점.
     private System.Windows.Point _dragStartPoint;
+    private FrameworkElement? _pressedListItem;
 
     // N7.2 드래그 어도너 — 그룹 드래그 중에만 존재. try/catch로 실패 시 null 상태 유지.
     private DragAdorner?          _dragAdorner;
@@ -66,6 +68,8 @@ public partial class MainWindow : Window
         TrashVm = AppServices.Resolve<TrashViewModel>();
 
         DataContextChanged += OnDataContextChanged;
+        // 목록 밖에서 끝난 이전 제스처도 다음 클릭에는 이어지지 않도록 초기화한다.
+        PreviewMouseLeftButtonDown += (_, _) => _pressedListItem = null;
         Loaded += OnLoaded;
     }
 
@@ -433,15 +437,15 @@ public partial class MainWindow : Window
     private void GroupTree_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed) return;
+        if (_pressedListItem is not TreeViewItem sourceTvi) return;
         if (IsOverButton(e.OriginalSource)) return;
         if (!ExceededDragThreshold(e)) return;
-        if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is not { Kind: SidebarNodeKind.Group } node) return;
+        if (sourceTvi.DataContext is not SidebarNodeViewModel { Kind: SidebarNodeKind.Group } node) return;
         if (node.GroupId is not int groupId) return;
+        _pressedListItem = null;
 
         // N7.2: Create drag ghost adorner before DoDragDrop (graceful on failure).
-        var sourceTvi = FindVisualAncestor<System.Windows.Controls.TreeViewItem>(e.OriginalSource as DependencyObject);
-        if (sourceTvi is not null)
-            _dragAdorner = DragAdorner.TryCreate(GroupTree, sourceTvi);
+        _dragAdorner = DragAdorner.TryCreate(GroupTree, sourceTvi);
 
         try
         {
@@ -635,12 +639,13 @@ public partial class MainWindow : Window
     private void NoteList_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (e.LeftButton != MouseButtonState.Pressed) return;
+        if (_pressedListItem is not ListBoxItem { DataContext: NoteListItemViewModel note }) return;
         // #1 핵심: 🗑 등 버튼 위에서 시작한 제스처는 드래그가 아니라 '클릭'이므로 드래그를 시작하지 않는다.
         //         (이게 없으면 버튼 클릭 시 미세 이동이 드래그로 잡혀 삭제 클릭이 소실된다.)
         if (IsOverButton(e.OriginalSource)) return;
         if (!ExceededDragThreshold(e)) return;   // 임계값 이상 움직였을 때만 드래그(클릭 보호)
         if (sender is not ListBox lb) return;
-        if (lb.SelectedItem is not NoteListItemViewModel note) return;
+        _pressedListItem = null;
 
         try
         {
@@ -733,17 +738,23 @@ public partial class MainWindow : Window
     private void List_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _dragStartPoint = e.GetPosition(null);
+        _pressedListItem = sender is TreeView
+            ? ListDragSource.FindItem<TreeViewItem>(e.OriginalSource)
+            : ListDragSource.FindItem<ListBoxItem>(e.OriginalSource);
         // 눌린 항목이 이미 선택 상태인지 판정(메모/그룹 공통).
         _wasSelectedOnDown = false;
-        if (FindDataContext<NoteListItemViewModel>(e.OriginalSource) is { } note)
+        if (_pressedListItem?.DataContext is NoteListItemViewModel note)
             _wasSelectedOnDown = ReferenceEquals(ViewModel.SelectedNote, note);
-        else if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node)
+        else if (_pressedListItem?.DataContext is SidebarNodeViewModel node)
             _wasSelectedOnDown = node.IsSelected || ReferenceEquals(ViewModel.SelectedNode, node);
     }
 
     // ② 재클릭 해제 — 메모 목록
     private void NoteList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        var pressedItem = _pressedListItem;
+        _pressedListItem = null;
+        if (pressedItem is null || !ReferenceEquals(pressedItem, ListDragSource.FindItem<ListBoxItem>(e.OriginalSource))) return;
         if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;   // 드래그면 해제 안 함
         if (FindDataContext<NoteListItemViewModel>(e.OriginalSource) is { } note
             && ReferenceEquals(ViewModel.SelectedNote, note))
@@ -756,6 +767,9 @@ public partial class MainWindow : Window
     // ② 재클릭 해제 — 그룹 트리
     private void GroupTree_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        var pressedItem = _pressedListItem;
+        _pressedListItem = null;
+        if (pressedItem is null || !ReferenceEquals(pressedItem, ListDragSource.FindItem<TreeViewItem>(e.OriginalSource))) return;
         if (_syncingSelection) return;   // 프로그램적 동기화 중 재클릭 해제 억제(SelectedItemChanged와 일관).
         if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;
         if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node
@@ -772,6 +786,9 @@ public partial class MainWindow : Window
     // ② 재클릭 해제 — 시스템 목록
     private void SystemList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        var pressedItem = _pressedListItem;
+        _pressedListItem = null;
+        if (pressedItem is null || !ReferenceEquals(pressedItem, ListDragSource.FindItem<ListBoxItem>(e.OriginalSource))) return;
         if (_syncingSelection) return;   // 프로그램적 동기화 중 재클릭 해제 억제(일관).
         if (!_wasSelectedOnDown || ExceededDragThreshold(e)) return;
         if (FindDataContext<SidebarNodeViewModel>(e.OriginalSource) is { } node

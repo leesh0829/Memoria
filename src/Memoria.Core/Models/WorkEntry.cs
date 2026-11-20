@@ -19,6 +19,8 @@ public sealed class WorkEntry
     public string Action { get; set; } = "";
     public string Requester { get; set; } = "";
     public string Assignee { get; set; } = "";
+    // 후임 작업 원본의 마지막 동기화 상태. 업무내역의 수동 편집은 원본 변경 전까지 보존한다.
+    public string? HandoffSnapshot { get; set; }
 
     public bool IsVisibleOn(DateTime date) => Section switch
     {

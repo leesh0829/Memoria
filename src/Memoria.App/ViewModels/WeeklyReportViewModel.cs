@@ -33,7 +33,16 @@ public partial class WeeklyReportViewModel : ObservableObject
     private sealed record FormatASnapshot(DateOnly Start, DateOnly End, string Text, int Unclassified);
     private FormatASnapshot? _formatASnapshot;
 
-    partial void OnReportTextChanged(string value) => RememberFormatA(value);
+    partial void OnReportTextChanged(string value)
+    {
+        var normalized = ReportIndentation.NormalizeTabs(value);
+        if (normalized != value)
+        {
+            ReportText = normalized;
+            return;
+        }
+        RememberFormatA(value);
+    }
 
     private void RememberFormatA(string text)
     {
@@ -45,7 +54,7 @@ public partial class WeeklyReportViewModel : ObservableObject
     {
         ReportText = text;
         // 주차만 바뀌고 생성 본문이 같아도 원본 기간·미분류 수는 갱신한다.
-        RememberFormatA(text);
+        RememberFormatA(ReportText);
     }
 
     /// 저장 앵커. 양식 C는 표시 구간이 금~목이라 시작일을 그대로 저장하면 노트를 다시 열 때
@@ -169,7 +178,7 @@ public partial class WeeklyReportViewModel : ObservableObject
             ClientIdsC = FormatCClients.Resolve(
                 settings.TryGetValue(SettingsKeys.FormatCClientIds, out var clientIds) ? clientIds : null,
                 clients),
-            Indent = Read(settings, SettingsKeys.ReportIndent, "\t"),
+            Indent = Read(settings, SettingsKeys.ReportIndent, ReportIndentation.Unit),
             IncludeDoneOnly = includeDoneOnly,
             Clients = clients,
             UnclassifiedLabel = "미분류",

@@ -17,7 +17,7 @@ public sealed class TaggingService : ITaggingService
 
     public ChecklistItem ApplyAutoTag(ChecklistItem item)
     {
-        if (item.Kind != ItemKind.Task || item.IsManual) return item;
+        if (item.Kind is not (ItemKind.Task or ItemKind.Handoff) || item.IsManual) return item;
 
         var rules = _clients.GetRules();
         var enabledIds = _clients.GetAll(enabledOnly: true).Select(c => c.Id).ToHashSet();
